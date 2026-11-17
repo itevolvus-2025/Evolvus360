@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+.pytest-tmp/
+pytest-cache-files-*/
+.ruff_cache/
+.coverage
+logs/
+uploads/
