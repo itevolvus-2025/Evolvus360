@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from cryptography.fernet import Fernet
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
@@ -418,6 +419,7 @@ def test_production_settings_require_strong_secret_and_disable_debug() -> None:
             _env_file=None,
             app_env="production",
             secret_key="a-strong-random-secret-value-1234567890",
+            jwt_secret_key="another-strong-random-jwt-value-1234567890",
             database_url="postgresql+psycopg://db-host/app",
             debug=True,
         )
@@ -428,7 +430,12 @@ def test_production_settings_default_debug_to_false() -> None:
         _env_file=None,
         app_env="production",
         secret_key="a-strong-random-secret-value-1234567890",
+        jwt_secret_key="another-strong-random-jwt-value-1234567890",
+        email_service_api_key="a-strong-random-central-email-key-123456",
+        email_service_base_url="https://email.example.com",
         database_url="postgresql+psycopg://db-host/app",
+        pii_encryption_key=Fernet.generate_key().decode(),
+        frontend_onboarding_url="https://app.example.com/onboarding",
     )
     assert settings.debug is False
 
@@ -467,8 +474,13 @@ def test_env_example_has_configuration_and_gitignore_excludes_env() -> None:
         "APP_ENV",
         "DEBUG",
         "SECRET_KEY",
+        "JWT_SECRET_KEY",
+        "JWT_ALGORITHM",
         "ACCESS_TOKEN_EXPIRE_MINUTES",
         "REFRESH_TOKEN_EXPIRE_DAYS",
+        "PASSWORD_RESET_TOKEN_EXPIRE_MINUTES",
+        "LOGIN_MAX_FAILED_ATTEMPTS",
+        "LOGIN_LOCKOUT_MINUTES",
         "DATABASE_URL",
         "DB_POOL_SIZE",
         "DB_MAX_OVERFLOW",
@@ -484,6 +496,11 @@ def test_env_example_has_configuration_and_gitignore_excludes_env() -> None:
         "ENABLE_HSTS",
         "FRONTEND_URL",
         "LOG_LEVEL",
+        "EMAIL_SERVICE_BASE_URL",
+        "EMAIL_SERVICE_API_KEY",
+        "EMAIL_SERVICE_TIMEOUT_SECONDS",
+        "FRONTEND_RESET_PASSWORD_URL",
+        "DEV_PASSWORD_RESET_TOKEN",
     } <= keys
     assert ".env" in gitignore.read_text(encoding="utf-8").splitlines()
     assert "postgres:password" not in env_example.read_text(encoding="utf-8")

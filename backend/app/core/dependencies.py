@@ -1,0 +1,100 @@
+"""Database-backed authentication and authorization dependencies."""
+
+from collections.abc import Callable
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from app.core.security import decode_access_token
+from app.database.session import get_db
+from app.models.hrms import Role, RoleMenu, RolePermission, User, UserRole
+
+bearer_scheme = HTTPBearer(auto_error=False, scheme_name="BearerAuth")
+
+
+def get_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        claims = decode_access_token(credentials.credentials)
+        user_id = UUID(claims["sub"])
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid or expired access token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from None
+    # Load current database role state; JWT role claims are never authoritative.
+    user = db.scalar(
+        select(User)
+        .options(
+            selectinload(User.role_assignments)
+            .joinedload(UserRole.role)
+            .selectinload(Role.permission_assignments)
+            .joinedload(RolePermission.permission),
+            selectinload(User.role_assignments)
+            .joinedload(UserRole.role)
+            .selectinload(Role.menu_assignments)
+            .joinedload(RoleMenu.menu),
+        )
+        .where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    if user is None or not user.is_active or user.account_status != "ACTIVE":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or inactive account")
+    current_company_id = str(user.company_id) if user.company_id else None
+    if claims.get("company_id") != current_company_id:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, "Invalid access token tenant context"
+        )
+    return user
+
+
+def get_current_active_user(user: Annotated[User, Depends(get_current_user)]) -> User:
+    return user
+
+
+def _role_codes(user: User) -> set[str]:
+    return {
+        assignment.role.role_code
+        for assignment in user.role_assignments
+        if assignment.role.is_active
+    }
+
+
+def _permission_codes(user: User) -> set[str]:
+    return {
+        permission.permission_code
+        for role in user.role_assignments
+        if role.role.is_active
+        for assignment in role.role.permission_assignments
+        for permission in [assignment.permission]
+    }
+
+
+def require_roles(*role_codes: str) -> Callable:
+    def dependency(user: Annotated[User, Depends(get_current_user)]) -> User:
+        if not set(role_codes).intersection(_role_codes(user)):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Insufficient role")
+        return user
+
+    return dependency
+
+
+def require_permissions(*codes: str) -> Callable:
+    def dependency(user: Annotated[User, Depends(get_current_user)]) -> User:
+        if not set(codes).issubset(_permission_codes(user)):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Insufficient permission")
+        return user
+
+    return dependency

@@ -1,5 +1,47 @@
-"""Model package imports for Alembic metadata registration."""
+"""Import all ORM models so Base.metadata is complete for Alembic."""
 
-from app.models import employee, organization, permission, role, user
+from app.models.company import Company
+from app.models.hrms import (
+    Department,
+    EmailDispatchOutbox,
+    EmployeeBankDetails,
+    EmployeeContactDetails,
+    EmployeeDocuments,
+    EmployeeEmploymentDetails,
+    EmployeePersonalDetails,
+    EmployeeSkillsAndInterests,
+    Entity,
+    Menu,
+    OnboardingInvitation,
+    PasswordResetToken,
+    Permission,
+    RefreshTokenSession,
+    Role,
+    RoleMenu,
+    RolePermission,
+    User,
+    UserRole,
+)
 
-__all__ = ["employee", "organization", "permission", "role", "user"]
+__all__ = [
+    "EmailDispatchOutbox",
+    "Company",
+    "User",
+    "Role",
+    "Permission",
+    "UserRole",
+    "RolePermission",
+    "Menu",
+    "RoleMenu",
+    "RefreshTokenSession",
+    "EmployeeEmploymentDetails",
+    "EmployeePersonalDetails",
+    "EmployeeContactDetails",
+    "EmployeeBankDetails",
+    "EmployeeDocuments",
+    "EmployeeSkillsAndInterests",
+    "Department",
+    "Entity",
+    "OnboardingInvitation",
+    "PasswordResetToken",
+]
