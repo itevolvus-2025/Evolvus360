@@ -9,8 +9,9 @@ from collections.abc import Sequence
 from uuid import UUID
 
 import sqlalchemy as sa
-from alembic import op
-from alembic import context
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+from alembic import context, op
 
 revision: str = "c4a17e63d29b"
 down_revision: str | Sequence[str] | None = "b6f1a7d2e903"
@@ -92,9 +93,21 @@ def _assert_empty_audit_values(table: str) -> None:
 def _assert_safe_preconditions() -> None:
     if context.is_offline_mode():
         op.execute(sa.text("""
-            DO $$ BEGIN
+            DO $$ DECLARE row_count BIGINT;
+            BEGIN
                 IF to_regclass('public.master_data') IS NOT NULL THEN
-                    RAISE EXCEPTION 'master_data must remain absent';
+                    EXECUTE 'SELECT count(*) FROM public.master_data '
+                            'WHERE group_type IN (''mst-department'', ''mst-entity'')'
+                        INTO row_count;
+                    IF row_count > 0 THEN
+                        RAISE EXCEPTION 'Cannot restore departments/entities from master_data: company ownership was not retained';
+                    END IF;
+                    EXECUTE 'SELECT count(*) FROM public.master_data '
+                            'WHERE group_type NOT IN (''mst-roles'', ''mst-permissions'', ''mst-menus'', ''mst-department'', ''mst-entity'')'
+                        INTO row_count;
+                    IF row_count > 0 THEN
+                        RAISE EXCEPTION 'Cannot safely migrate unrecognized master_data groups';
+                    END IF;
                 END IF;
                 IF EXISTS (SELECT 1 FROM public.roles)
                    OR EXISTS (SELECT 1 FROM public.permissions)
@@ -117,10 +130,38 @@ def _assert_safe_preconditions() -> None:
         return
 
     bind = op.get_bind()
-    if bind.execute(sa.text("SELECT to_regclass('public.master_data')")).scalar():
-        raise RuntimeError(
-            "master_data is expected to remain absent; this migration will not recreate it"
-        )
+    master_data_exists = bind.execute(
+        sa.text("SELECT to_regclass('public.master_data')")
+    ).scalar()
+    if master_data_exists:
+        unmappable = bind.execute(sa.text("""
+            SELECT group_type, count(*)
+            FROM public.master_data
+            WHERE group_type IN ('mst-department', 'mst-entity')
+            GROUP BY group_type
+        """)).all()
+        if unmappable:
+            summary = ", ".join(f"{group}={count}" for group, count in unmappable)
+            raise RuntimeError(
+                "Cannot safely restore departments/entities from master_data "
+                f"because company ownership was not retained ({summary}). "
+                "No migration changes were committed."
+            )
+        unknown_groups = bind.execute(sa.text("""
+            SELECT DISTINCT group_type
+            FROM public.master_data
+            WHERE group_type NOT IN (
+                'mst-roles', 'mst-permissions', 'mst-menus',
+                'mst-department', 'mst-entity'
+            )
+            ORDER BY group_type
+        """)).scalars().all()
+        if unknown_groups:
+            raise RuntimeError(
+                "Cannot safely migrate unrecognized master_data groups: "
+                + ", ".join(unknown_groups)
+                + ". No migration changes were committed."
+            )
     for table in (
         "roles",
         "permissions",
@@ -147,11 +188,49 @@ def _assert_safe_preconditions() -> None:
         raise RuntimeError("Refusing to reshape populated permissions table")
 
 
-def _insert_rows(table_name: str, columns: tuple[sa.Column, ...], rows: list[dict]) -> None:
+def _insert_seed_rows(table_name: str, columns: tuple[sa.Column, ...], rows: list[dict]) -> None:
+    """Insert recovered fallback rows without replacing migrated source rows."""
     if not rows:
         return
     table = sa.table(table_name, *columns, schema="public")
-    op.bulk_insert(table, [{**row, "id": UUID(row["id"])} for row in rows])
+    values = [{**row, "id": UUID(row["id"])} for row in rows]
+    op.execute(pg_insert(table).values(values).on_conflict_do_nothing())
+
+
+def _copy_master_data_rows() -> None:
+    """Restore the relational RBAC rows before switching foreign keys back."""
+    op.execute(sa.text("""
+        DO $$ BEGIN
+            IF to_regclass('public.master_data') IS NOT NULL THEN
+                INSERT INTO public.roles
+                    (id, role_code, role_name, description, is_system_role,
+                     is_active, is_deleted, created_at, updated_at)
+                SELECT id, metadata->>'role_code', name,
+                       metadata->>'description',
+                       COALESCE((metadata->>'is_system_role')::boolean, false),
+                       COALESCE((metadata->>'is_active')::boolean, true),
+                       is_deleted, created_at, updated_at
+                FROM public.master_data
+                WHERE group_type = 'mst-roles';
+
+                INSERT INTO public.permissions
+                    (id, permission_code, permission_name, module_name,
+                     description, created_at)
+                SELECT id, metadata->>'permission_code', name,
+                       metadata->>'module_name', metadata->>'description',
+                       created_at
+                FROM public.master_data
+                WHERE group_type = 'mst-permissions';
+
+                INSERT INTO public.menus
+                    (id, menu_name, menu_icon_svg, seq_no)
+                SELECT id, name, metadata->>'menu_icon_svg',
+                       (metadata->>'seq_no')::integer
+                FROM public.master_data
+                WHERE group_type = 'mst-menus';
+            END IF;
+        END $$;
+    """))
 
 
 def upgrade() -> None:
@@ -206,7 +285,19 @@ def upgrade() -> None:
         schema="public",
     )
 
-    _insert_rows(
+    op.add_column(
+        "roles",
+        sa.Column(
+            "is_deleted",
+            sa.Boolean(),
+            server_default=sa.text("false"),
+            nullable=False,
+        ),
+        schema="public",
+    )
+    _copy_master_data_rows()
+
+    _insert_seed_rows(
         "roles",
         (
             sa.Column("id", sa.Uuid()), sa.Column("role_code", sa.String(50)),
@@ -215,7 +306,7 @@ def upgrade() -> None:
         ),
         ROLE_ROWS,
     )
-    _insert_rows(
+    _insert_seed_rows(
         "permissions",
         (
             sa.Column("id", sa.Uuid()), sa.Column("permission_code", sa.String(100)),
@@ -224,7 +315,7 @@ def upgrade() -> None:
         ),
         PERMISSION_ROWS,
     )
-    _insert_rows(
+    _insert_seed_rows(
         "menus",
         (
             sa.Column("id", sa.Uuid()), sa.Column("menu_name", sa.String(100)),
@@ -331,7 +422,8 @@ def upgrade() -> None:
         op.execute(sa.text(f'ALTER TABLE public."{table}" DROP CONSTRAINT IF EXISTS "fk_{table}_updated_by_users"'))
         op.execute(sa.text(f'ALTER TABLE public."{table}" DROP COLUMN IF EXISTS created_by'))
         op.execute(sa.text(f'ALTER TABLE public."{table}" DROP COLUMN IF EXISTS updated_by'))
-        op.execute(sa.text(f'ALTER TABLE public."{table}" DROP COLUMN IF EXISTS is_deleted'))
+        if table != "roles":
+            op.execute(sa.text(f'ALTER TABLE public."{table}" DROP COLUMN IF EXISTS is_deleted'))
 
     for table in (
         "companies", "roles", "employee_employment_details", "employee_personal_details",
@@ -341,6 +433,13 @@ def upgrade() -> None:
     op.execute(sa.text("DROP FUNCTION IF EXISTS public.set_updated_at()"))
 
     op.drop_table("employee_details", schema="public")
+    op.execute(sa.text("""
+        DO $$ BEGIN
+            IF to_regclass('public.master_data') IS NOT NULL THEN
+                EXECUTE 'DROP TABLE public.master_data';
+            END IF;
+        END $$;
+    """))
 
 
 def downgrade() -> None:

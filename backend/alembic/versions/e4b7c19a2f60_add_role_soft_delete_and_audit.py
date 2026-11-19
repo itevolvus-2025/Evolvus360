@@ -8,6 +8,7 @@ Create Date: 2026-11-19
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "e4b7c19a2f60"
@@ -21,7 +22,8 @@ def upgrade() -> None:
         sa.text(
             "DO $$ BEGIN "
             "IF EXISTS (SELECT lower(role_name) FROM public.roles "
-            "WHERE is_active IS TRUE GROUP BY lower(role_name) "
+            "WHERE is_active IS TRUE AND is_deleted IS FALSE "
+            "GROUP BY lower(role_name) "
             "HAVING count(*) > 1) THEN "
             "RAISE EXCEPTION 'Cannot enforce unique active role names: duplicates exist'; "
             "END IF; END $$;"
@@ -54,24 +56,27 @@ def upgrade() -> None:
         source_schema="public",
         referent_schema="public",
     )
-    op.add_column(
-        "roles",
-        sa.Column(
-            "is_deleted",
-            sa.Boolean(),
-            server_default=sa.text("false"),
-            nullable=False,
-        ),
-        schema="public",
-    )
-    op.create_index(
-        "uq_roles_active_name_lower",
-        "roles",
-        [sa.text("lower(role_name)")],
-        unique=True,
-        schema="public",
-        postgresql_where=sa.text("is_deleted IS false AND is_active IS true"),
-    )
+    op.execute(sa.text("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'roles'
+                  AND column_name = 'is_deleted'
+            ) THEN
+                ALTER TABLE public.roles
+                    ADD COLUMN is_deleted BOOLEAN NOT NULL DEFAULT false;
+            END IF;
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_indexes
+                WHERE schemaname = 'public' AND tablename = 'roles'
+                  AND indexname = 'uq_roles_active_name_lower'
+            ) THEN
+                CREATE UNIQUE INDEX uq_roles_active_name_lower
+                    ON public.roles (lower(role_name))
+                    WHERE is_deleted IS false AND is_active IS true;
+            END IF;
+        END $$;
+    """))
 
 
 def downgrade() -> None:

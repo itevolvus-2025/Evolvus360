@@ -64,8 +64,11 @@ at the shared `Evolvus360` database. Each migration environment filters
 autogeneration to its own model metadata; migrations must still be reviewed to
 ensure they touch only that service's tables. Do not create or restore a
 `master_data` table: HRMS roles, permissions, departments, and entities are
-modeled as separate relational tables. The HRMS backend does not store or return
-menus or role-menu assignments.
+modeled as separate relational tables. The compatibility migration restores
+recoverable role, permission, and menu rows before removing the legacy table;
+it stops without changing data if department/entity ownership cannot be
+reconstructed. Relational menu and role-menu tables are retained for existing
+records, although the current backend API does not expose them.
 
 Run each service's Alembic commands from that service's directory and virtual
 environment. Running one service's migration commands does not advance the

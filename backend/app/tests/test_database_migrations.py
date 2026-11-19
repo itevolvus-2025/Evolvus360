@@ -120,9 +120,37 @@ def test_migration_discovery_finds_hrms_head_and_preserves_baseline() -> None:
     assert len(scripts.get_heads()) == 1
     revision = scripts.get_revision(scripts.get_heads()[0])
     assert revision is not None
-    assert revision.revision == "f731c2d89a04"
-    assert revision.down_revision == "e4b7c19a2f60"
+    assert revision.revision == "a7d9c2e84b16"
+    assert revision.down_revision == "f731c2d89a04"
     assert scripts.get_revision("0001_initial_baseline").down_revision is None
+
+
+def test_relational_restore_migrates_legacy_master_rows_before_drop() -> None:
+    scripts = ScriptDirectory.from_config(alembic_config())
+    revision = scripts.get_revision("c4a17e63d29b")
+    assert revision is not None
+    source = Path(revision.module.__file__).read_text(encoding="utf-8")
+
+    assert "master_data is expected to remain absent" not in source
+    assert "WHERE group_type = 'mst-roles'" in source
+    assert "WHERE group_type = 'mst-permissions'" in source
+    assert "WHERE group_type = 'mst-menus'" in source
+    assert "is_deleted, created_at, updated_at" in source
+    assert "Cannot safely restore departments/entities" in source
+    assert "EXECUTE 'DROP TABLE public.master_data'" in source
+
+
+def test_application_has_no_master_data_table_dependency() -> None:
+    app_dir = BACKEND_DIR / "app"
+    source_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in app_dir.rglob("*.py")
+        if "__pycache__" not in path.parts and "tests" not in path.parts
+    )
+
+    assert "public.master_data" not in source_text
+    assert "FROM master_data" not in source_text
+    assert "JOIN master_data" not in source_text
 
 
 def test_password_reset_revision_has_reversible_migration_functions() -> None:

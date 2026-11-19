@@ -4,6 +4,7 @@ import getpass
 import sys
 
 from pydantic import EmailStr, TypeAdapter, ValidationError
+from sqlalchemy.exc import DBAPIError
 
 from app.core.security import normalize_email, validate_password_strength
 from app.database.session import SessionLocal
@@ -38,6 +39,23 @@ def main() -> int:
         return 0
     except (ValueError, LookupError) as exc:
         print(str(exc), file=sys.stderr)
+        return 1
+    except DBAPIError as exc:
+        # Show the database driver's diagnostic (for example, a missing column)
+        # without printing SQL parameters, which may contain user credentials.
+        detail = str(getattr(exc, "orig", exc)).strip()
+        sqlstate = getattr(getattr(exc, "orig", None), "sqlstate", None)
+        if sqlstate:
+            print(
+                f"Super Admin creation failed ({type(exc).__name__}, "
+                f"SQLSTATE {sqlstate}): {detail}",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"Super Admin creation failed ({type(exc).__name__}): {detail}",
+                file=sys.stderr,
+            )
         return 1
     except Exception as exc:
         print(f"Super Admin creation failed ({type(exc).__name__}).", file=sys.stderr)
