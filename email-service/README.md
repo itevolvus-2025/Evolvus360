@@ -1,6 +1,6 @@
 # Evolvus360 Central Email Service
 
-An independent FastAPI process and PostgreSQL database for email rendering, SMTP delivery, idempotency, logs, and retries. HRMS and future applications call this service over HTTP; no SMTP settings belong in those applications.
+An independent FastAPI process for email rendering, SMTP delivery, idempotency, logs, and retries. HRMS and future applications call this service over HTTP; no SMTP settings belong in those applications. It shares the PostgreSQL `Evolvus360` database with HRMS while owning its tables and migration history.
 
 ## Local setup (PowerShell)
 
@@ -10,7 +10,7 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 Copy-Item .env.example .env
 # Set DATABASE_URL, both API keys, EMAIL_PAYLOAD_ENCRYPTION_KEY and SMTP values in .env
-createdb -h 127.0.0.1 -U postgres evolvus_email
+# Set DATABASE_URL to the shared Evolvus360 database in .env.
 .\.venv\Scripts\python.exe -m alembic upgrade head
 .\.venv\Scripts\python.exe -m app.commands.seed_templates
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
@@ -38,7 +38,7 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8001/api/v1/emails/send -He
 
 ## Database and templates
 
-The service has its own Alembic configuration and owns `email_templates`, `email_logs`, `email_delivery_attempts`, and `email_provider_settings`. Apply migrations with `python -m alembic upgrade head`; seed initial reusable templates with `python -m app.commands.seed_templates`. SMTP credentials are environment secrets, never database fields. Templates use `$variable` placeholders; HTML values are escaped and executable template code is unsupported.
+The service has its own Alembic configuration, version table (`email_service_alembic_version`), and owns `email_templates`, `email_logs`, `email_delivery_attempts`, and `email_provider_settings`. Apply migrations with `python -m alembic upgrade head`; seed initial reusable templates with `python -m app.commands.seed_templates`. HRMS uses its separate `alembic_version` table. SMTP credentials are environment secrets, never database fields. Templates use `$variable` placeholders; HTML values are escaped and executable template code is unsupported.
 
 ## Troubleshooting
 

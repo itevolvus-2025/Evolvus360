@@ -120,8 +120,8 @@ def test_migration_discovery_finds_hrms_head_and_preserves_baseline() -> None:
     assert len(scripts.get_heads()) == 1
     revision = scripts.get_revision(scripts.get_heads()[0])
     assert revision is not None
-    assert revision.revision == "9d44f2c0a731"
-    assert revision.down_revision == "f81a3d2c9b40"
+    assert revision.revision == "f731c2d89a04"
+    assert revision.down_revision == "e4b7c19a2f60"
     assert scripts.get_revision("0001_initial_baseline").down_revision is None
 
 

@@ -103,6 +103,13 @@ class Role(TimestampMixin, Base):
     __tablename__ = "roles"
     __table_args__ = (
         UniqueConstraint("role_code", name="uq_roles_role_code"),
+        Index(
+            "uq_roles_active_name_lower",
+            func.lower(text("role_name")),
+            unique=True,
+            postgresql_where=text("is_deleted IS false AND is_active IS true"),
+            sqlite_where=text("is_deleted IS false AND is_active IS true"),
+        ),
         {"schema": None},
     )
     id: Mapped[UUID] = _id()
@@ -115,58 +122,27 @@ class Role(TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
     )
+    created_by: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    updated_by: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    permissions: Mapped[list[str]] = mapped_column(
+        JSON_DOCUMENT,
+        nullable=False,
+        default=list,
+        server_default=text("'[]'"),
+    )
     assignments: Mapped[list[UserRole]] = relationship(
         back_populates="role", cascade="all, delete-orphan"
     )
     permission_assignments: Mapped[list[RolePermission]] = relationship(
         back_populates="role", cascade="all, delete-orphan"
     )
-    menu_assignments: Mapped[list[RoleMenu]] = relationship(
-        back_populates="role", cascade="all, delete-orphan"
-    )
-
-
-class Menu(Base):
-    """A navigable application menu item shared across roles."""
-
-    __tablename__ = "menus"
-    __table_args__ = (
-        UniqueConstraint("menu_name", name="uq_menus_menu_name"),
-        CheckConstraint("seq_no >= 0", name="seq_no_nonnegative"),
-        {"schema": None},
-    )
-    id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        primary_key=True,
-        default=uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
-    menu_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    menu_icon_svg: Mapped[str] = mapped_column(Text, nullable=False)
-    seq_no: Mapped[int] = mapped_column(Integer, nullable=False)
-    role_assignments: Mapped[list[RoleMenu]] = relationship(
-        back_populates="menu", cascade="all, delete-orphan"
-    )
-
-
-class RoleMenu(Base):
-    __tablename__ = "role_menus"
-    __table_args__ = (
-        UniqueConstraint("role_id", "menu_id", name="uq_role_menus_role_menu"),
-        Index("ix_role_menus_menu_id", "menu_id"),
-        {"schema": None},
-    )
-    id: Mapped[UUID] = _id()
-    role_id: Mapped[UUID] = mapped_column(
-        ForeignKey("roles.id", ondelete="CASCADE"), nullable=False
-    )
-    menu_id: Mapped[UUID] = mapped_column(
-        ForeignKey("menus.id", ondelete="RESTRICT"), nullable=False
-    )
-    role: Mapped[Role] = relationship(back_populates="menu_assignments")
-    menu: Mapped[Menu] = relationship(back_populates="role_assignments")
-
-
 class Permission(Base):
     __tablename__ = "permissions"
     __table_args__ = (

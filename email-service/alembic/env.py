@@ -17,6 +17,13 @@ settings = get_settings()
 target_metadata = Base.metadata
 
 
+def include_object(obj, name, type_, reflected, compare_to):
+    """Keep email-service autogeneration scoped to its own model tables."""
+    if type_ == "table":
+        return name in target_metadata.tables
+    return True
+
+
 def _url() -> str:
     if not settings.database_url:
         raise RuntimeError("DATABASE_URL must be configured for email-service migrations")
@@ -32,6 +39,8 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
         compare_server_default=True,
+        version_table="email_service_alembic_version",
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -44,6 +53,8 @@ def _run(connection: Connection) -> None:
         include_schemas=True,
         compare_type=True,
         compare_server_default=True,
+        version_table="email_service_alembic_version",
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()

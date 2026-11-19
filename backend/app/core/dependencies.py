@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.security import decode_access_token
 from app.database.session import get_db
-from app.models.hrms import Role, RoleMenu, RolePermission, User, UserRole
+from app.models.hrms import User, UserRole
 
 bearer_scheme = HTTPBearer(auto_error=False, scheme_name="BearerAuth")
 
@@ -39,14 +39,7 @@ def get_current_user(
     user = db.scalar(
         select(User)
         .options(
-            selectinload(User.role_assignments)
-            .joinedload(UserRole.role)
-            .selectinload(Role.permission_assignments)
-            .joinedload(RolePermission.permission),
-            selectinload(User.role_assignments)
-            .joinedload(UserRole.role)
-            .selectinload(Role.menu_assignments)
-            .joinedload(RoleMenu.menu),
+            selectinload(User.role_assignments).joinedload(UserRole.role),
         )
         .where(User.id == user_id, User.deleted_at.is_(None))
     )
@@ -68,17 +61,17 @@ def _role_codes(user: User) -> set[str]:
     return {
         assignment.role.role_code
         for assignment in user.role_assignments
-        if assignment.role.is_active
+        if assignment.role.is_active and not getattr(assignment.role, "is_deleted", False)
     }
 
 
 def _permission_codes(user: User) -> set[str]:
     return {
-        permission.permission_code
+        permission
         for role in user.role_assignments
-        if role.role.is_active
-        for assignment in role.role.permission_assignments
-        for permission in [assignment.permission]
+        if role.role.is_active and not getattr(role.role, "is_deleted", False)
+        for permission in (role.role.permissions or [])
+        if isinstance(permission, str)
     }
 
 

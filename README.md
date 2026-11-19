@@ -6,6 +6,78 @@ The repository contains independently managed backend processes:
 - `email-service/`: centralized FastAPI email service, port 8001 with its own PostgreSQL database and Alembic history.
 - `frontend/`: Angular UI. The browser calls HRMS only; server-side HRMS calls the email API.
 
+## Start all applications
+
+Double-click `start-dev.bat` in the project root, or run it from PowerShell:
+
+```powershell
+.\start-dev.bat
+```
+
+It opens separate terminal windows for HRMS (port 8000), Email Service (port
+8001), and the Angular frontend (port 4200). It uses each service's existing
+`.venv` and `npm start`; it does not install packages or recreate environments.
+If a port is already listening, that app is skipped to avoid a duplicate
+process. Each window stays open so startup errors and logs remain visible.
+
+Stop an app with `Ctrl+C` in its own window. Close that window after the server
+has stopped. Closing all three windows stops the local development processes.
+
+Before starting, create each service `.env` from its `.env.example`, set local
+configuration, and install dependencies once if they are not already present.
+The launcher reports a missing environment, virtual environment, or frontend
+dependency directory in that application's terminal.
+
+## Centralized database migrations
+
+From the project root run:
+
+```powershell
+python db-migrate
+```
+
+The script verifies both service configurations connect to the same database,
+then upgrades HRMS to head followed by Email Service to head. It prints the
+current and final revision for each service and stops on the first failure.
+It never drops or resets the database and never changes a version table
+directly.
+
+The services share the `Evolvus360` PostgreSQL database but keep independent
+migration state: HRMS uses `alembic_version`; Email Service uses
+`email_service_alembic_version`. Each Alembic run uses that service's own
+virtual environment, settings, models, configuration, and migration directory.
+
+Run an individual service migration only when necessary, from that service
+directory and with its own virtual environment:
+
+```powershell
+cd D:\EU\Evolvus360\backend
+.\.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head
+
+cd D:\EU\Evolvus360\email-service
+.\.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head
+```
+
+These commands only advance the service's own version table. Review pending
+migration files before applying changes to a database containing important
+data.
+
+## Troubleshooting startup
+
+- A port is reported as already listening: check the matching app terminal or
+  stop the existing process before starting another copy.
+- A backend terminal reports a missing `.venv`: create that service's
+  environment and install its `requirements.txt` once.
+- A backend reports missing configuration: copy that service's
+  `.env.example` to `.env` and configure its local values. Keep `.env` files
+  private and out of source control.
+- The frontend reports missing dependencies: run `npm ci` in `frontend`.
+- A server exits immediately: read the error in its own window; check its
+  Python dependencies, `.env`, and required database/service connectivity.
+- Migration fails: the command names the failing service and returns non-zero.
+  Resolve the reported issue, inspect that service's migration state, then
+  rerun the centralized command. Do not reset or manually edit version tables.
+
 ## Start and stop separately (PowerShell)
 
 Start HRMS in one terminal:

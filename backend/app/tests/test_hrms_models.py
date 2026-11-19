@@ -1,6 +1,7 @@
 """Structural checks for the registered HRMS persistence model graph."""
 
 from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import configure_mappers
 
 import app.models as models
@@ -12,8 +13,6 @@ def test_all_hrms_models_are_registered_with_uuid_primary_keys() -> None:
         "companies",
         "users",
         "roles",
-        "menus",
-        "role_menus",
         "permissions",
         "user_roles",
         "role_permissions",
@@ -65,3 +64,18 @@ def test_authentication_timestamps_are_timezone_aware() -> None:
     assert refresh.c.expires_at.type.timezone is True
     assert refresh.c.created_at.type.timezone is True
     assert users.c.last_login_at.type.timezone is True
+
+
+def test_role_soft_delete_audit_fields_and_active_name_index() -> None:
+    roles = Base.metadata.tables["roles"]
+    assert roles.c.is_deleted.server_default is not None
+    assert roles.c.created_by.nullable is True
+    assert roles.c.updated_by.nullable is True
+    assert isinstance(
+        roles.c.permissions.type.dialect_impl(postgresql.dialect()),
+        postgresql.JSONB,
+    )
+    active_name_index = next(
+        index for index in roles.indexes if index.name == "uq_roles_active_name_lower"
+    )
+    assert active_name_index.unique is True

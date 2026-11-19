@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Run each Evolvus360 service's Alembic history against its own configuration."""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+SERVICES = (
+    ("HRMS", ROOT / "backend", "alembic_version"),
+    ("Email Service", ROOT / "email-service", "email_service_alembic_version"),
+)
+
+WORKER = r'''
+import json
+from pathlib import Path
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
+from app.core.config import get_settings
+
+settings = get_settings()
+if not settings.database_url:
+    raise RuntimeError("DATABASE_URL is missing from this service's configuration")
+url = make_url(settings.database_url)
+engine = create_engine(settings.database_url, pool_pre_ping=True,
+                       connect_args={} if url.drivername.startswith("sqlite") else {"connect_timeout": 5})
+try:
+    with engine.connect() as connection:
+        database = connection.execute(text("SELECT current_database()")).scalar_one()
+    print(json.dumps({"database": database, "url": url.render_as_string(hide_password=True)}))
+finally:
+    engine.dispose()
+'''
+
+ALEMBIC_WORKER = r'''
+from alembic import command
+from alembic.config import Config
+from pathlib import Path
+
+config = Config(str(Path.cwd() / "alembic.ini"))
+command.current(config, verbose=True)
+command.upgrade(config, "head")
+print("Migration command completed; final revision:")
+command.current(config, verbose=True)
+'''
+
+
+def python_for(directory: Path) -> Path:
+    return directory / ".venv" / "Scripts" / "python.exe"
+
+
+def run(directory: Path, code: str, *, capture: bool = False) -> subprocess.CompletedProcess[str]:
+    executable = python_for(directory)
+    if not executable.is_file():
+        raise RuntimeError(f"Missing service virtual environment: {executable}")
+    return subprocess.run(
+        [str(executable), "-c", code],
+        cwd=directory,
+        text=True,
+        check=True,
+        capture_output=capture,
+        env=os.environ.copy(),
+    )
+
+
+def main() -> int:
+    print("Starting centralized database migration...", flush=True)
+    active_service = "database connection verification"
+    try:
+        identities: list[tuple[str, str]] = []
+        for name, directory, _version_table in SERVICES:
+            result = run(directory, WORKER, capture=True)
+            info = json.loads(result.stdout.strip().splitlines()[-1])
+            identities.append((info["database"], info["url"]))
+        if identities[0] != identities[1]:
+            raise RuntimeError(
+                "HRMS and Email Service DATABASE_URL settings do not target the same database."
+            )
+        print(f"Shared database connection verified ({identities[0][0]}).", flush=True)
+
+        for index, (name, directory, version_table) in enumerate(SERVICES, start=1):
+            active_service = name
+            print(f"[{index}/2] Running {name} migrations ({version_table})...", flush=True)
+            run(directory, ALEMBIC_WORKER)
+            print(f"{name} migrations completed successfully.", flush=True)
+        print("All database migrations completed successfully.", flush=True)
+        return 0
+    except subprocess.CalledProcessError as error:
+        print(f"Operation failed while running {active_service} (exit code {error.returncode}).", file=sys.stderr)
+        if error.stdout:
+            print(error.stdout, file=sys.stderr, end="")
+        if error.stderr:
+            print(error.stderr, file=sys.stderr, end="")
+        return error.returncode or 1
+    except Exception as error:
+        print(f"Centralized migration failed: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

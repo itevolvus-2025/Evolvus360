@@ -44,7 +44,9 @@ PROFILE_STATES = {"PENDING", "SUBMITTED", "APPROVED"}
 
 def _role_codes(user: User) -> set[str]:
     return {
-        item.role.role_code for item in user.role_assignments if item.role.is_active
+        item.role.role_code
+        for item in user.role_assignments
+        if item.role.is_active and not getattr(item.role, "is_deleted", False)
     }
 
 
@@ -93,7 +95,9 @@ def list_entities(
 def list_roles(db: Session) -> list[Role]:
     return list(
         db.scalars(
-            select(Role).where(Role.is_active.is_(True)).order_by(Role.role_name)
+            select(Role)
+            .where(Role.is_active.is_(True), Role.is_deleted.is_(False))
+            .order_by(Role.role_name)
         ).all()
     )
 
@@ -120,7 +124,13 @@ def _resolve_masters(
             Entity.is_active.is_(True),
         )
     )
-    role = db.scalar(select(Role).where(Role.id == role_id, Role.is_active.is_(True)))
+    role = db.scalar(
+        select(Role).where(
+            Role.id == role_id,
+            Role.is_active.is_(True),
+            Role.is_deleted.is_(False),
+        )
+    )
     if department is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -734,7 +744,13 @@ def _employee_list_item(employee: EmployeeEmploymentDetails) -> dict:
     role_id = None
     if user:
         assignment = next(
-            (item for item in user.role_assignments if item.role.is_active), None
+            (
+                item
+                for item in user.role_assignments
+                if item.role.is_active
+                and not getattr(item.role, "is_deleted", False)
+            ),
+            None,
         )
         if assignment:
             role_name = assignment.role.role_name
@@ -873,7 +889,15 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
     employee = _employee_for_actor(db, actor, user_id)
     user = employee.user
     assignment = (
-        next((item for item in user.role_assignments if item.role.is_active), None)
+        next(
+            (
+                item
+                for item in user.role_assignments
+                if item.role.is_active
+                and not getattr(item.role, "is_deleted", False)
+            ),
+            None,
+        )
         if user
         else None
     )
@@ -1043,7 +1067,9 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
         if "role_id" in values:
             role = db.scalar(
                 select(Role).where(
-                    Role.id == values["role_id"], Role.is_active.is_(True)
+                    Role.id == values["role_id"],
+                    Role.is_active.is_(True),
+                    Role.is_deleted.is_(False),
                 )
             )
             if role is None:

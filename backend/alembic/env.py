@@ -17,6 +17,13 @@ if config.config_file_name is not None:
 settings = get_settings()
 target_metadata = Base.metadata
 
+
+def include_object(obj, name, type_, reflected, compare_to):
+    """Keep HRMS autogeneration scoped to tables in HRMS model metadata."""
+    if type_ == "table":
+        return name in target_metadata.tables
+    return True
+
 if settings.database_url:
     # ConfigParser treats percent signs as interpolation markers.
     config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
@@ -36,6 +43,8 @@ def run_migrations_offline() -> None:
         compare_type=True,
         compare_server_default=True,
         transaction_per_migration=True,
+        version_table="alembic_version",
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -49,6 +58,8 @@ def _run_migrations(connection: Connection) -> None:
         compare_type=True,
         compare_server_default=True,
         transaction_per_migration=True,
+        version_table="alembic_version",
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()

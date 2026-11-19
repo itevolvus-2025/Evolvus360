@@ -22,8 +22,6 @@ from app.models.hrms import (
     PasswordResetToken,
     RefreshTokenSession,
     Role,
-    RoleMenu,
-    RolePermission,
     User,
     UserRole,
 )
@@ -99,7 +97,9 @@ def create_super_admin(
             raise ValueError("An account already exists for that email.")
         role = db.scalar(
             select(Role).where(
-                Role.role_code == "SUPER_ADMIN", Role.is_active.is_(True)
+                Role.role_code == "SUPER_ADMIN",
+                Role.is_active.is_(True),
+                Role.is_deleted.is_(False),
             )
         )
         if role is None:
@@ -137,18 +137,9 @@ def _user_payload(user: User) -> dict:
         assignment.role
         for assignment in user.role_assignments
         if assignment.role.is_active
+        and not getattr(assignment.role, "is_deleted", False)
     ]
-    permissions = {
-        permission.permission_code
-        for role in roles
-        for assignment in role.permission_assignments
-        for permission in [assignment.permission]
-    }
-    menus = {
-        assignment.menu.id: assignment.menu
-        for role in roles
-        for assignment in role.menu_assignments
-    }
+    permissions = _permissions_for_roles(roles)
     return {
         "id": str(user.id),
         "email": user.email,
@@ -158,19 +149,20 @@ def _user_payload(user: User) -> dict:
             {"id": str(role.id), "name": role.role_name, "code": role.role_code}
             for role in roles
         ],
-        "permissions": sorted(permissions),
-        "menus": [
-            {
-                "id": str(menu.id),
-                "menu_name": menu.menu_name,
-                "menu_icon_svg": menu.menu_icon_svg,
-                "seq_no": menu.seq_no,
-            }
-            for menu in sorted(
-                menus.values(), key=lambda menu: (menu.seq_no, menu.menu_name)
-            )
-        ],
+        "permissions": permissions,
     }
+
+
+def _permissions_for_roles(roles: list[Role]) -> list[str]:
+    """Combine role JSON permission arrays without changing values or order."""
+    permissions: list[str] = []
+    seen: set[str] = set()
+    for role in roles:
+        for permission in role.permissions or []:
+            if isinstance(permission, str) and permission not in seen:
+                seen.add(permission)
+                permissions.append(permission)
+    return permissions
 
 
 def _issue_bundle(
@@ -194,12 +186,14 @@ def _issue_bundle(
         session.revoked_at = now
         session.last_used_at = now
         session.replaced_by = replacement
+    user_payload = _user_payload(user)
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
         "expires_in": expires_in,
-        "user": _user_payload(user),
+        "user": user_payload,
+        "permissions": user_payload["permissions"],
     }
 
 
@@ -207,14 +201,7 @@ def login(db: Session, email: str, password: str) -> dict:
     user = db.scalar(
         select(User)
         .options(
-            selectinload(User.role_assignments)
-            .joinedload(UserRole.role)
-            .selectinload(Role.permission_assignments)
-            .joinedload(RolePermission.permission),
-            selectinload(User.role_assignments)
-            .joinedload(UserRole.role)
-            .selectinload(Role.menu_assignments)
-            .joinedload(RoleMenu.menu),
+            selectinload(User.role_assignments).joinedload(UserRole.role),
         )
         .where(
             func.lower(User.email) == normalize_email(email),
@@ -258,14 +245,7 @@ def refresh(db: Session, raw_token: str) -> dict:
         .options(
             joinedload(RefreshTokenSession.user)
             .selectinload(User.role_assignments)
-            .joinedload(UserRole.role)
-            .selectinload(Role.permission_assignments)
-            .joinedload(RolePermission.permission),
-            joinedload(RefreshTokenSession.user)
-            .selectinload(User.role_assignments)
-            .joinedload(UserRole.role)
-            .selectinload(Role.menu_assignments)
-            .joinedload(RoleMenu.menu),
+            .joinedload(UserRole.role),
         )
         .where(RefreshTokenSession.token_hash == hash_token(raw_token))
     )

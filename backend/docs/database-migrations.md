@@ -57,6 +57,16 @@ both `upgrade()` and `downgrade()` operations where reversal is safe. Destructiv
 or data-transforming changes need a deliberate recovery plan; do not assume a
 schema downgrade can restore deleted data.
 
-The current `0001_initial_baseline` revision intentionally creates no business
-tables. It establishes a discoverable Alembic head so migration commands and
-upgrade/downgrade behavior can be verified before business schemas are added.
+HRMS owns its relational HRMS tables and uses the `alembic_version` table.
+Email Service is a separate application with its own migration directory and
+uses `email_service_alembic_version`. Both services may point `DATABASE_URL`
+at the shared `Evolvus360` database. Each migration environment filters
+autogeneration to its own model metadata; migrations must still be reviewed to
+ensure they touch only that service's tables. Do not create or restore a
+`master_data` table: HRMS roles, permissions, departments, and entities are
+modeled as separate relational tables. The HRMS backend does not store or return
+menus or role-menu assignments.
+
+Run each service's Alembic commands from that service's directory and virtual
+environment. Running one service's migration commands does not advance the
+other service's version table.

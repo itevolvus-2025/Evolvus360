@@ -19,13 +19,6 @@ class AuthRole(BaseModel):
     code: str
 
 
-class AuthMenu(BaseModel):
-    id: str
-    menu_name: str
-    menu_icon_svg: str
-    seq_no: int
-
-
 class AuthUser(BaseModel):
     id: str
     email: EmailStr
@@ -33,7 +26,6 @@ class AuthUser(BaseModel):
     last_name: str | None
     roles: list[AuthRole]
     permissions: list[str]
-    menus: list[AuthMenu]
 
 
 class TokenResponse(BaseModel):
@@ -42,6 +34,7 @@ class TokenResponse(BaseModel):
     token_type: Literal["bearer"]
     expires_in: int
     user: AuthUser
+    permissions: list[str]
 
 
 class LoginRequest(BaseModel):
