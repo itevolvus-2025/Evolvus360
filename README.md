@@ -15,18 +15,21 @@ Double-click `start-dev.bat` in the project root, or run it from PowerShell:
 ```
 
 It opens separate terminal windows for HRMS (port 8000), Email Service (port
-8001), and the Angular frontend (port 4200). It uses each service's existing
-`.venv` and `npm start`; it does not install packages or recreate environments.
-If a port is already listening, that app is skipped to avoid a duplicate
-process. Each window stays open so startup errors and logs remain visible.
+8001), and the Angular frontend (port 4200). It reuses existing Python
+environments, creates a missing `.venv`, and installs a service's requirements
+only when required packages are missing or inconsistent. It verifies the
+frontend packages and installs them from the existing npm lockfile only when
+needed. Existing environments are never recreated. If a port is already
+listening, that app is skipped to avoid a duplicate process. Each window stays
+open so startup errors and logs remain visible.
 
 Stop an app with `Ctrl+C` in its own window. Close that window after the server
 has stopped. Closing all three windows stops the local development processes.
 
-Before starting, create each service `.env` from its `.env.example`, set local
-configuration, and install dependencies once if they are not already present.
-The launcher reports a missing environment, virtual environment, or frontend
-dependency directory in that application's terminal.
+Before starting, create each service `.env` from its `.env.example` and set
+local configuration. Python and frontend dependencies are installed
+automatically when missing. Python 3, Node.js/npm, and network access are needed
+for initial setup.
 
 ## Centralized database migrations
 
@@ -66,12 +69,13 @@ data.
 
 - A port is reported as already listening: check the matching app terminal or
   stop the existing process before starting another copy.
-- A backend terminal reports a missing `.venv`: create that service's
-  environment and install its `requirements.txt` once.
+- A backend terminal cannot create `.venv`: install Python 3 and ensure `py`
+  or `python` is available on `PATH`.
 - A backend reports missing configuration: copy that service's
   `.env.example` to `.env` and configure its local values. Keep `.env` files
   private and out of source control.
-- The frontend reports missing dependencies: run `npm ci` in `frontend`.
+- Dependency installation fails: check network access, Python/pip or npm
+  availability, and read the error in that app's terminal.
 - A server exits immediately: read the error in its own window; check its
   Python dependencies, `.env`, and required database/service connectivity.
 - Migration fails: the command names the failing service and returns non-zero.
