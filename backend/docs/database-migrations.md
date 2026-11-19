@@ -62,9 +62,12 @@ Email Service is a separate application with its own migration directory and
 uses `email_service_alembic_version`. Both services may point `DATABASE_URL`
 at the shared `Evolvus360` database. Each migration environment filters
 autogeneration to its own model metadata; migrations must still be reviewed to
-ensure they touch only that service's tables. Do not create or restore a
-`master_data` table: HRMS roles, permissions, departments, and entities are
-modeled as separate relational tables. The compatibility migration restores
+ensure they touch only that service's tables. Do not create or restore
+`master_data` or `companies` tables: HRMS roles, permissions, departments, and
+entities are modeled as separate relational tables. Entities are global and
+have no `company_id` or sequence-counter columns. `company_id` remains an opaque
+grouping UUID on users, departments, and employee records, with no registry-table
+foreign key. The compatibility migration restores
 recoverable role, permission, and menu rows before removing the legacy table;
 it stops without changing data if department/entity ownership cannot be
 reconstructed. Relational menu and role-menu tables are retained for existing

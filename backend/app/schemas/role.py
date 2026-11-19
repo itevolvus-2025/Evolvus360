@@ -56,6 +56,7 @@ class RoleUpdate(BaseModel):
     )
     description: str | None = Field(default=None, max_length=4000)
     permissions: list[str] | None = None
+    status: Literal["active", "inactive"] | None = None
 
     @field_validator("name")
     @classmethod
@@ -70,7 +71,9 @@ class RoleUpdate(BaseModel):
     @model_validator(mode="after")
     def require_update_field(self) -> Self:
         if not self.model_fields_set:
-            raise ValueError("Provide a role name, description, or permissions to update")
+            raise ValueError(
+                "Provide a role name, description, permissions, or status to update"
+            )
         if "permissions" in self.model_fields_set and self.permissions is None:
             raise ValueError("Permissions must be an array; use an empty array to clear them")
         return self

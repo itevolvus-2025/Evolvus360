@@ -9,7 +9,7 @@ from uuid import UUID
 
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import HTTPException, status
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -20,7 +20,6 @@ from app.core.security import (
     new_opaque_token,
     normalize_email,
 )
-from app.models.company import Company
 from app.models.hrms import (
     Department,
     EmailDispatchOutbox,
@@ -55,21 +54,10 @@ def _company_scope(user: User, requested_company_id: UUID | None = None) -> UUID
     if "SUPER_ADMIN" in roles:
         return requested_company_id
     if "HR" not in roles or user.company_id is None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Company access is required")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Tenant access is required")
     if requested_company_id and requested_company_id != user.company_id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Insufficient company access")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Insufficient tenant access")
     return user.company_id
-
-
-def _active_company(db: Session, company_id: UUID) -> Company:
-    company = db.scalar(
-        select(Company).where(Company.id == company_id, Company.is_active.is_(True))
-    )
-    if company is None:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Company is not active"
-        )
-    return company
 
 
 def list_departments(
@@ -82,13 +70,8 @@ def list_departments(
     return list(db.scalars(query.order_by(Department.name)).all())
 
 
-def list_entities(
-    db: Session, user: User, company_id: UUID | None = None
-) -> list[Entity]:
-    scope = _company_scope(user, company_id)
+def list_entities(db: Session) -> list[Entity]:
     query = select(Entity).where(Entity.is_active.is_(True))
-    if scope:
-        query = query.where(Entity.company_id == scope)
     return list(db.scalars(query.order_by(Entity.name)).all())
 
 
@@ -120,7 +103,6 @@ def _resolve_masters(
     entity = db.scalar(
         select(Entity).where(
             Entity.id == entity_id,
-            Entity.company_id == company_id,
             Entity.is_active.is_(True),
         )
     )
@@ -134,11 +116,11 @@ def _resolve_masters(
     if department is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Department is not active in this company",
+            "Department is not active in this tenant",
         )
     if entity is None:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entity is not active in this company"
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entity is not active in this tenant"
         )
     if role is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Role is not active")
@@ -161,15 +143,24 @@ def _employee_prefix(entity_code: str) -> str:
 
 def _next_employee_code(db: Session, entity: Entity) -> str:
     prefix = _employee_prefix(entity.code)
-    sequence = db.scalar(
-        update(Entity)
+    locked_entity = db.scalar(
+        select(Entity)
         .where(Entity.id == entity.id, Entity.is_active.is_(True))
-        .values(next_employee_sequence=Entity.next_employee_sequence + 1)
-        .returning(Entity.next_employee_sequence)
-        .execution_options(synchronize_session=False)
+        .with_for_update()
     )
-    if sequence is None:
+    if locked_entity is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Entity is no longer active")
+    prefix_pattern = re.compile(rf"{re.escape(prefix)}-(\d{{3}})", re.IGNORECASE)
+    used_sequences = [
+        int(match.group(1))
+        for code in db.scalars(
+            select(EmployeeEmploymentDetails.employee_code).where(
+                EmployeeEmploymentDetails.entity_id == entity.id
+            )
+        )
+        if (match := prefix_pattern.fullmatch(code)) is not None
+    ]
+    sequence = max(used_sequences, default=0) + 1
     if sequence > 999:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
@@ -188,19 +179,12 @@ def create_employee(db: Session, actor: User, payload: object) -> dict:
                     Department.is_active.is_(True),
                 )
             )
-            entity_scope = db.scalar(
-                select(Entity.company_id).where(
-                    Entity.id == payload.entity_id,
-                    Entity.is_active.is_(True),
-                )
-            )
-            if department_scope is None or department_scope != entity_scope:
+            if department_scope is None:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    "Department and entity must belong to the same active company",
+                    "Department is not active",
                 )
             company_id = department_scope
-        _active_company(db, company_id)
         if not payload.first_name.strip() or not payload.last_name.strip():
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -326,7 +310,6 @@ def _employee_for_actor(
             joinedload(EmployeeEmploymentDetails.user),
             joinedload(EmployeeEmploymentDetails.department),
             joinedload(EmployeeEmploymentDetails.entity),
-            joinedload(EmployeeEmploymentDetails.company),
             selectinload(EmployeeEmploymentDetails.documents),
             joinedload(EmployeeEmploymentDetails.personal_details),
             joinedload(EmployeeEmploymentDetails.contact_details),
@@ -383,7 +366,7 @@ def send_invitation(db: Session, actor: User, user_id: UUID) -> dict:
             template_key="EMPLOYEE_INVITATION",
             variables={
                 "employee_name": f"{employee.first_name} {employee.last_name}".strip(),
-                "company_name": employee.company.company_name,
+                "company_name": employee.entity_name or str(employee.company_id),
                 "invitation_link": invitation_url,
                 "expiry_hours": get_settings().onboarding_invitation_expire_hours,
             },
@@ -438,9 +421,7 @@ def validate_invitation(db: Session, raw_token: str) -> dict:
     invitation = db.scalar(
         select(OnboardingInvitation)
         .options(
-            joinedload(OnboardingInvitation.employee).joinedload(
-                EmployeeEmploymentDetails.company
-            )
+            joinedload(OnboardingInvitation.employee)
         )
         .where(OnboardingInvitation.invitation_token_hash == hash_token(raw_token))
     )
@@ -467,7 +448,7 @@ def validate_invitation(db: Session, raw_token: str) -> dict:
     return {
         "first_name": employee.first_name,
         "last_name": employee.last_name,
-        "company_name": employee.company.company_name,
+        "company_name": employee.entity_name or str(employee.company_id),
         "expires_at": invitation.expires_at,
     }
 
@@ -1040,7 +1021,7 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
             if department is None:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    "Department is not active in this company",
+                    "Department is not active in this tenant",
                 )
             employee.department_id = department.id
             employee.department_name = department.name
@@ -1053,14 +1034,13 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
             entity = db.scalar(
                 select(Entity).where(
                     Entity.id == entity_id,
-                    Entity.company_id == company_id,
                     Entity.is_active.is_(True),
                 )
             )
             if entity is None:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    "Entity is not active in this company",
+                    "Entity is not active in this tenant",
                 )
             employee.entity_id = entity.id
             employee.entity_name = entity.name

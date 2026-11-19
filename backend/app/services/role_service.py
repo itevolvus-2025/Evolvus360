@@ -13,8 +13,9 @@ from app.models.hrms import Role
 from app.schemas.role import RoleCreate, RoleUpdate
 
 
-def _active_role_filter():
-    return Role.is_active.is_(True), Role.is_deleted.is_(False)
+def _visible_role_filter():
+    """Roles that have not been soft-deleted (inactive roles remain manageable)."""
+    return (Role.is_deleted.is_(False),)
 
 
 def _role_payload(role: Role) -> dict:
@@ -24,7 +25,7 @@ def _role_payload(role: Role) -> dict:
         "role_name": role.role_name,
         "role_code": role.role_code,
         "description": role.description,
-        "status": "ACTIVE" if role.is_active and not role.is_deleted else "DEACTIVATED",
+        "status": "active" if role.is_active and not role.is_deleted else "inactive",
         "is_active": role.is_active,
         "is_deleted": role.is_deleted,
         "permissions": list(role.permissions or []),
@@ -38,7 +39,8 @@ def _role_payload(role: Role) -> dict:
 def _ensure_unique_name(db: Session, name: str, *, excluding: UUID | None = None) -> None:
     query = select(Role.id).where(
         func.lower(Role.role_name) == name.lower(),
-        *_active_role_filter(),
+        Role.is_active.is_(True),
+        Role.is_deleted.is_(False),
     )
     if excluding is not None:
         query = query.where(Role.id != excluding)
@@ -106,7 +108,7 @@ def create_role(db: Session, actor_id: UUID, payload: RoleCreate) -> dict:
 def list_roles(
     db: Session, *, search: str | None, page: int, page_size: int
 ) -> dict:
-    query = select(Role).where(*_active_role_filter())
+    query = select(Role).where(*_visible_role_filter())
     if search and search.strip():
         query = query.where(Role.role_name.ilike(f"%{search.strip()}%"))
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
@@ -128,7 +130,7 @@ def list_roles(
 
 def get_role(db: Session, role_id: UUID) -> dict:
     role = db.scalar(
-        select(Role).where(Role.id == role_id, *_active_role_filter())
+        select(Role).where(Role.id == role_id, *_visible_role_filter())
     )
     if role is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Role not found")
@@ -137,7 +139,7 @@ def get_role(db: Session, role_id: UUID) -> dict:
 
 def update_role(db: Session, actor_id: UUID, role_id: UUID, payload: RoleUpdate) -> dict:
     role = db.scalar(
-        select(Role).where(Role.id == role_id, *_active_role_filter())
+        select(Role).where(Role.id == role_id, *_visible_role_filter())
     )
     if role is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Role not found")
@@ -149,6 +151,15 @@ def update_role(db: Session, actor_id: UUID, role_id: UUID, payload: RoleUpdate)
             role.description = payload.description.strip() if payload.description else None
         if "permissions" in payload.model_fields_set:
             role.permissions = list(payload.permissions or [])
+        if "status" in payload.model_fields_set and payload.status is not None:
+            if payload.status == "inactive" and role.role_code == "SUPER_ADMIN":
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    "The Super Admin role cannot be deactivated",
+                )
+            if payload.status == "active":
+                _ensure_unique_name(db, role.role_name, excluding=role.id)
+            role.is_active = payload.status == "active"
         role.updated_by = actor_id
         role.updated_at = datetime.now(UTC)
         db.flush()
@@ -167,25 +178,3 @@ def update_role(db: Session, actor_id: UUID, role_id: UUID, payload: RoleUpdate)
         raise
 
 
-def deactivate_role(db: Session, actor_id: UUID, role_id: UUID) -> dict:
-    role = db.scalar(
-        select(Role).where(Role.id == role_id, *_active_role_filter())
-    )
-    if role is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Role not found")
-    if role.role_code == "SUPER_ADMIN":
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "The Super Admin role cannot be deactivated"
-        )
-    try:
-        role.is_deleted = True
-        role.is_active = False
-        role.updated_by = actor_id
-        role.updated_at = datetime.now(UTC)
-        db.flush()
-        result = _role_payload(role)
-        db.commit()
-        return result
-    except Exception:
-        db.rollback()
-        raise

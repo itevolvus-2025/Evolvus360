@@ -27,7 +27,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
 from app.database.base import Base
-from app.models.company import Company
 from app.models.mixins import SoftDeleteMixin, TimestampMixin
 
 JSON_DOCUMENT = JSON().with_variant(JSONB(), "postgresql")
@@ -64,7 +63,7 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
     )
     id: Mapped[UUID] = _id()
     company_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("companies.id", ondelete="RESTRICT"), index=True
+        Uuid(as_uuid=True), index=True
     )
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[str | None] = mapped_column(String(255))
@@ -83,7 +82,6 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
     )
-    company: Mapped[Company | None] = relationship(back_populates="users")
     employee: Mapped[EmployeeEmploymentDetails | None] = relationship(
         back_populates="user",
         foreign_keys="EmployeeEmploymentDetails.user_id",
@@ -295,7 +293,7 @@ class Department(TimestampMixin, Base):
         server_default=text("gen_random_uuid()"),
     )
     company_id: Mapped[UUID] = mapped_column(
-        ForeignKey("companies.id", ondelete="CASCADE"), nullable=False
+        Uuid(as_uuid=True), nullable=False
     )
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     code: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -310,29 +308,17 @@ class Department(TimestampMixin, Base):
 
 class Entity(TimestampMixin, Base):
     __tablename__ = "entities"
-    __table_args__ = (
-        UniqueConstraint("company_id", "code", name="uq_entities_company_code"),
-        Index("ix_entities_company_active", "company_id", "is_active"),
-        CheckConstraint("next_employee_sequence >= 0", name="sequence_nonnegative"),
-        {"schema": None},
-    )
     id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
         primary_key=True,
         default=uuid4,
         server_default=text("gen_random_uuid()"),
     )
-    company_id: Mapped[UUID] = mapped_column(
-        ForeignKey("companies.id", ondelete="CASCADE"), nullable=False
-    )
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     code: Mapped[str] = mapped_column(String(50), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
-    )
-    next_employee_sequence: Mapped[int] = mapped_column(
-        Integer, nullable=False, server_default="0"
     )
     employees: Mapped[list[EmployeeEmploymentDetails]] = relationship(
         back_populates="entity"
@@ -402,7 +388,7 @@ class EmployeeEmploymentDetails(TimestampMixin, SoftDeleteMixin, Base):
     )
     id: Mapped[UUID] = _id()
     company_id: Mapped[UUID] = mapped_column(
-        ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False
+        Uuid(as_uuid=True), nullable=False
     )
     department_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("departments.id", ondelete="RESTRICT")
@@ -445,7 +431,6 @@ class EmployeeEmploymentDetails(TimestampMixin, SoftDeleteMixin, Base):
     employment_status: Mapped[str] = mapped_column(
         String(30), nullable=False, server_default="ACTIVE"
     )
-    company: Mapped[Company] = relationship(back_populates="employees")
     department: Mapped[Department | None] = relationship(back_populates="employees")
     entity: Mapped[Entity | None] = relationship(back_populates="employees")
     user: Mapped[User | None] = relationship(

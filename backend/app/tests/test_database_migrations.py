@@ -120,9 +120,10 @@ def test_migration_discovery_finds_hrms_head_and_preserves_baseline() -> None:
     assert len(scripts.get_heads()) == 1
     revision = scripts.get_revision(scripts.get_heads()[0])
     assert revision is not None
-    assert revision.revision == "a7d9c2e84b16"
-    assert revision.down_revision == "f731c2d89a04"
+    assert revision.revision == "c5a8d143e67b"
+    assert revision.down_revision == "b8f3c14e6a29"
     assert scripts.get_revision("0001_initial_baseline").down_revision is None
+    assert scripts.get_revision("b8f3c14e6a29").down_revision == "a7d9c2e84b16"
 
 
 def test_relational_restore_migrates_legacy_master_rows_before_drop() -> None:
@@ -151,6 +152,31 @@ def test_application_has_no_master_data_table_dependency() -> None:
     assert "public.master_data" not in source_text
     assert "FROM master_data" not in source_text
     assert "JOIN master_data" not in source_text
+
+
+def test_company_registry_removal_is_forward_only_and_preserves_scope_columns() -> None:
+    scripts = ScriptDirectory.from_config(alembic_config())
+    revision = scripts.get_revision("b8f3c14e6a29")
+    assert revision is not None
+    source = Path(revision.module.__file__).read_text(encoding="utf-8")
+
+    assert "DROP TABLE public.companies" in source
+    assert "con.confrelid = 'public.companies'::regclass" in source
+    assert "DROP CASCADE" not in source
+    assert "company_id" in source
+    assert "is forward-only" in source
+
+
+def test_entity_legacy_columns_are_removed_by_forward_migration() -> None:
+    scripts = ScriptDirectory.from_config(alembic_config())
+    revision = scripts.get_revision("c5a8d143e67b")
+    assert revision is not None
+    source = Path(revision.module.__file__).read_text(encoding="utf-8")
+
+    assert "DROP COLUMN IF EXISTS company_id" in source
+    assert "DROP COLUMN IF EXISTS next_employee_sequence" in source
+    assert "DROP TABLE" not in source
+    assert "is forward-only" in source
 
 
 def test_password_reset_revision_has_reversible_migration_functions() -> None:

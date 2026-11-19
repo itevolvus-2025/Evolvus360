@@ -10,7 +10,6 @@ from app.database.base import Base
 
 def test_all_hrms_models_are_registered_with_uuid_primary_keys() -> None:
     expected = {
-        "companies",
         "users",
         "roles",
         "permissions",
@@ -35,7 +34,7 @@ def test_all_hrms_models_are_registered_with_uuid_primary_keys() -> None:
         table.c.id.type.python_type.__name__ == "UUID"
         for table in Base.metadata.tables.values()
     )
-    assert models.Company is not None
+    assert not hasattr(models, "Company")
 
 
 def test_hrms_relationships_and_constraints_are_configured() -> None:
@@ -56,6 +55,14 @@ def test_hrms_relationships_and_constraints_are_configured() -> None:
     assert any(isinstance(c, CheckConstraint) for c in personal.constraints)
     assert len(Base.metadata.tables["employee_documents"].indexes) >= 1
     assert Base.metadata.tables["users"].c.company_id.nullable is True
+    assert "company_id" not in Base.metadata.tables["entities"].c
+    assert "next_employee_sequence" not in Base.metadata.tables["entities"].c
+    for table_name in (
+        "users",
+        "departments",
+        "employee_employment_details",
+    ):
+        assert not Base.metadata.tables[table_name].c.company_id.foreign_keys
 
 
 def test_authentication_timestamps_are_timezone_aware() -> None:

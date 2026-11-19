@@ -33,12 +33,8 @@ def departments(
 
 
 @router.get("/entities", response_model=ApiResponse[list[MasterDataItem]])
-def entities(
-    db: DbSession,
-    user: AdminUser,
-    company_id: UUID | None = None,
-):
-    rows = employee_service.list_entities(db, user, company_id)
+def entities(db: DbSession, _user: AdminUser):
+    rows = employee_service.list_entities(db)
     return success_response(
         "Entities fetched successfully",
         [MasterDataItem(id=row.id, name=row.name, code=row.code) for row in rows],

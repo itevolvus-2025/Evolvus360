@@ -44,7 +44,11 @@ def get_role(role_id: UUID, db: DbSession, _admin: SuperAdmin):
     return success_response("Role fetched", role_service.get_role(db, role_id))
 
 
-@router.put("/{role_id}", response_model=ApiResponse[dict])
+@router.put(
+    "/{role_id}",
+    response_model=ApiResponse[dict],
+    summary="Edit a role or change its active status",
+)
 def update_role(
     role_id: UUID, payload: RoleUpdate, db: DbSession, admin: SuperAdmin
 ):
@@ -52,7 +56,3 @@ def update_role(
     return success_response("Role updated", result)
 
 
-@router.delete("/{role_id}", response_model=ApiResponse[dict])
-def deactivate_role(role_id: UUID, db: DbSession, admin: SuperAdmin):
-    result = role_service.deactivate_role(db, admin.id, role_id)
-    return success_response("Role deactivated", result)

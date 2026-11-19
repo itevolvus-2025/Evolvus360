@@ -1,8 +1,10 @@
 # Employee management and invitation onboarding
 
 This module reuses `users`, `roles`, `user_roles`, and the existing employee,
-personal, contact, bank, document, skills, and invitation tables. Department and
-entity master rows are tenant scoped and must exist before employee creation.
+personal, contact, bank, document, skills, and invitation tables. Departments
+are grouped by a `company_id` UUID; entities are global and have no company ID.
+There is no companies registry table. Employee records retain a `company_id`
+UUID as their tenant grouping value.
 There are dropdown APIs but no master-data write APIs in this module.
 
 Apply the schema update from `backend`:
@@ -15,11 +17,11 @@ Apply the schema update from `backend`:
 
 All `/master-data` and `/users` endpoints require a bearer access token and an
 active `HR` or `SUPER_ADMIN` role. HR requests are restricted to their own
-`users.company_id`. Super Admin can read across companies. On employee creation,
-Super Admin may provide `company_id`; if omitted, the backend derives the company
-from the selected active department and entity and verifies they match. HR cannot
-override their company. Role IDs are loaded from the active roles table; HR may
-not assign the Super Admin role.
+`users.company_id`. Super Admin can read across groups. On employee creation,
+Super Admin may provide `company_id`; if omitted, the backend derives it from
+the selected active department. HR cannot
+override their `company_id`. Role IDs are loaded from the active roles table; HR
+may not assign the Super Admin role.
 
 ## Master data
 
@@ -29,9 +31,9 @@ GET /api/v1/master-data/entities
 GET /api/v1/master-data/roles
 ```
 
-Super Admin can pass `?company_id=<uuid>` to scope department/entity dropdowns.
-HR receives only active records in their own company. Responses contain IDs,
-names, and codes; role responses use `name` and `code`.
+Super Admin can pass `?company_id=<uuid>` to scope the department dropdown. HR
+receives only departments in their own tenant; active entities are global.
+Responses contain IDs, names, and codes; role responses use `name` and `code`.
 
 Example response:
 
@@ -72,11 +74,11 @@ Content-Type: application/json
 }
 ```
 
-For a global Super Admin, `company_id` is optional. Department and entity must
-belong to the same active company. `employee_code` is rejected if supplied; the
-backend increments the entity's database counter atomically and generates a
-two-character uppercase prefix plus a three-digit sequence, such as `ET-001`.
-The counter update and employee records share one transaction.
+For a global Super Admin, `company_id` is optional and is derived from the
+selected active department. The selected entity must be active. `employee_code`
+is rejected if supplied; the backend locks the entity row and generates the
+next two-character uppercase prefix plus three-digit sequence, such as `ET-001`,
+from existing employee codes in the same transaction.
 
 ```json
 {

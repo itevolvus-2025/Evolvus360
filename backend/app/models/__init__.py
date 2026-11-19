@@ -1,6 +1,5 @@
 """Import all ORM models so Base.metadata is complete for Alembic."""
 
-from app.models.company import Company
 from app.models.hrms import (
     Department,
     EmailDispatchOutbox,
@@ -23,7 +22,6 @@ from app.models.hrms import (
 
 __all__ = [
     "EmailDispatchOutbox",
-    "Company",
     "User",
     "Role",
     "Permission",

@@ -118,7 +118,7 @@ def test_get_update_and_duplicate_update(db_session: Session) -> None:
     assert missing.value.status_code == 404
 
 
-def test_deactivate_is_soft_and_keeps_assignments(db_session: Session) -> None:
+def test_status_update_deactivates_and_keeps_assignments(db_session: Session) -> None:
     actor = _actor(db_session)
     employee = _actor(db_session, "employee@example.test")
     role_id = UUID(
@@ -129,27 +129,31 @@ def test_deactivate_is_soft_and_keeps_assignments(db_session: Session) -> None:
     db_session.add(UserRole(user_id=employee.id, role_id=role_id, assigned_by_user_id=actor.id))
     db_session.commit()
 
-    result = role_service.deactivate_role(db_session, actor.id, role_id)
+    result = role_service.update_role(
+        db_session, actor.id, role_id, RoleUpdate(status="inactive")
+    )
     stored = db_session.get(Role, role_id)
-    assert result["status"] == "DEACTIVATED"
+    assert result["status"] == "inactive"
     assert stored is not None
-    assert stored.is_deleted is True
+    assert stored.is_deleted is False
     assert stored.is_active is False
     assert stored.updated_by == actor.id
     assert db_session.scalar(
         select(UserRole.id).where(UserRole.user_id == employee.id, UserRole.role_id == role_id)
     ) is not None
-    assert role_service.list_roles(db_session, search=None, page=1, page_size=10)["items"] == []
-    with pytest.raises(HTTPException) as missing:
-        role_service.get_role(db_session, role_id)
-    assert missing.value.status_code == 404
-    with pytest.raises(HTTPException) as already_deleted:
-        role_service.deactivate_role(db_session, actor.id, role_id)
-    assert already_deleted.value.status_code == 404
+    listed = role_service.list_roles(
+        db_session, search=None, page=1, page_size=10
+    )["items"]
+    assert listed[0]["status"] == "inactive"
+    assert role_service.get_role(db_session, role_id)["status"] == "inactive"
     replacement = role_service.create_role(
         db_session, actor.id, RoleCreate(name="Payroll Viewer")
     )
     assert replacement["role_code"] == "PAYROLL_VIEWER_2"
+    reactivated = role_service.update_role(
+        db_session, actor.id, role_id, RoleUpdate(status="active")
+    )
+    assert reactivated["status"] == "active"
 
 
 def test_super_admin_cannot_be_deactivated(db_session: Session) -> None:
@@ -163,7 +167,9 @@ def test_super_admin_cannot_be_deactivated(db_session: Session) -> None:
     db_session.add(super_admin_role)
     db_session.commit()
     with pytest.raises(HTTPException) as error:
-        role_service.deactivate_role(db_session, actor.id, super_admin_role.id)
+        role_service.update_role(
+            db_session, actor.id, super_admin_role.id, RoleUpdate(status="inactive")
+        )
     assert error.value.status_code == 409
     assert db_session.get(Role, super_admin_role.id).is_deleted is False
 
@@ -209,7 +215,9 @@ def test_deactivated_roles_cannot_be_assigned(db_session: Session) -> None:
             db_session, actor.id, RoleCreate(name="Old Role")
         )["id"]
     )
-    role_service.deactivate_role(db_session, actor.id, role_id)
+    role_service.update_role(
+        db_session, actor.id, role_id, RoleUpdate(status="inactive")
+    )
 
     class FakeSession:
         def __init__(self) -> None:
@@ -284,7 +292,7 @@ def test_role_routes_require_super_admin_and_reject_audit_input(
     assert unauthenticated.status_code == 401
 
 
-def test_role_api_create_list_details_update_and_deactivate(db_session: Session) -> None:
+def test_role_api_create_list_details_update_and_change_status(db_session: Session) -> None:
     actor = SimpleNamespace(
         id=uuid4(),
         role_assignments=[
@@ -337,9 +345,14 @@ def test_role_api_create_list_details_update_and_deactivate(db_session: Session)
             assert cleared.status_code == 200
             assert cleared.json()["data"]["permissions"] == []
 
-            deleted = client.delete(f"/api/v1/roles/{role_id}")
-            assert deleted.status_code == 200
-            assert deleted.json()["data"]["is_deleted"] is True
+            deactivated = client.put(
+                f"/api/v1/roles/{role_id}", json={"status": "inactive"}
+            )
+            assert deactivated.status_code == 200
+            assert deactivated.json()["data"]["status"] == "inactive"
+            assert deactivated.json()["data"]["is_deleted"] is False
+            listed = client.get("/api/v1/roles?search=api")
+            assert listed.json()["data"]["items"][0]["status"] == "inactive"
     finally:
         app.dependency_overrides.pop(get_db, None)
         app.dependency_overrides.pop(get_current_user, None)
