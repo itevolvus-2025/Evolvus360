@@ -382,7 +382,7 @@ class EmployeeEmploymentDetails(TimestampMixin, SoftDeleteMixin, Base):
     department_name: Mapped[str] = mapped_column(String(150), nullable=False)
     designation: Mapped[str] = mapped_column(String(150), nullable=False)
     work_location: Mapped[str | None] = mapped_column(String(150))
-    company_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    company_email: Mapped[str | None] = mapped_column(String(255))
     personal_email: Mapped[str] = mapped_column(String(255), nullable=False)
     pf_applicable: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false")

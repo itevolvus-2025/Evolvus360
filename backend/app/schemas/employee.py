@@ -29,7 +29,7 @@ class EmployeeCreate(BaseModel):
     designation: str = Field(min_length=1, max_length=150)
     entity_id: UUID
     location: str | None = Field(default=None, max_length=150)
-    company_email: EmailStr
+    company_email: EmailStr | None = None
     personal_email: EmailStr
     pf_applicable: bool
     joining_date: date

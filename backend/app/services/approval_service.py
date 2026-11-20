@@ -38,6 +38,7 @@ def _queue_approval_email(
 ) -> EmailDispatchOutbox:
     user = employee.user
     settings = get_settings()
+    user.email = employee.company_email
     expires_at = datetime.now(UTC) + timedelta(
         hours=settings.temporary_password_expire_hours
     )
@@ -49,7 +50,7 @@ def _queue_approval_email(
         db,
         entity_type="EMPLOYEE_APPROVAL",
         entity_id=employee.id,
-        recipient=user.email,
+        recipient=employee.company_email,
         template_key="GENERAL_NOTIFICATION",
         variables={
             "subject_line": "Your Evolvus360 employee account is approved",
@@ -279,6 +280,11 @@ def approve(db: Session, actor: User, employee_id: UUID) -> dict:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, "Employee is not pending approval"
             )
+        if not employee.company_email:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Company email is required before login credentials can be issued",
+            )
         docs = {d.document_type for d in employee.documents}
         if not {"identity_proof", "cancelled_cheque"}.issubset(docs) or not all(
             (employee.personal_details, employee.contact_details, employee.bank_details)
@@ -361,26 +367,28 @@ def reject(db: Session, actor: User, employee_id: UUID, reason: str) -> dict:
                 reason=reason,
             )
         )
-        email_row = email_dispatch.enqueue(
-            db,
-            entity_type="EMPLOYEE_REJECTION",
-            entity_id=employee.id,
-            recipient=employee.user.email,
-            template_key="GENERAL_NOTIFICATION",
-            variables={
-                "subject_line": "Your Evolvus360 onboarding needs changes",
-                "message_text": (
-                    f"Hello {employee.first_name}, your onboarding was not "
-                    f"approved. Reason: {reason}. Use your invitation link "
-                    "to correct and resubmit."
-                ),
-            },
-        )
+        email_row = None
+        if employee.company_email:
+            email_row = email_dispatch.enqueue(
+                db,
+                entity_type="EMPLOYEE_REJECTION",
+                entity_id=employee.id,
+                recipient=employee.company_email,
+                template_key="GENERAL_NOTIFICATION",
+                variables={
+                    "subject_line": "Your Evolvus360 onboarding needs changes",
+                    "message_text": (
+                        f"Hello {employee.first_name}, your onboarding was not "
+                        f"approved. Reason: {reason}. Use your invitation link "
+                        "to correct and resubmit."
+                    ),
+                },
+            )
         db.commit()
     except BaseException:
         db.rollback()
         raise
-    sent = email_dispatch.dispatch(email_row.id)
+    sent = email_dispatch.dispatch(email_row.id) if email_row else False
     return {
         "employee_id": str(employee.id),
         "onboarding_status": "REJECTED",
@@ -408,6 +416,24 @@ def retry_email(db: Session, employee_id: UUID, event: str) -> dict:
     )
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Retryable email was not found")
+    employee = db.scalar(
+        select(EmployeeEmploymentDetails).where(
+            or_(
+                EmployeeEmploymentDetails.id == employee_id,
+                EmployeeEmploymentDetails.user_id == employee_id,
+            ),
+            EmployeeEmploymentDetails.deleted_at.is_(None),
+        )
+    )
+    if (
+        employee is None
+        or not employee.company_email
+        or row.recipient_email.casefold() != employee.company_email.casefold()
+    ):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Email retry requires the current company email as recipient",
+        )
     sent = email_dispatch.retry(row.id, entity_type=entity_type, entity_id=employee_id)
     return {"email_dispatch_status": "DISPATCHED" if sent else "FAILED"}
 
@@ -429,6 +455,11 @@ def regenerate_credentials(db: Session, actor: User, employee_id: UUID) -> dict:
         if employee is None or employee.onboarding_status != "APPROVED":
             raise HTTPException(
                 status.HTTP_409_CONFLICT, "Approved employee was not found"
+            )
+        if not employee.company_email:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Company email is required before login credentials can be issued",
             )
         password = _temp_password()
         row = _queue_approval_email(db, employee, password)

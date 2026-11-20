@@ -51,7 +51,10 @@ def _role_codes(user: User) -> set[str]:
 
 
 def list_departments(db: Session, _user: User) -> list[Department]:
-    query = select(Department).where(Department.is_active.is_(True))
+    query = select(Department).where(
+        Department.is_active.is_(True),
+        func.upper(Department.code).in_({"IT", "CHEMISTRY", "BIOLOGY", "HR"}),
+    )
     return list(db.scalars(query.order_by(Department.name)).all())
 
 
@@ -180,11 +183,16 @@ def create_employee(db: Session, actor: User, payload: object) -> dict:
             payload.entity_id,
             payload.role_id,
         )
-        company_email = normalize_email(str(payload.company_email))
+        company_email = (
+            normalize_email(str(payload.company_email))
+            if payload.company_email
+            else None
+        )
         personal_email = normalize_email(str(payload.personal_email))
+        login_email = company_email or personal_email
         if db.scalar(
             select(User.id).where(
-                func.lower(User.email) == company_email,
+                func.lower(User.email) == login_email,
                 User.deleted_at.is_(None),
             )
         ):
@@ -204,7 +212,7 @@ def create_employee(db: Session, actor: User, payload: object) -> dict:
 
         employee_code = _next_employee_code(db, entity)
         user = User(
-            email=company_email,
+            email=login_email,
             first_name=payload.first_name.strip(),
             last_name=payload.last_name.strip(),
             account_status="INVITED",
@@ -1412,10 +1420,20 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
                     value.strip() if isinstance(value, str) else value,
                 )
         if "company_email" in values:
-            email = normalize_email(str(values["company_email"]))
+            email = (
+                normalize_email(str(values["company_email"]))
+                if values["company_email"]
+                else None
+            )
+            if email is None and employee.onboarding_status == "APPROVED":
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    "Company email cannot be removed after credentials are issued",
+                )
+            login_email = email or employee.personal_email
             duplicate = db.scalar(
                 select(User.id).where(
-                    func.lower(User.email) == email,
+                    func.lower(User.email) == login_email,
                     User.id != user_id,
                     User.deleted_at.is_(None),
                 )
@@ -1424,7 +1442,7 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
                 raise HTTPException(
                     status.HTTP_409_CONFLICT, "Company email already exists"
                 )
-            user.email = email
+            user.email = login_email
             employee.company_email = email
         if "personal_email" in values:
             email = normalize_email(str(values["personal_email"]))
@@ -1441,6 +1459,19 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
                     "Personal email already exists",
                 )
             employee.personal_email = email
+            if not employee.company_email:
+                duplicate_user = db.scalar(
+                    select(User.id).where(
+                        func.lower(User.email) == email,
+                        User.id != user_id,
+                        User.deleted_at.is_(None),
+                    )
+                )
+                if duplicate_user:
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT, "Personal email already exists"
+                    )
+                user.email = email
         if employee.employment_start_date < employee.joining_date:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,

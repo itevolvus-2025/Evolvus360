@@ -147,11 +147,6 @@ export class UserEditComponent implements OnInit {
       return;
     }
 
-    if (!companyEmail) {
-      this.notification.show('Company email is mandatory', 'error');
-      return;
-    }
-
     if (!personalEmail) {
       this.notification.show('Personal email is mandatory', 'error');
       return;
@@ -197,7 +192,7 @@ export class UserEditComponent implements OnInit {
         entity_id: entityOption?.id || (this.entity().includes('-') ? this.entity() : undefined),
         designation,
         location: this.location().trim() || null,
-        company_email: companyEmail,
+        company_email: companyEmail || null,
         personal_email: personalEmail,
         pf_applicable: this.pfApplicable() === 'Yes',
         joining_date: parseDate(joiningDate),

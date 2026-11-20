@@ -105,11 +105,6 @@ export class UserAddComponent {
       return;
     }
 
-    if (!companyEmail) {
-      this.notification.show('Company email is mandatory', 'error');
-      return;
-    }
-
     if (!personalEmail) {
       this.notification.show('Personal email is mandatory', 'error');
       return;
@@ -144,7 +139,7 @@ export class UserAddComponent {
       designation,
       entity_id: entityId,
       location: this.location().trim() || null,
-      company_email: companyEmail,
+      company_email: companyEmail || null,
       personal_email: personalEmail,
       pf_applicable: pfApplicable === 'Yes',
       joining_date: parseDate(joiningDate),

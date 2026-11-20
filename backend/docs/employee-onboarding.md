@@ -86,7 +86,14 @@ from existing employee codes in the same transaction.
 }
 ```
 
-Creation does not send an email and leaves the account in `INVITED` state.
+`company_email` is optional at creation; the profile invitation link is sent to
+`personal_email`. No login credentials or other onboarding email is sent to
+the personal address. Login credentials are sent only to `company_email`;
+approval is blocked until a company email has been added.
+
+`GET /api/v1/master-data/departments` returns the active department dropdown
+values (IT, Chemistry, Biology, and HR). The API is read-only; department IDs
+from this response are supplied as `department_id` when creating an employee.
 
 ## Send and validate invitation
 

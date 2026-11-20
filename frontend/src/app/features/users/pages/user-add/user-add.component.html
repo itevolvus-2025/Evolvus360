@@ -154,7 +154,7 @@
 
           <!-- Row 3: Entity & User/Employee Code -->
           <div class="form-group">
-            <label class="form-label" for="entity">Entity</label>
+            <label class="form-label" for="entity">Entity <span class="required">*</span></label>
             <div class="custom-select-wrap">
               <select
                 id="entity"
@@ -188,7 +188,7 @@
       <div class="section-card-body">
         <div class="form-row-2col">
           <div class="form-group">
-            <label class="form-label" for="companyEmail">Company email <span class="required">*</span></label>
+            <label class="form-label" for="companyEmail">Company email</label>
             <input
               id="companyEmail"
               type="email"
@@ -196,8 +196,8 @@
               placeholder="username@evolvus360.com"
               [value]="companyEmail()"
               (input)="companyEmail.set($any($event.target).value)"
-              required
             />
+            <small>Login credentials are sent here after approval. Add it before approval.</small>
           </div>
 
           <div class="form-group">
@@ -211,6 +211,7 @@
               (input)="personalEmail.set($any($event.target).value)"
               required
             />
+            <small>Used only for the profile submission link.</small>
           </div>
 
           <!-- PF Applicable (Full width / span-2) -->

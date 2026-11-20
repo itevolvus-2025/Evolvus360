@@ -341,6 +341,11 @@ def forgot_password(db: Session, email: str) -> None:
     )
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Email not found")
+    recipient_email = user.email
+    if user.employee is not None:
+        if not user.employee.company_email:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Email not found")
+        recipient_email = user.employee.company_email
     now = datetime.now(UTC)
     previous_tokens = db.scalars(
         select(PasswordResetToken).where(
@@ -365,7 +370,7 @@ def forgot_password(db: Session, email: str) -> None:
         db,
         entity_type="PASSWORD_RESET",
         entity_id=user.id,
-        recipient=user.email,
+        recipient=recipient_email,
         template_key="PASSWORD_RESET",
         variables={"reset_link": url},
     )
