@@ -1,0 +1,153 @@
+<div class="role-page-container">
+  <!-- Top Bar: Back button, Title, Cancel, Save role (Matching Screenshot) -->
+  <header class="role-page-header">
+    <div class="header-left">
+      <a routerLink="/administration" class="btn-circle-back" title="Back to Role Management">
+        <app-icon name="chevron-left" [size]="14" color="#2563EB" />
+      </a>
+      <h1 class="page-title">Add Role</h1>
+    </div>
+
+    <div class="header-actions">
+      <a routerLink="/administration" class="btn-cancel">Cancel</a>
+      <button type="button" class="btn-save-role" (click)="saveRole()" [disabled]="isSaving()">
+        {{ isSaving() ? 'Saving...' : 'Save role' }}
+      </button>
+    </div>
+  </header>
+
+  <!-- Form Body -->
+  <form (ngSubmit)="saveRole()" class="role-form">
+    <!-- 01 Role name and description -->
+    <section class="form-section-card">
+      <div class="section-card-header">
+        <div class="section-title-wrap">
+          <span class="step-badge">01</span>
+          <h2 class="section-title">Role name and description</h2>
+        </div>
+        <span class="mandatory-notice">Fields with <span class="required">*</span> are mandatory</span>
+      </div>
+
+      <div class="section-card-body">
+        <div class="form-row-2col">
+          <div class="form-group">
+            <label class="form-label" for="roleName">Role name <span class="required">*</span></label>
+            <input
+              id="roleName"
+              type="text"
+              class="form-input"
+              placeholder="e.g. Finance Auditor"
+              [value]="roleName()"
+              (input)="roleName.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="rolePurpose">Purpose</label>
+            <input
+              id="rolePurpose"
+              type="text"
+              class="form-input"
+              placeholder="Brief description of responsibilities"
+              [value]="purpose()"
+              (input)="purpose.set($any($event.target).value)"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Permissions -->
+    <section class="form-section-card">
+      <div class="section-card-header">
+        <div class="section-title-wrap">
+          <span class="step-badge">02</span>
+          <div>
+            <h2 class="section-title">Permissions</h2>
+            <p class="section-subtitle">Select the activities allowed.</p>
+          </div>
+        </div>
+        <span class="mandatory-notice">Fields with <span class="required">*</span> are mandatory</span>
+      </div>
+
+      <div class="section-card-body">
+        <div class="permissions-group">
+          <label class="form-label">Permissions <span class="required">*</span></label>
+          <div class="checkbox-list">
+            @for (perm of availablePermissions; track perm) {
+              <label class="custom-checkbox-row">
+                <input
+                  type="checkbox"
+                  class="checkbox-input"
+                  [checked]="isPermissionChecked(perm)"
+                  (change)="togglePermission(perm)"
+                />
+                <span class="checkbox-label">{{ perm }}</span>
+              </label>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 Status -->
+    <section class="form-section-card">
+      <div class="section-card-header">
+        <div class="section-title-wrap">
+          <span class="step-badge">03</span>
+          <h2 class="section-title">Status</h2>
+        </div>
+        <span class="mandatory-notice">Fields with <span class="required">*</span> are mandatory</span>
+      </div>
+
+      <div class="section-card-body">
+        <div class="form-group max-w-full">
+          <label class="form-label" for="roleStatus">Status <span class="required">*</span></label>
+          <div class="custom-select-wrap">
+            <select
+              id="roleStatus"
+              class="form-select"
+              [value]="status()"
+              (change)="status.set($any($event.target).value)"
+            >
+              <option value="" disabled>Select status</option>
+              <option value="Active">Active</option>
+              <option value="Deactive">Deactive</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 Effective Date -->
+    <section class="form-section-card">
+      <div class="section-card-header">
+        <div class="section-title-wrap">
+          <span class="step-badge">04</span>
+          <h2 class="section-title">Effective Date</h2>
+        </div>
+        <span class="mandatory-notice">Fields with <span class="required">*</span> are mandatory</span>
+      </div>
+
+      <!-- <div class="section-card-body">
+        <div class="form-group max-w-full">
+          <label class="form-label" for="effectiveDate">Effective Date</label>
+          <div class="date-input-wrap">
+            <input
+              id="effectiveDate"
+              type="text"
+              class="form-input date-input"
+              placeholder="dd-mm-yyyy"
+              [value]="effectiveDate()"
+              (input)="effectiveDate.set($any($event.target).value)"
+            />
+            <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+          </div>
+        </div>
+      </div> -->
+    </section>
+  </form>
+</div>

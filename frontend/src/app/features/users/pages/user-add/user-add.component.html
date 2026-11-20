@@ -1,0 +1,319 @@
+<div class="user-page-container">
+  <!-- Top Bar: Back button, Title, Cancel, Save user -->
+  <header class="user-page-header">
+    <div class="header-left">
+      <a routerLink="/users" class="btn-circle-back" title="Back to Users Management">
+        <app-icon name="chevron-left" [size]="14" color="#2563EB" />
+      </a>
+      <h1 class="page-title">Add User</h1>
+    </div>
+
+    <div class="header-actions">
+      <a routerLink="/users" class="btn-cancel">Cancel</a>
+      <button type="button" class="btn-save" (click)="saveUser()">
+        Save user
+      </button>
+    </div>
+  </header>
+
+  <!-- Form Body (Matching Screenshot Exactly) -->
+  <form (ngSubmit)="saveUser()" class="user-form">
+    <!-- 01 Personal Identity -->
+    <section class="form-section-card">
+      <div class="section-card-header">
+        <div class="section-title-wrap">
+          <span class="step-badge">01</span>
+          <h2 class="section-title">Personal Identity</h2>
+        </div>
+      </div>
+
+      <div class="section-card-body">
+        <div class="form-row-3col">
+          <div class="form-group">
+            <label class="form-label" for="firstName">First name <span class="required">*</span></label>
+            <input
+              id="firstName"
+              type="text"
+              class="form-input"
+              placeholder="Enter first name"
+              [value]="firstName()"
+              (input)="firstName.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="middleName">Middle name</label>
+            <input
+              id="middleName"
+              type="text"
+              class="form-input"
+              placeholder="Optional middle name"
+              [value]="middleName()"
+              (input)="middleName.set($any($event.target).value)"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="lastName">Last name <span class="required">*</span></label>
+            <input
+              id="lastName"
+              type="text"
+              class="form-input"
+              placeholder="Enter last name"
+              [value]="lastName()"
+              (input)="lastName.set($any($event.target).value)"
+              required
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Department & Role Assignment -->
+    <section class="form-section-card">
+      <div class="section-card-header">
+        <div class="section-title-wrap">
+          <span class="step-badge">02</span>
+          <h2 class="section-title">Department & Role Assignment</h2>
+        </div>
+      </div>
+
+      <div class="section-card-body">
+        <div class="form-row-2col">
+          <!-- Row 1: Department & Role -->
+          <div class="form-group">
+            <label class="form-label" for="department">Department <span class="required">*</span></label>
+            <div class="custom-select-wrap">
+              <select
+                id="department"
+                class="form-select"
+                [value]="department()"
+                (change)="department.set($any($event.target).value)"
+              >
+                <option value="" disabled>Select department</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Human Resources">Human Resources</option>
+                <option value="Sales">Sales</option>
+                <option value="Finance">Finance</option>
+                <option value="Marketing">Marketing</option>
+              </select>
+              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="role">Role <span class="required">*</span></label>
+            <div class="custom-select-wrap">
+              <select
+                id="role"
+                class="form-select"
+                [value]="role()"
+                (change)="role.set($any($event.target).value)"
+              >
+                <option value="" disabled>Select role</option>
+                <option value="Super Admin">Super Admin</option>
+                <option value="HR Manager">HR Manager</option>
+                <option value="Employee">Employee</option>
+                <option value="Consultant">Consultant</option>
+              </select>
+              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
+            </div>
+          </div>
+
+          <!-- Row 2: Designation & Location -->
+          <div class="form-group">
+            <label class="form-label" for="designation">Designation <span class="required">*</span></label>
+            <input
+              id="designation"
+              type="text"
+              class="form-input"
+              placeholder="e.g. HR Generalist / Operations Lead"
+              [value]="designation()"
+              (input)="designation.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="location">Location</label>
+            <div class="custom-select-wrap">
+              <select
+                id="location"
+                class="form-select"
+                [value]="location()"
+                (change)="location.set($any($event.target).value)"
+              >
+                <option value="" disabled>Select your location</option>
+                <option value="Bengaluru">Bengaluru</option>
+                <option value="Hyderabad">Hyderabad</option>
+                <option value="Mumbai">Mumbai</option>
+                <option value="Noida">Noida</option>
+                <option value="Pune">Pune</option>
+              </select>
+              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
+            </div>
+          </div>
+
+          <!-- Row 3: Entity & User/Employee Code -->
+          <div class="form-group">
+            <label class="form-label" for="entity">Entity</label>
+            <div class="custom-select-wrap">
+              <select
+                id="entity"
+                class="form-select"
+                [value]="entity()"
+                (change)="entity.set($any($event.target).value)"
+              >
+                <option value="" disabled>Select entity</option>
+                <option value="Evolvus India Pvt Ltd">Evolvus India Pvt Ltd</option>
+                <option value="Evolvus Global LLC">Evolvus Global LLC</option>
+                <option value="Evolvus Fintech Solutions">Evolvus Fintech Solutions</option>
+              </select>
+              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="userCode">User/Employee code <span class="required">*</span></label>
+            <input
+              id="userCode"
+              type="text"
+              class="form-input"
+              placeholder="e.g. EV-8492"
+              [value]="code()"
+              (input)="code.set($any($event.target).value)"
+              required
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 Contact Information & Compliance -->
+    <section class="form-section-card">
+      <div class="section-card-header">
+        <div class="section-title-wrap">
+          <span class="step-badge">03</span>
+          <h2 class="section-title">Contact Information & Compliance</h2>
+        </div>
+      </div>
+
+      <div class="section-card-body">
+        <div class="form-row-2col">
+          <div class="form-group">
+            <label class="form-label" for="companyEmail">Company email <span class="required">*</span></label>
+            <input
+              id="companyEmail"
+              type="email"
+              class="form-input"
+              placeholder="username@evolvus360.com"
+              [value]="companyEmail()"
+              (input)="companyEmail.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="personalEmail">Personal email <span class="required">*</span></label>
+            <input
+              id="personalEmail"
+              type="email"
+              class="form-input"
+              placeholder="personaladdress@gmail.com"
+              [value]="personalEmail()"
+              (input)="personalEmail.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <!-- PF Applicable (Full width / span-2) -->
+          <div class="form-group full-width">
+            <label class="form-label" for="pfApplicable">PF applicable <span class="required">*</span></label>
+            <div class="custom-select-wrap">
+              <select
+                id="pfApplicable"
+                class="form-select"
+                [value]="pfApplicable()"
+                (change)="pfApplicable.set($any($event.target).value)"
+              >
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 Employment Timeline -->
+    <section class="form-section-card">
+      <div class="section-card-header">
+        <div class="section-title-wrap">
+          <span class="step-badge">04</span>
+          <h2 class="section-title">Employment Timeline</h2>
+        </div>
+      </div>
+
+      <div class="section-card-body">
+        <div class="form-row-3col">
+          <div class="form-group">
+            <label class="form-label" for="joiningDate">Joining date <span class="required">*</span></label>
+            <div class="date-input-wrap">
+              <input
+                id="joiningDate"
+                type="text"
+                class="form-input date-input"
+                placeholder="dd-mm-yyyy"
+                [value]="joiningDate()"
+                (input)="joiningDate.set($any($event.target).value)"
+                required
+              />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="startDate">Start date <span class="required">*</span></label>
+            <div class="date-input-wrap">
+              <input
+                id="startDate"
+                type="text"
+                class="form-input date-input"
+                placeholder="dd-mm-yyyy"
+                [value]="startDate()"
+                (input)="startDate.set($any($event.target).value)"
+                required
+              />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="endDate">End date</label>
+            <div class="date-input-wrap">
+              <input
+                id="endDate"
+                type="text"
+                class="form-input date-input"
+                placeholder="dd-mm-yyyy"
+                [value]="endDate()"
+                (input)="endDate.set($any($event.target).value)"
+              />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Notice Callout (Matching Screenshot) -->
+    <div class="callout-notice-box">
+      <app-icon name="alert-circle" [size]="16" color="#B45309" class="notice-icon" />
+      <span class="notice-text">
+        Saving creates the record only. The account activates after the invitation is accepted.
+      </span>
+    </div>
+  </form>
+</div>

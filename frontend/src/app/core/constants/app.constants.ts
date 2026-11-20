@@ -1,7 +1,9 @@
+export * from './api-endpoints';
+
 export const APP_NAME = 'Angular Enterprise HRMS';
-export const BRAND_NAME = 'Code With Jamshed';
+export const BRAND_NAME = 'Evolvus 360';
 export const DEMO_CREDENTIALS = {
-  email: 'hr@hrms.dev',
-  password: 'password'
+  email: 'admin@hrms.dev',
+  password: 'password',
 } as const;
-export const PAGE_SIZE = 5;
+export const PAGE_SIZE = 10;

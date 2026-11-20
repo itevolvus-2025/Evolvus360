@@ -1,0 +1,138 @@
+<div class="projects-container">
+  <!-- Stats Cards Row -->
+  <section class="stats-row">
+    <div class="stat-card">
+      <div class="stat-meta">
+        <span class="stat-value">{{ projects().length }}</span>
+        <span class="stat-label">Total Projects</span>
+      </div>
+      <div class="stat-icon-wrap stat-icon-blue">
+        <app-icon name="folder" [size]="20" color="#2563EB" />
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-meta">
+        <span class="stat-value">{{ activeProjectsCount() }}</span>
+        <span class="stat-label">Active / In Progress</span>
+      </div>
+      <div class="stat-icon-wrap stat-icon-green">
+        <app-icon name="check-circle" [size]="20" color="#10B981" />
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-meta">
+        <span class="stat-value">{{ planningProjectsCount() }}</span>
+        <span class="stat-label">Planning Phase</span>
+      </div>
+      <div class="stat-icon-wrap stat-icon-purple">
+        <app-icon name="clock" [size]="20" color="#8B5CF6" />
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-meta">
+        <span class="stat-value">{{ completedProjectsCount() }}</span>
+        <span class="stat-label">Completed Delivery</span>
+      </div>
+      <div class="stat-icon-wrap stat-icon-gray">
+        <app-icon name="check-circle" [size]="20" color="#64748B" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Filter & Search Toolbar -->
+  <section class="filter-toolbar">
+    <div class="search-wrap">
+      <app-icon name="search" [size]="16" color="#94A3B8" class="search-icon" />
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search projects by name, code, client, or team lead..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+      />
+    </div>
+
+    <div class="filter-actions">
+      <div class="filter-dropdown-wrap">
+        <select
+          class="status-select"
+          [value]="statusFilter()"
+          (change)="statusFilter.set($any($event.target).value)"
+        >
+          <option value="All">All Statuses</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Planning">Planning</option>
+          <option value="Completed">Completed</option>
+          <option value="On Hold">On Hold</option>
+        </select>
+        <app-icon name="chevron-down" [size]="12" color="#64748B" class="select-chevron" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Projects Grid -->
+  <section class="projects-grid">
+    @for (project of filteredProjects(); track project.id) {
+      <div class="project-card">
+        <div class="card-header">
+          <div class="project-title-area">
+            <span class="project-code">{{ project.code }}</span>
+            <h3 class="project-name">{{ project.name }}</h3>
+            <span class="client-name">Client: {{ project.client }}</span>
+          </div>
+          <span
+            class="status-pill"
+            [class.status-in-progress]="project.status === 'In Progress'"
+            [class.status-completed]="project.status === 'Completed'"
+            [class.status-planning]="project.status === 'Planning'"
+            [class.status-on-hold]="project.status === 'On Hold'"
+          >
+            {{ project.status }}
+          </span>
+        </div>
+
+        <div class="card-progress">
+          <div class="progress-labels">
+            <span class="progress-title">Progress</span>
+            <span class="progress-val">{{ project.progress }}%</span>
+          </div>
+          <div class="progress-bar-track">
+            <div
+              class="progress-bar-fill"
+              [style.width.%]="project.progress"
+              [class.bg-green]="project.progress === 100"
+            ></div>
+          </div>
+        </div>
+
+        <div class="card-meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Team Lead</span>
+            <span class="meta-val">{{ project.lead }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Team Size</span>
+            <span class="meta-val">{{ project.teamSize }} members</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Due Date</span>
+            <span class="meta-val">{{ project.dueDate }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Budget</span>
+            <span class="meta-val">{{ project.budget }}</span>
+          </div>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state">
+        <app-icon name="folder" [size]="40" color="#94A3B8" />
+        <h4 class="empty-title">No projects match criteria</h4>
+        <p class="empty-desc">Try clearing your filters or search keywords.</p>
+      </div>
+    }
+  </section>
+</div>

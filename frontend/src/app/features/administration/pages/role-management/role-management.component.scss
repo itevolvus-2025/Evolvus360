@@ -1,0 +1,115 @@
+.role-management-page {
+  width: 100%;
+  padding: 0 0 32px;
+}
+
+/* ==========================================================================
+   Delete Confirmation Modal
+   ========================================================================== */
+.delete-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.delete-modal-dialog {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid #fee2e2;
+  width: 100%;
+  max-width: 440px;
+  padding: 28px 24px;
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  animation: modalIn 0.18s ease-out;
+
+  .delete-dialog-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #fee2e2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .delete-dialog-title {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .delete-dialog-message {
+    margin: 0 0 24px;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.5;
+
+    strong {
+      color: #0f172a;
+    }
+  }
+
+  .delete-dialog-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+
+    .btn-cancel {
+      height: 40px;
+      padding: 0 20px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background-color: #ffffff;
+      color: #64748b;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #f8fafc;
+        color: #0f172a;
+      }
+    }
+
+    .btn-confirm-delete {
+      height: 40px;
+      padding: 0 22px;
+      border: none;
+      border-radius: 8px;
+      background-color: #dc2626;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: #b91c1c;
+      }
+    }
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

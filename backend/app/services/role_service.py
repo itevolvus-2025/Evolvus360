@@ -22,15 +22,17 @@ def _role_payload(role: Role) -> dict:
     return {
         "id": str(role.id),
         "name": role.role_name,
+        "role": role.role_name,
         "role_name": role.role_name,
         "role_code": role.role_code,
-        "description": role.description,
-        "status": "active" if role.is_active and not role.is_deleted else "inactive",
+        "description": role.description or "",
+        "purpose": role.description or "",
+        "status": "Active" if role.is_active and not role.is_deleted else "Deactive",
         "is_active": role.is_active,
         "is_deleted": role.is_deleted,
         "permissions": list(role.permissions or []),
-        "created_at": role.created_at,
-        "updated_at": role.updated_at,
+        "created_at": str(role.created_at) if role.created_at else None,
+        "updated_at": str(role.updated_at) if role.updated_at else None,
         "created_by": str(role.created_by) if role.created_by else None,
         "updated_by": str(role.updated_by) if role.updated_by else None,
     }
@@ -176,5 +178,22 @@ def update_role(db: Session, actor_id: UUID, role_id: UUID, payload: RoleUpdate)
     except Exception:
         db.rollback()
         raise
+
+
+def delete_role(db: Session, actor_id: UUID, role_id: UUID) -> None:
+    role = db.scalar(
+        select(Role).where(Role.id == role_id, *_visible_role_filter())
+    )
+    if role is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Role not found")
+    if role.role_code == "SUPER_ADMIN":
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "The Super Admin role cannot be deleted"
+        )
+    role.is_deleted = True
+    role.is_active = False
+    role.updated_by = actor_id
+    role.updated_at = datetime.now(UTC)
+    db.commit()
 
 

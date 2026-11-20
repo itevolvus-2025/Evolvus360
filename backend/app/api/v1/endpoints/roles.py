@@ -16,7 +16,7 @@ from app.utils.responses import success_response
 
 router = APIRouter(prefix="/roles", tags=["Roles"])
 DbSession = Annotated[Session, Depends(get_db)]
-SuperAdmin = Annotated[User, Depends(require_roles("SUPER_ADMIN"))]
+SuperAdmin = Annotated[User, Depends(require_roles("SUPER_ADMIN", "HR"))]
 
 
 @router.post("", response_model=ApiResponse[dict], status_code=status.HTTP_201_CREATED)
@@ -54,5 +54,16 @@ def update_role(
 ):
     result = role_service.update_role(db, admin.id, role_id, payload)
     return success_response("Role updated", result)
+
+
+@router.delete(
+    "/{role_id}",
+    response_model=ApiResponse[None],
+    summary="Soft-delete or deactivate a role",
+)
+def delete_role(role_id: UUID, db: DbSession, admin: SuperAdmin):
+    role_service.delete_role(db, admin.id, role_id)
+    return success_response("Role deleted successfully")
+
 
 

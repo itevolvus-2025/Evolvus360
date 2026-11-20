@@ -1,0 +1,16 @@
+<div class="role-management-page">
+  <!-- Common Data Table Component -->
+  <app-data-table
+    [columns]="columns"
+    [data]="filteredRoles()"
+    searchPlaceholder="Search by role..."
+    filterLabel="Access scope"
+    [filterOptions]="scopeOptions"
+    [(selectedFilter)]="selectedScope"
+    itemLabel="users"
+    [pageSize]="10"
+    (actionClick)="handleAction($event)"
+  />
+
+
+</div>

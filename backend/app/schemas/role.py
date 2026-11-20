@@ -13,17 +13,20 @@ from pydantic import (
 
 
 class RoleCreate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     name: str = Field(
         min_length=1,
         max_length=100,
-        validation_alias=AliasChoices("name", "role_name"),
+        validation_alias=AliasChoices("name", "role_name", "role"),
     )
-    description: str | None = Field(default=None, max_length=4000)
+    description: str | None = Field(
+        default=None,
+        max_length=4000,
+        validation_alias=AliasChoices("description", "purpose"),
+    )
     permissions: list[str] = Field(default_factory=list)
-    status: Literal["active", "inactive"] = "active"
-    # Kept optional to accept existing callers that provide role_code.
+    status: str = "active"
     role_code: str | None = Field(default=None, min_length=1, max_length=50)
 
     @field_validator("name")
@@ -33,6 +36,16 @@ class RoleCreate(BaseModel):
         if not value:
             raise ValueError("Role name must not be blank")
         return value
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def normalize_status(cls, value: str | None) -> str:
+        if isinstance(value, str):
+            val = value.lower().strip()
+            if val in {"active"}:
+                return "active"
+            return "inactive"
+        return "active"
 
     @field_validator("role_code")
     @classmethod
@@ -46,17 +59,21 @@ class RoleCreate(BaseModel):
 
 
 class RoleUpdate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     name: str | None = Field(
         default=None,
         min_length=1,
         max_length=100,
-        validation_alias=AliasChoices("name", "role_name"),
+        validation_alias=AliasChoices("name", "role_name", "role"),
     )
-    description: str | None = Field(default=None, max_length=4000)
+    description: str | None = Field(
+        default=None,
+        max_length=4000,
+        validation_alias=AliasChoices("description", "purpose"),
+    )
     permissions: list[str] | None = None
-    status: Literal["active", "inactive"] | None = None
+    status: str | None = None
 
     @field_validator("name")
     @classmethod
@@ -67,6 +84,18 @@ class RoleUpdate(BaseModel):
         if not value:
             raise ValueError("Role name must not be blank")
         return value
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def normalize_status(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            val = value.lower().strip()
+            if val in {"active", "enabled"}:
+                return "active"
+            return "inactive"
+        return "active"
 
     @model_validator(mode="after")
     def require_update_field(self) -> Self:

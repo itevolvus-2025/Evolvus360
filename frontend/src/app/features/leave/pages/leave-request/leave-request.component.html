@@ -1,0 +1,171 @@
+<div class="leave-request-container">
+  <!-- Leave Balances Cards -->
+  <section class="balances-row">
+    @for (bal of leaveBalances; track bal.type) {
+      <div class="balance-card">
+        <div class="balance-meta">
+          <span class="balance-type">{{ bal.type }}</span>
+          <div class="balance-values">
+            <span class="days-remaining">{{ bal.remaining }}</span>
+            <span class="days-label">days remaining</span>
+          </div>
+          <span class="quota-note">{{ bal.used }} used of {{ bal.total }} days quota</span>
+        </div>
+        <div class="balance-badge" [style.background-color]="bal.color + '15'" [style.color]="bal.color">
+          <app-icon [name]="bal.icon" [size]="20" [color]="bal.color" />
+        </div>
+      </div>
+    }
+  </section>
+
+  <!-- Toolbar / Action Bar -->
+  <section class="request-toolbar">
+    <div class="toolbar-info">
+      <h2 class="section-heading">My Leave Applications</h2>
+      <p class="section-subheading">Track your pending requests and leave history</p>
+    </div>
+
+    <button type="button" class="btn-new-request" (click)="openApplyModal()">
+      <app-icon name="plus" [size]="14" color="#FFFFFF" />
+      <span>Apply for Leave</span>
+    </button>
+  </section>
+
+  <!-- Leave Applications Table Card -->
+  <section class="table-card">
+    <div class="table-responsive">
+      <table class="applications-table">
+        <thead>
+          <tr>
+            <th>Request ID</th>
+            <th>Leave Type</th>
+            <th>Dates</th>
+            <th>Duration</th>
+            <th>Reason</th>
+            <th>Approver</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (req of myRequests(); track req.id) {
+            <tr>
+              <td><span class="req-id">{{ req.id }}</span></td>
+              <td><span class="req-type">{{ req.leaveType }}</span></td>
+              <td>
+                <span class="req-dates">{{ req.fromDate }} &rarr; {{ req.toDate }}</span>
+                <span class="applied-date">Applied: {{ req.appliedOn }}</span>
+              </td>
+              <td><span class="duration-badge">{{ req.days }} day{{ req.days > 1 ? 's' : '' }}</span></td>
+              <td><span class="req-reason">{{ req.reason }}</span></td>
+              <td><span class="req-approver">{{ req.approver }}</span></td>
+              <td>
+                <span
+                  class="status-pill"
+                  [class.status-pending]="req.status === 'Pending'"
+                  [class.status-approved]="req.status === 'Approved'"
+                  [class.status-rejected]="req.status === 'Rejected'"
+                >
+                  {{ req.status }}
+                </span>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="empty-cell">No leave requests found.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Apply Leave Modal -->
+  @if (showApplyModal()) {
+    <div class="modal-backdrop" (click)="closeApplyModal()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">Apply for Leave</h3>
+          <button type="button" class="btn-close" (click)="closeApplyModal()">
+            <app-icon name="times" [size]="16" color="#64748B" />
+          </button>
+        </div>
+
+        <form (ngSubmit)="submitLeaveRequest()" class="modal-form">
+          <div class="form-group">
+            <label class="form-label" for="leaveTypeSelect">Leave Type <span class="required">*</span></label>
+            <select
+              id="leaveTypeSelect"
+              class="form-select"
+              [value]="leaveType()"
+              (change)="leaveType.set($any($event.target).value)"
+            >
+              <option value="Annual Leave">Annual Leave (14 days available)</option>
+              <option value="Sick Leave">Sick Leave (8 days available)</option>
+              <option value="Casual Leave">Casual Leave (6 days available)</option>
+            </select>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label class="form-label" for="fromDateInput">From Date <span class="required">*</span></label>
+              <input
+                id="fromDateInput"
+                type="date"
+                class="form-input"
+                [value]="fromDate()"
+                (input)="fromDate.set($any($event.target).value)"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="toDateInput">To Date <span class="required">*</span></label>
+              <input
+                id="toDateInput"
+                type="date"
+                class="form-input"
+                [value]="toDate()"
+                (input)="toDate.set($any($event.target).value)"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="daysInput">Number of Days <span class="required">*</span></label>
+            <input
+              id="daysInput"
+              type="number"
+              min="1"
+              max="60"
+              class="form-input"
+              [value]="daysCount()"
+              (input)="daysCount.set(+$any($event.target).value)"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reasonInput">Reason for Leave <span class="required">*</span></label>
+            <textarea
+              id="reasonInput"
+              class="form-textarea"
+              rows="3"
+              placeholder="State the purpose of your leave application..."
+              [value]="reason()"
+              (input)="reason.set($any($event.target).value)"
+              required
+            ></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" (click)="closeApplyModal()">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="isSubmitting()">
+              {{ isSubmitting() ? 'Submitting...' : 'Submit Request' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

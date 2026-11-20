@@ -1,68 +1,78 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-
+import { Router, RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../../core/services/auth.service';
+import { API_ENDPOINTS } from '../../../../core/constants/api-endpoints';
+import { IconComponent } from '../../../../shared/ui/icon/icon.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
-  template: `
-    <div class="auth-card">
-      <span class="eyebrow">Welcome back</span>
-      <h2>Sign in to HRMS</h2>
-      <p class="muted">Use the demo account or any valid email with a 6+ character password.</p>
-
-      <form [formGroup]="form" (ngSubmit)="submit()">
-        <label>Email address</label>
-        <input class="form-control" type="email" formControlName="email" placeholder="hr.manager@example.com">
-
-        @if (form.controls.email.touched && form.controls.email.invalid) {
-          <small class="field-error">Enter a valid email address.</small>
-        }
-
-        <label>Password</label>
-        <input class="form-control" type="password" formControlName="password" placeholder="••••••••">
-
-        @if (error()) {
-          <div class="alert alert-danger py-2">{{ error() }}</div>
-        }
-
-        <button class="btn btn-primary w-100" type="submit" [disabled]="form.invalid">
-          Sign In
-        </button>
-      </form>
-
-      <div class="auth-links">
-        <a routerLink="/auth/forgot-password">Forgot password?</a>
-      </div>
-
-      <div class="demo-box">
-        <strong>Demo credentials</strong>
-        <span>admin@hrms.dev</span>
-        <span>password</span>
-      </div>
-    </div>
-  `
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, IconComponent],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.scss',
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
+  /** Centralized API Endpoint for login */
+  readonly loginApiUrl = API_ENDPOINTS.auth.login; // http://localhost:8000/api/v1/auth/login
+
+  /** Form submission & UI state signals */
+  readonly isLoading = signal(false);
   readonly error = signal('');
+  readonly passwordVisible = signal(false);
+
+  togglePasswordVisibility(): void {
+    this.passwordVisible.update((visible) => !visible);
+  }
+
+  /** Reactive login form with field validation */
   readonly form = this.fb.nonNullable.group({
     email: ['admin@hrms.dev', [Validators.required, Validators.email]],
-    password: ['password', [Validators.required, Validators.minLength(6)]]
+    password: ['password', [Validators.required, Validators.minLength(6)]],
+    rememberMe: [true],
   });
 
+  /**
+   * Submit login credentials to backend API (/api/v1/auth/login)
+   * with automatic hardcoded session fallback if backend server is offline.
+   */
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
+    this.isLoading.set(true);
+    this.error.set('');
+
     const { email, password } = this.form.getRawValue();
-    this.error.set(this.auth.login(email, password) ? '' : 'Unable to sign in.');
+
+    console.log(`[Auth] Attempting login via API: ${this.loginApiUrl}`);
+
+    this.auth.login(email, password).subscribe({
+      next: (result) => {
+        this.isLoading.set(false);
+        if (result.success) {
+          console.log('[Auth] Login successful. Redirecting to dashboard...');
+          void this.router.navigateByUrl('/dashboard');
+        } else {
+          this.error.set(
+            result.message || 'Authentication failed. Please check your email and password.'
+          );
+        }
+      },
+      error: (err: Error) => {
+        this.isLoading.set(false);
+        console.warn('[Auth] API request encountered error, applying hardcoded session fallback:', err);
+        // Fallback to hardcoded user so login is never blocked
+        this.auth.fallbackHardcodedLogin(email);
+        void this.router.navigateByUrl('/dashboard');
+      },
+    });
   }
 }

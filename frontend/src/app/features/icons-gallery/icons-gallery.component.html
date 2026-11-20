@@ -1,0 +1,203 @@
+<div class="icons-gallery-page">
+  <!-- Page Header -->
+  <header class="gallery-header">
+    <div class="header-content">
+      <div class="header-badge">Design System • Icons Store</div>
+      <h1 class="header-title">SVG Icons Store</h1>
+      <p class="header-desc">
+        All application icons are centralized in <code>icons.ts</code>. You can preview, adjust size, change color, and copy the ready-to-use code for any icon below.
+      </p>
+    </div>
+
+    <!-- Quick Stats & Action -->
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span class="stat-num">{{ iconCount() }}</span>
+        <span class="stat-label">Icons Available</span>
+      </div>
+      <div class="stat-pill primary">
+        <app-icon name="collapse" [size]="16" color="#2563EB" />
+        <span class="stat-label">"collapse" Included</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Interactive Controls Toolbar -->
+  <div class="controls-toolbar panel">
+    <div class="toolbar-section search-section">
+      <label class="toolbar-label">
+        <app-icon name="search" [size]="14" color="var(--muted)" />
+        Search Icons
+      </label>
+      <div class="search-input-wrap">
+        <input
+          type="text"
+          class="form-control search-input"
+          placeholder="Filter by icon name (e.g. collapse, chevron, user)..."
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+        />
+        @if (searchQuery()) {
+          <button
+            type="button"
+            class="clear-btn"
+            (click)="clearSearch()"
+            aria-label="Clear search"
+          >
+            <app-icon name="close" [size]="12" />
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Size Adjuster -->
+    <div class="toolbar-section size-section">
+      <div class="label-with-val">
+        <span class="toolbar-label">Size:</span>
+        <span class="value-badge">{{ selectedSize() }}px</span>
+      </div>
+
+      <div class="size-controls">
+        <input
+          type="range"
+          min="12"
+          max="48"
+          step="2"
+          class="size-slider"
+          [value]="selectedSize()"
+          (input)="onSizeChange($event)"
+        />
+        <div class="size-presets">
+          @for (s of [12, 14, 16, 20, 24, 32]; track s) {
+            <button
+              type="button"
+              class="preset-chip"
+              [class.active]="selectedSize() === s"
+              (click)="selectedSize.set(s)"
+            >
+              {{ s }}px
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Color Adjuster -->
+    <div class="toolbar-section color-section">
+      <div class="label-with-val">
+        <span class="toolbar-label">Color:</span>
+        <span class="value-badge" [style.color]="selectedColor()">{{ selectedColor() }}</span>
+      </div>
+
+      <div class="color-controls">
+        <div class="color-picker-wrap">
+          <input
+            type="color"
+            class="native-color-picker"
+            [value]="selectedColor()"
+            (input)="onColorChange($event)"
+            title="Choose custom color"
+          />
+        </div>
+
+        <div class="color-palette">
+          @for (c of colorPresets; track c.hex) {
+            <button
+              type="button"
+              class="color-pill"
+              [class.active]="selectedColor() === c.hex"
+              [style.background]="c.hex"
+              [title]="c.name + ' (' + c.hex + ')'"
+              (click)="selectedColor.set(c.hex)"
+            ></button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How to use helper card -->
+  <div class="guide-banner">
+    <div class="guide-icon">
+      <app-icon name="copy" [size]="20" color="#2563EB" />
+    </div>
+    <div class="guide-text">
+      <strong>How to use anywhere in your app:</strong>
+      <code>&lt;app-icon name="collapse" [size]="{{ selectedSize() }}" [color]="'{{ selectedColor() }}'" /&gt;</code>
+      <span class="guide-hint">Click on any card below to automatically copy its code snippet to your clipboard.</span>
+    </div>
+  </div>
+
+  <!-- Icons Grid -->
+  <div class="icons-grid">
+    @for (item of filteredIcons(); track item.name) {
+      <div
+        class="icon-card"
+        [class.highlight]="item.name === 'collapse'"
+        (click)="copyIconCode(item.name)"
+        [title]="'Click to copy code for ' + item.name"
+      >
+        @if (item.name === 'collapse') {
+          <span class="card-tag">User Requested</span>
+        }
+
+        <div class="icon-preview-box">
+          <app-icon
+            [name]="item.name"
+            [size]="selectedSize()"
+            [color]="selectedColor()"
+          />
+        </div>
+
+        <div class="icon-info">
+          <span class="icon-name">{{ item.name }}</span>
+          <span class="copy-hint">
+            @if (copiedIcon() === item.name) {
+              <span class="copied-badge">
+                <app-icon name="check" [size]="12" color="#10B981" /> Copied!
+              </span>
+            } @else {
+              <span class="click-to-copy">Copy Code</span>
+            }
+          </span>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-search-state">
+        <app-icon name="search" [size]="32" color="var(--muted)" />
+        <p>No icons matched "{{ searchQuery() }}"</p>
+        <button type="button" class="btn btn-light" (click)="clearSearch()">
+          Show all icons
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Developer Instructions Section -->
+  <section class="dev-instructions panel">
+    <h2 class="instructions-title">
+      <app-icon name="settings" [size]="20" color="#2563EB" />
+      How to Add New Icons to the Store
+    </h2>
+    <p>All icon codes are stored in a single TypeScript file:</p>
+    <div class="code-box">
+      <div class="code-header">
+        <span>frontend/src/app/shared/ui/icon/icons.ts</span>
+      </div>
+      <pre><code>// 1. Open icons.ts and add your new icon SVG:
+export const APP_ICONS: Record&lt;string, string&gt; = &#123;
+  // Your new icon:
+  'my-custom-icon': `&lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;
+    &lt;circle cx="12" cy="12" r="10" /&gt;
+  &lt;/svg&gt;`,
+&#125;;
+
+// 2. In any component:
+import &#123; IconComponent &#125; from '&#64;shared/ui/icon';
+
+// 3. In template:
+&lt;app-icon name="my-custom-icon" [size]="20" color="#2563EB" /&gt;</code></pre>
+    </div>
+  </section>
+</div>
+

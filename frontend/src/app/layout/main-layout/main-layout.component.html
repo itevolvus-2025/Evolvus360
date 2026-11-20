@@ -1,0 +1,212 @@
+<div class="app-shell" [class.sidebar-collapsed]="collapsed()">
+  <!-- Mobile Backdrop Overlay -->
+  @if (collapsed()) {
+    <div
+      class="sidebar-backdrop mobile-only"
+      (click)="toggleSidebar()"
+      aria-hidden="true"
+    ></div>
+  }
+
+  <!-- Sidebar (Left) -->
+  <aside class="sidebar" aria-label="Main Navigation">
+    <!-- Sidebar Header (Brand Logo + Subtitle + Collapse/Expand Toggle) -->
+    <div class="sidebar-brand">
+      <!-- <div class="brand-left">
+        <img
+          src="assets/images/EvolvusLogo.png"
+          alt="Evolvus"
+          class="brand-logo-img"
+        />
+        <span class="brand-title">360</span>
+      </div> -->
+      <div class="brand-left">
+    <!-- Logo and 360 in the same row -->
+    <div class="brand-logo-row">
+      <img
+        src="assets/images/EvolvusLogo.png"
+        alt="Evolvus"
+        class="brand-logo-img"
+      />
+      <span class="brand-title">360</span>
+    </div>
+  </div>
+
+      <button
+        type="button"
+        class="sidebar-toggle-btn desktop-only"
+        [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        (click)="toggleSidebar()"
+        [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      >
+        <app-icon
+          [name]="collapsed() ? 'expand' : 'collapse'"
+          [size]="13"
+          color="#2563EB"
+        />
+      </button>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar-nav">
+      <!-- WORKSPACE Section -->
+      <div class="nav-section">
+        <div class="sidebar-section-title">WORKSPACE</div>
+        @for (item of workspaceNav(); track item.path) {
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="active"
+            class="nav-item"
+            [title]="collapsed() ? item.label : ''"
+          >
+            <app-icon [name]="item.icon" [size]="18" />
+            <span class="nav-label">{{ item.label }}</span>
+          </a>
+        }
+      </div>
+    </nav>
+
+    <!-- Sidebar Footer (User Profile Pill + Logout) -->
+    <div class="sidebar-foot">
+      <div
+        class="user-profile-pill"
+        [title]="userName() + ' (' + userRole() + ')'"
+      >
+        <div class="user-avatar">{{ userInitials() }}</div>
+        <div class="user-details">
+          <span class="user-name">{{ userName() }}</span>
+          <span class="user-role">{{ userRole() }}</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="logout-card-btn"
+        (click)="auth.logout()"
+        title="Logout"
+      >
+        <app-icon name="logout" [size]="18" color="#EF4444" />
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Area (Right) -->
+  <section class="main-area">
+    <!-- Topbar (with Breadcrumbs for Subpages & Subpage Action Buttons) -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button
+          type="button"
+          class="icon-btn mobile-only sidebar-mobile-toggle"
+          aria-label="Toggle navigation"
+          (click)="toggleSidebar()"
+        >
+          <app-icon name="bars" [size]="16" />
+        </button>
+
+        @if (isSubpage()) {
+          <a
+            [routerLink]="breadcrumbParentPath()"
+            class="btn-circle-back"
+            [title]="'Back to ' + breadcrumbParentLabel()"
+          >
+            <app-icon name="chevron-left" [size]="14" color="#2563EB" />
+          </a>
+        }
+
+        <div class="topbar-title-group">
+          @if (isSubpage()) {
+            <div class="breadcrumb-trail">
+              <a [routerLink]="breadcrumbParentPath()" class="breadcrumb-parent">
+                {{ breadcrumbParentLabel() }}
+              </a>
+              <span class="breadcrumb-separator">/</span>
+              <span class="breadcrumb-current">{{ breadcrumbCurrentLabel() }}</span>
+            </div>
+          } @else {
+            <div class="title-with-badge">
+              <h1 class="page-main-title">{{ activePageTitle() }}</h1>
+              @if (activePageBadge()) {
+                <span class="count-badge">
+                  {{ activePageBadge() }}
+                </span>
+              }
+            </div>
+          }
+          <p class="page-main-subtitle">{{ activePageSubtitle() }}</p>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Main List Pages: Create User / Add Role -->
+        @if (actionType() === 'user-create' || actionType() === 'role-create') {
+          <a
+            [routerLink]="actionRoute()"
+            class="btn btn-primary create-action-btn"
+          >
+            <app-icon name="plus" [size]="14" color="#FFFFFF" />
+            <span>{{ actionLabel() }}</span>
+          </a>
+        }
+
+        <!-- Subpage: Add User -->
+        @if (actionType() === 'user-add') {
+          <div class="topbar-subpage-actions">
+            <a routerLink="/users" class="btn-topbar-cancel">Cancel</a>
+            <button type="button" class="btn-topbar-save" (click)="triggerSave()">
+              Save user
+            </button>
+          </div>
+        }
+
+        <!-- Subpage: Edit User -->
+        @if (actionType() === 'user-edit') {
+          <div class="topbar-subpage-actions">
+            <button type="button" class="btn-topbar-delete" (click)="triggerDelete()">
+              <app-icon name="trash" [size]="14" color="#DC2626" />
+              <span>Delete User</span>
+            </button>
+            <a routerLink="/users" class="btn-topbar-cancel">Cancel</a>
+            <button type="button" class="btn-topbar-save" (click)="triggerSave()">
+              Save Changes
+            </button>
+          </div>
+        }
+
+        <!-- Subpage: Add Role -->
+        @if (actionType() === 'role-add') {
+          <div class="topbar-subpage-actions">
+            <a routerLink="/administration" class="btn-topbar-cancel">Cancel</a>
+            <button type="button" class="btn-topbar-save" (click)="triggerSave()">
+              Save role
+            </button>
+          </div>
+        }
+
+        <!-- Subpage: Edit Role -->
+        @if (actionType() === 'role-edit') {
+          <div class="topbar-subpage-actions">
+     
+           <a routerLink="/administration" class="btn-topbar-cancel">Cancel</a>
+            <button type="button" class="btn-topbar-save" (click)="triggerSave()">
+              Save Changes
+            </button>
+          </div>
+        }
+
+        <div class="topbar-utility-actions">
+          <app-notification-dropdown />
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet
+        (activate)="onComponentActivate($event)"
+        (deactivate)="onComponentDeactivate()"
+      />
+    </main>
+  </section>
+</div>
+
+<app-toast-container />

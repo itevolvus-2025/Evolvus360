@@ -4,7 +4,7 @@ export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Wor
 export type WorkflowStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
 export type TimesheetStatus = 'Draft' | 'Submitted' | 'Approved' | 'Rejected';
 export type CandidateStage = 'Applied' | 'Screening' | 'Interview' | 'Offer' | 'Hired' | 'Rejected';
-export interface User { id:number; name:string; email:string; role:UserRole; }
+export interface User { id:number | string; name:string; email:string; role:UserRole; token?: string; permissions?: string[]; }
 export interface Employee { id:number; employeeCode:string; firstName:string; lastName:string; email:string; phone:string; department:string; designation:string; manager:string; joinDate:string; status:EmployeeStatus; location:string; salary:number; dateOfBirth:string; address:string; emergencyContact:string; }
 export interface Department { id:number; name:string; code:string; head:string; employeeCount:number; location:string; }
 export interface AttendanceRecord { id:number; employeeId:number; employeeName:string; date:string; checkIn:string; checkOut:string; hours:number; status:AttendanceStatus; department:string; }

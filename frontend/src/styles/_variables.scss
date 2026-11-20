@@ -1,1 +1,15 @@
-// Theme tokens are defined in src/styles.scss so runtime light/dark switching remains centralized.
+// Typography: Poppins font family configuration
+$font-family-poppins: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+$font-family-base: $font-family-poppins;
+
+// Theme & Brand Colors
+$color-auth-bg: #2563EB;
+$color-primary: #2563EB;
+$color-primary-hover: #1d4ed8;
+
+:root {
+  --font-family-base: #{$font-family-poppins};
+  --font-family: #{$font-family-poppins};
+  --bs-body-font-family: #{$font-family-poppins};
+  --auth-bg-color: #{$color-auth-bg};
+}

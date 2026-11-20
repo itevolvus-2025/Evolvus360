@@ -1,0 +1,237 @@
+<div class="approval-hub-container">
+  <!-- Top 4 KPI Metrics Cards -->
+  <section class="kpi-grid" aria-label="Approval Metrics">
+    <!-- Card 1: Total Pending -->
+    <article class="kpi-card">
+      <div class="kpi-body">
+        <span class="kpi-value">{{ totalPending() }}</span>
+        <span class="kpi-label">Total Pending</span>
+      </div>
+      <div class="kpi-icon-wrapper">
+        <app-icon name="tray-arrow-up" [size]="18" color="#2563EB" />
+      </div>
+    </article>
+
+    <!-- Card 2: Employee Onboarding -->
+    <article class="kpi-card">
+      <div class="kpi-body">
+        <span class="kpi-value">{{ onboardingCount() }}</span>
+        <span class="kpi-label">Employee Onboarding</span>
+      </div>
+      <div class="kpi-icon-wrapper">
+        <app-icon name="users" [size]="18" color="#2563EB" />
+      </div>
+    </article>
+
+    <!-- Card 3: Leaves & Time-off -->
+    <article class="kpi-card">
+      <div class="kpi-body">
+        <span class="kpi-value">{{ leavesCount() }}</span>
+        <span class="kpi-label">Leaves & Time-off</span>
+      </div>
+      <div class="kpi-icon-wrapper">
+        <app-icon name="calendar" [size]="18" color="#2563EB" />
+      </div>
+    </article>
+
+    <!-- Card 4: Authorized -->
+    <article class="kpi-card">
+      <div class="kpi-body">
+        <span class="kpi-value">{{ authorizedCount() }}</span>
+        <span class="kpi-label">Authorized</span>
+      </div>
+      <div class="kpi-icon-wrapper">
+        <app-icon name="check-circle" [size]="18" color="#2563EB" />
+      </div>
+    </article>
+  </section>
+
+  <!-- Search & Filter Toolbar Card -->
+  <section class="toolbar-card">
+    <div class="search-input-box">
+      <app-icon name="search" [size]="16" color="#94A3B8" />
+      <input
+        type="text"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        placeholder="Search employee, title, requester or department..."
+        aria-label="Search requests"
+      />
+    </div>
+
+    <div class="filter-dropdown-wrapper">
+      <button
+        type="button"
+        class="filter-dropdown-btn"
+        (click)="toggleFilterDropdown()"
+        [attr.aria-expanded]="isFilterOpen()"
+      >
+        <span>{{ selectedFilter() }}</span>
+        <app-icon name="chevron-down" [size]="14" color="#64748B" />
+      </button>
+
+      @if (isFilterOpen()) {
+        <div class="filter-dropdown-menu">
+          <button
+            type="button"
+            class="filter-option"
+            [class.active]="selectedFilter() === 'Pending Only'"
+            (click)="setFilter('Pending Only')"
+          >
+            Pending Only
+          </button>
+          <button
+            type="button"
+            class="filter-option"
+            [class.active]="selectedFilter() === 'All Requests'"
+            (click)="setFilter('All Requests')"
+          >
+            All Requests
+          </button>
+          <button
+            type="button"
+            class="filter-option"
+            [class.active]="selectedFilter() === 'Employee Onboarding'"
+            (click)="setFilter('Employee Onboarding')"
+          >
+            Employee Onboarding
+          </button>
+          <button
+            type="button"
+            class="filter-option"
+            [class.active]="selectedFilter() === 'Leaves & Time-off'"
+            (click)="setFilter('Leaves & Time-off')"
+          >
+            Leaves & Time-off
+          </button>
+          <button
+            type="button"
+            class="filter-option"
+            [class.active]="selectedFilter() === 'Authorized'"
+            (click)="setFilter('Authorized')"
+          >
+            Authorized
+          </button>
+          <button
+            type="button"
+            class="filter-option"
+            [class.active]="selectedFilter() === 'Rejected'"
+            (click)="setFilter('Rejected')"
+          >
+            Rejected
+          </button>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Requests Card List -->
+  <section class="requests-card-container">
+    @for (item of filteredItems(); track item.id) {
+      <article
+        class="approval-request-card"
+        [class.status-pending]="item.status === 'Pending'"
+        [class.status-authorized]="item.status === 'Authorized'"
+        [class.status-rejected]="item.status === 'Rejected'"
+      >
+        <!-- Top Badge Row -->
+        <div class="request-header-row">
+          <span class="type-badge">{{ item.type }}</span>
+
+          <div class="status-date-info">
+            <span
+              class="status-pill"
+              [class.pending]="item.status === 'Pending'"
+              [class.authorized]="item.status === 'Authorized'"
+              [class.rejected]="item.status === 'Rejected'"
+            >
+              {{ item.status }}
+            </span>
+            <span class="dot-separator">•</span>
+            <span class="date-text">Submitted: {{ item.submittedDate }}</span>
+          </div>
+        </div>
+
+        <!-- Request Heading & Description -->
+        <h2 class="request-title">{{ item.title }}</h2>
+        <p class="request-desc">{{ item.description }}</p>
+
+        <!-- Divider Line -->
+        <hr class="request-divider" />
+
+        <!-- 5 Columns Meta Details Grid -->
+        <div class="request-meta-grid">
+          <div class="meta-col">
+            <span class="meta-title">ADMIN</span>
+            <span class="meta-val bold-text">{{ item.admin }}</span>
+          </div>
+
+          <div class="meta-col">
+            <span class="meta-title">DEPARTMENT</span>
+            <span class="meta-val bold-text">{{ item.department }}</span>
+          </div>
+
+          <div class="meta-col">
+            <span class="meta-title">ASSIGNED ROLE</span>
+            <span class="role-pill">{{ item.assignedRole }}</span>
+          </div>
+
+          <div class="meta-col">
+            <span class="meta-title">SUBMITTED BY</span>
+            <span class="meta-val bold-text">{{ item.submittedBy }}</span>
+          </div>
+
+          <div class="meta-col">
+            <span class="meta-title">LOGIN STATE</span>
+            <div
+              class="login-state-indicator"
+              [class.pending]="item.status === 'Pending'"
+              [class.authorized]="item.status === 'Authorized'"
+              [class.rejected]="item.status === 'Rejected'"
+            >
+              <app-icon name="lock" [size]="13" />
+              <span>{{ item.loginState }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons (Bottom Right) -->
+        <div class="request-footer-row">
+          @if (item.status === 'Pending') {
+            <div class="action-buttons-group">
+              <button
+                type="button"
+                class="btn-action-reject"
+                (click)="reject(item.id)"
+              >
+                ✕ Reject
+              </button>
+              <button
+                type="button"
+                class="btn-action-authorize"
+                (click)="authorize(item.id)"
+              >
+                ✓ Authorize &amp; Enable Login
+              </button>
+            </div>
+          } @else if (item.status === 'Authorized') {
+            <div class="status-summary-authorized">
+              <app-icon name="check" [size]="14" color="#10B981" />
+              <span>Authorized &amp; Login Credentials Activated</span>
+            </div>
+          } @else {
+            <div class="status-summary-rejected">
+              <span>Request Rejected</span>
+            </div>
+          }
+        </div>
+      </article>
+    } @empty {
+      <div class="empty-requests-view">
+        <app-icon name="check-circle" [size]="44" color="#94A3B8" />
+        <h3>No requests found</h3>
+        <p>No approval items match your selected filter or search term.</p>
+      </div>
+    }
+  </section>
+</div>

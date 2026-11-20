@@ -1,0 +1,170 @@
+<div class="common-table-card">
+  <!-- Top Toolbar Area (Search & Filters) -->
+  @if (searchable() ) {
+    <div class="table-toolbar">
+      <!-- Search Input (Left) -->
+      @if (searchable()) {
+        <div class="table-search-wrap">
+          <app-icon name="search" [size]="15" color="#94A3B8" class="search-icon" />
+          <input
+            type="text"
+            class="table-search-input"
+            [placeholder]="searchPlaceholder()"
+            [value]="searchQuery()"
+            (input)="onSearchInput($event)"
+          />
+          @if (searchQuery()) {
+            <button
+              type="button"
+              class="clear-search-btn"
+              (click)="clearSearch()"
+              aria-label="Clear search"
+            >
+              <app-icon name="close" [size]="12" color="#94A3B8" />
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Custom Toolbar Actions Slot -->
+      <div class="table-toolbar-center">
+        <ng-content select="[table-actions]" />
+      </div>
+
+    
+    </div>
+  }
+
+  <!-- Table Body Area -->
+  <div class="table-responsive">
+    @if (columns().length > 0) {
+      <table class="common-table">
+        @if (caption()) {
+          <caption class="visually-hidden">{{ caption() }}</caption>
+        }
+
+        <!-- Header -->
+        <thead>
+          <tr>
+            @for (col of columns(); track col.key) {
+              <th
+                [style.width]="col.width || 'auto'"
+                [style.text-align]="col.align || 'left'"
+                [class.sortable]="col.sortable"
+                (click)="col.sortable ? onSort(col.key) : null"
+              >
+                <span class="th-content">
+                  {{ col.header }}
+                  @if (col.sortable && sortKey() === col.key) {
+                    <span class="sort-indicator">
+                      {{ sortDirection() === 'asc' ? '▲' : '▼' }}
+                    </span>
+                  }
+                </span>
+              </th>
+            }
+          </tr>
+        </thead>
+
+        <!-- Rows -->
+        <tbody>
+          @for (row of paginatedData(); track trackByFn($index, row); let idx = $index) {
+            <tr (click)="rowClick.emit(row)">
+              @for (col of columns(); track col.key; let cIdx = $index) {
+                <td
+                  [style.text-align]="col.align || 'left'"
+                  [class.cell-bold]="cIdx === 0"
+                  [class]="col.cssClass || ''"
+                >
+                  @switch (col.type) {
+                    @case ('badge') {
+                      <span
+                        class="table-status-pill"
+                        [class.status-active]="isStatusActive(getCellValue(row, col))"
+                        [class.status-pending]="isStatusPending(getCellValue(row, col))"
+                        [class.status-inactive]="isStatusInactive(getCellValue(row, col))"
+                      >
+                        {{ getCellValue(row, col) }}
+                      </span>
+                    }
+
+                    @case ('action') {
+                      <button
+                        type="button"
+                        class="table-action-icon-btn"
+                        (click)="$event.stopPropagation(); triggerAction(col.actionIcon || 'edit', row, idx)"
+                        [title]="col.actionTooltip || 'Edit'"
+                      >
+                        <app-icon
+                          [name]="col.actionIcon || 'edit'"
+                          [size]="16"
+                          [color]="col.actionColor || '#2563EB'"
+                        />
+                      </button>
+                    }
+
+                    @default {
+                      {{ getCellValue(row, col) }}
+                    }
+                  }
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr class="empty-row">
+              <td [attr.colspan]="columns().length" class="empty-cell">
+                <app-icon name="search" [size]="28" color="#94A3B8" />
+                <p>No records found</p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <!-- Direct Content-Projection Mode (Fallback for custom markup) -->
+      <table class="common-table manual-table">
+        <ng-content />
+      </table>
+    }
+  </div>
+
+  <!-- Bottom Pagination Bar -->
+  @if (showPagination() && totalCalculated() > 0) {
+    <div class="table-footer">
+      <div class="table-counts">
+        Showing <b>{{ showingCountDisplay() }}</b> of <b>{{ totalCalculated() }}</b> {{ itemLabel() }}
+      </div>
+
+      <div class="table-pagination">
+        <button
+          type="button"
+          class="pagination-btn"
+          [disabled]="currentPage() <= 1"
+          (click)="goToPage(currentPage() - 1)"
+        >
+          Previous
+        </button>
+
+        @for (p of pageNumbers(); track p) {
+          <button
+            type="button"
+            class="pagination-page-num"
+            [class.active]="currentPage() === p"
+            (click)="goToPage(p)"
+          >
+            {{ p }}
+          </button>
+        }
+
+        <button
+          type="button"
+          class="pagination-btn"
+          [disabled]="currentPage() >= totalPages()"
+          (click)="goToPage(currentPage() + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</div>

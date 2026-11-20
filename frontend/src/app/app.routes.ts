@@ -27,10 +27,16 @@ export const routes: Routes = [
             .then((m) => m.DASHBOARD_ROUTES)
       },
       {
+        path: 'users',
+        loadChildren: () =>
+          import('./features/users/user.routes')
+            .then((m) => m.USER_ROUTES)
+      },
+      {
         path: 'employees',
         loadChildren: () =>
-          import('./features/employees/employee.routes')
-            .then((m) => m.EMPLOYEE_ROUTES)
+          import('./features/users/user.routes')
+            .then((m) => m.USER_ROUTES)
       },
       {
         path: 'organization',
@@ -43,6 +49,18 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/attendance/attendance.routes')
             .then((m) => m.ATTENDANCE_ROUTES)
+      },
+      {
+        path: 'approval-hub',
+        loadChildren: () =>
+          import('./features/approval-hub/approval-hub.routes')
+            .then((m) => m.APPROVAL_HUB_ROUTES)
+      },
+      {
+        path: 'projects',
+        loadChildren: () =>
+          import('./features/projects/project.routes')
+            .then((m) => m.PROJECT_ROUTES)
       },
       {
         path: 'leave',
@@ -90,8 +108,6 @@ export const routes: Routes = [
       },
       {
         path: 'administration',
-        canActivate: [roleGuard],
-        data: { roles: ['Super Admin', 'HR Manager'] },
         loadChildren: () =>
           import('./features/administration/administration.routes')
             .then((m) => m.ADMINISTRATION_ROUTES)
@@ -101,6 +117,12 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/settings/settings.routes')
             .then((m) => m.SETTINGS_ROUTES)
+      },
+      {
+        path: 'icons',
+        loadComponent: () =>
+          import('./features/icons-gallery/icons-gallery.component')
+            .then((m) => m.IconsGalleryComponent)
       },
       {
         path: '',
