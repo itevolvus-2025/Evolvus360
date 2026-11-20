@@ -113,8 +113,8 @@ export class SettingsComponent {
   ];
 
   readonly profileForm = this.fb.nonNullable.group({
-    name: [this.auth.user()?.name ?? 'Meera Iyer', Validators.required],
-    email: [this.auth.user()?.email ?? 'admin@hrms.dev', [Validators.required, Validators.email]],
+    name: [this.auth.user()?.name ?? '', Validators.required],
+    email: [this.auth.user()?.email ?? '', [Validators.required, Validators.email]],
     phone: ['+91 90000 10002']
   });
 

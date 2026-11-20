@@ -28,6 +28,13 @@ export class ApiService {
       .pipe(catchError((err) => this.handleError(err)));
   }
 
+  /** POST multipart form data without setting Content-Type (the browser adds its boundary). */
+  postForm<T>(url: string, body: FormData): Observable<ApiResponse<T>> {
+    return this.http
+      .post<ApiResponse<T>>(url, body)
+      .pipe(catchError((err) => this.handleError(err)));
+  }
+
   /**
    * Generic PUT request
    */

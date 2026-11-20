@@ -29,16 +29,12 @@ export class RoleAddComponent {
   readonly roleName = signal('');
   readonly purpose = signal('');
   readonly status = signal<RoleStatus>('Active');
-  readonly effectiveDate = signal('17-11-2026');
+  readonly effectiveDate = signal('');
 
   // Permissions array centralized and passed to/from API
   readonly availablePermissions = AVAILABLE_PERMISSIONS;
 
-  readonly selectedPermissions = signal<string[]>([
-    'Dashboard',
-    'User Management',
-    'Leave Request',
-  ]);
+  readonly selectedPermissions = signal<string[]>([]);
 
   readonly isSaving = signal(false);
 
@@ -78,7 +74,7 @@ export class RoleAddComponent {
         status: this.status(),
         scope: 'Department',
         permissions: this.selectedPermissions(),
-        effectiveDate: this.effectiveDate().trim() || '17-11-2026',
+        effectiveDate: this.effectiveDate().trim() || new Date().toISOString().slice(0, 10),
       })
       .subscribe({
         next: () => {

@@ -134,7 +134,10 @@ def details(db: Session, employee_id: UUID) -> dict:
             selectinload(EmployeeEmploymentDetails.documents),
         )
         .where(
-            EmployeeEmploymentDetails.id == employee_id,
+            or_(
+                EmployeeEmploymentDetails.id == employee_id,
+                EmployeeEmploymentDetails.user_id == employee_id,
+            ),
             EmployeeEmploymentDetails.deleted_at.is_(None),
         )
     )
@@ -262,7 +265,10 @@ def approve(db: Session, actor: User, employee_id: UUID) -> dict:
                 selectinload(EmployeeEmploymentDetails.documents),
             )
             .where(
-                EmployeeEmploymentDetails.id == employee_id,
+                or_(
+                    EmployeeEmploymentDetails.id == employee_id,
+                    EmployeeEmploymentDetails.user_id == employee_id,
+                ),
                 EmployeeEmploymentDetails.deleted_at.is_(None),
             )
             .with_for_update(of=EmployeeEmploymentDetails)
@@ -318,7 +324,10 @@ def reject(db: Session, actor: User, employee_id: UUID, reason: str) -> dict:
             select(EmployeeEmploymentDetails)
             .options(joinedload(EmployeeEmploymentDetails.user))
             .where(
-                EmployeeEmploymentDetails.id == employee_id,
+                or_(
+                    EmployeeEmploymentDetails.id == employee_id,
+                    EmployeeEmploymentDetails.user_id == employee_id,
+                ),
                 EmployeeEmploymentDetails.deleted_at.is_(None),
             )
             .with_for_update(of=EmployeeEmploymentDetails)
@@ -408,7 +417,13 @@ def regenerate_credentials(db: Session, actor: User, employee_id: UUID) -> dict:
         employee = db.scalar(
             select(EmployeeEmploymentDetails)
             .options(joinedload(EmployeeEmploymentDetails.user))
-            .where(EmployeeEmploymentDetails.id == employee_id)
+            .where(
+                or_(
+                    EmployeeEmploymentDetails.id == employee_id,
+                    EmployeeEmploymentDetails.user_id == employee_id,
+                ),
+                EmployeeEmploymentDetails.deleted_at.is_(None),
+            )
             .with_for_update(of=EmployeeEmploymentDetails)
         )
         if employee is None or employee.onboarding_status != "APPROVED":

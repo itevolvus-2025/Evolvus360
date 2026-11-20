@@ -94,27 +94,63 @@ def get_current_active_user(user: Annotated[User, Depends(get_current_user)]) ->
 
 
 def _role_codes(user: User) -> set[str]:
-    return {
-        assignment.role.role_code
-        for assignment in user.role_assignments
-        if assignment.role.is_active
-        and not getattr(assignment.role, "is_deleted", False)
-    }
+    codes: set[str] = set()
+    for assignment in getattr(user, "role_assignments", []):
+        role = getattr(assignment, "role", None)
+        if not role or not getattr(role, "is_active", True) or getattr(role, "is_deleted", False):
+            continue
+        raw_code = getattr(role, "role_code", None)
+        if raw_code and isinstance(raw_code, str):
+            code = raw_code.strip().upper()
+            codes.add(code)
+            if code in {"HR_MANAGER", "HR_ADMIN", "HR_LEAD", "HR_GENERALIST", "HR_OPERATIONS"}:
+                codes.add("HR")
+            if code in {"SUPER_ADMIN", "SUPERADMIN", "SUPER_ADMINISTRATOR", "SYSTEM_ADMIN"}:
+                codes.add("SUPER_ADMIN")
+                codes.add("ADMIN")
+        raw_name = getattr(role, "role_name", None)
+        if raw_name and isinstance(raw_name, str):
+            name_upper = raw_name.strip().upper()
+            if "HR" in name_upper:
+                codes.add("HR")
+            if "SUPER ADMIN" in name_upper or "SUPERADMIN" in name_upper:
+                codes.add("SUPER_ADMIN")
+                codes.add("ADMIN")
+    return codes
 
 
 def _permission_codes(user: User) -> set[str]:
-    return {
-        permission
-        for role in user.role_assignments
-        if role.role.is_active and not getattr(role.role, "is_deleted", False)
-        for permission in (role.role.permissions or [])
-        if isinstance(permission, str)
-    }
+    perms: set[str] = set()
+    for assignment in getattr(user, "role_assignments", []):
+        role = getattr(assignment, "role", None)
+        if not role or not getattr(role, "is_active", True) or getattr(role, "is_deleted", False):
+            continue
+        for permission in (getattr(role, "permissions", None) or []):
+            if isinstance(permission, str):
+                perms.add(permission.strip())
+                perms.add(permission.strip().lower())
+                perms.add(permission.strip().upper().replace(" ", "_"))
+    return perms
 
 
 def require_roles(*role_codes: str) -> Callable:
     def dependency(user: Annotated[User, Depends(get_current_user)]) -> User:
-        if not set(role_codes).intersection(_role_codes(user)):
+        user_roles = _role_codes(user)
+        # Super admin always passes any role check
+        if "SUPER_ADMIN" in user_roles or "ADMIN" in user_roles:
+            return user
+
+        targets = {c.strip().upper() for c in role_codes}
+        if "HR" in targets:
+            targets.update({"HR_MANAGER", "HR_ADMIN", "HR_LEAD", "HR_GENERALIST"})
+
+        if not targets.intersection(user_roles):
+            # Check if this endpoint is user/employee management and user has User Management permission
+            if targets.intersection({"HR", "SUPER_ADMIN"}):
+                user_perms = _permission_codes(user)
+                if any(p in user_perms for p in {"user management", "usermgmt", "user_management", "users", "all", "*"}):
+                    return user
+
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Insufficient role")
         return user
 

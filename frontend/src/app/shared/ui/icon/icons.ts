@@ -225,7 +225,56 @@ export const APP_ICONS: Record<string, string> = {
   edit: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M4.61666 17.5782C4.10832 17.5782 3.63332 17.4032 3.29166 17.0782C2.85832 16.6698 2.64999 16.0532 2.72499 15.3865L3.03332 12.6865C3.09166 12.1782 3.39999 11.5031 3.75832 11.1365L10.6 3.89482C12.3083 2.08648 14.0917 2.03648 15.9 3.74482C17.7083 5.45315 17.7583 7.23648 16.05 9.04482L9.20832 16.2865C8.85832 16.6615 8.20832 17.0115 7.69999 17.0948L5.01666 17.5532C4.87499 17.5615 4.74999 17.5782 4.61666 17.5782ZM13.275 3.73648C12.6333 3.73648 12.075 4.13648 11.5083 4.73648L4.66666 11.9865C4.49999 12.1615 4.30832 12.5782 4.27499 12.8198L3.96666 15.5198C3.93332 15.7948 3.99999 16.0198 4.14999 16.1615C4.29999 16.3032 4.52499 16.3532 4.79999 16.3115L7.48332 15.8532C7.72499 15.8115 8.12499 15.5948 8.29166 15.4198L15.1333 8.17815C16.1667 7.07815 16.5417 6.06148 15.0333 4.64482C14.3667 4.00315 13.7917 3.73648 13.275 3.73648Z" fill="#457CE8"/>
 <path d="M14.45 10.4401C14.4333 10.4401 14.4083 10.4401 14.3916 10.4401C11.7916 10.1818 9.69996 8.20675 9.29996 5.62342C9.24996 5.28175 9.48329 4.96509 9.82496 4.90675C10.1666 4.85675 10.4833 5.09009 10.5416 5.43175C10.8583 7.44842 12.4916 8.99842 14.525 9.19842C14.8666 9.23175 15.1166 9.54009 15.0833 9.88175C15.0416 10.1984 14.7666 10.4401 14.45 10.4401Z" fill="#457CE8"/>
-</svg> `,
+</svg>`,
+
+  phone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+</svg>`,
+
+  landmark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<line x1="3" y1="22" x2="21" y2="22"></line>
+<line x1="6" y1="18" x2="6" y2="11"></line>
+<line x1="10" y1="18" x2="10" y2="11"></line>
+<line x1="14" y1="18" x2="14" y2="11"></line>
+<line x1="18" y1="18" x2="18" y2="11"></line>
+<polygon points="12 2 20 7 4 7"></polygon>
+</svg>`,
+
+  "graduation-cap": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+<path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+</svg>`,
+
+  "file-text": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+<polyline points="14 2 14 8 20 8"></polyline>
+<line x1="16" y1="13" x2="8" y2="13"></line>
+<line x1="16" y1="17" x2="8" y2="17"></line>
+<polyline points="10 9 9 9 8 9"></polyline>
+</svg>`,
+
+  "id-card": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<rect x="2" y="3" width="20" height="18" rx="2"></rect>
+<circle cx="8" cy="10" r="3"></circle>
+<line x1="15" y1="9" x2="19" y2="9"></line>
+<line x1="15" y1="13" x2="19" y2="13"></line>
+<path d="M4 19a4 4 0 0 1 8 0"></path>
+</svg>`,
+
+  upload: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+<polyline points="17 8 12 3 7 8"></polyline>
+<line x1="12" y1="3" x2="12" y2="15"></line>
+</svg>`,
+
+  "life-buoy": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="10"></circle>
+<circle cx="12" cy="12" r="4"></circle>
+<line x1="4.93" y1="4.93" x2="9.17" y2="9.17"></line>
+<line x1="14.83" y1="14.83" x2="19.07" y2="19.07"></line>
+<line x1="14.83" y1="9.17" x2="19.07" y2="4.93"></line>
+<line x1="4.93" y1="19.07" x2="9.17" y2="14.83"></line>
+</svg>`,
 };
 
 /**

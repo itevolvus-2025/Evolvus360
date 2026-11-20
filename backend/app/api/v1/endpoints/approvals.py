@@ -63,7 +63,10 @@ def download_document(
         .join(EmployeeEmploymentDetails)
         .where(
             EmployeeDocuments.id == document_id,
-            EmployeeDocuments.employee_id == employee_id,
+            or_(
+                EmployeeDocuments.employee_id == employee_id,
+                EmployeeEmploymentDetails.user_id == employee_id,
+            ),
             EmployeeEmploymentDetails.deleted_at.is_(None),
         )
     )

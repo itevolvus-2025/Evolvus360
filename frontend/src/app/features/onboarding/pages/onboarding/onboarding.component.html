@@ -1,0 +1,525 @@
+<div class="onboarding-page-root">
+  <!-- Top Navigation Bar -->
+  <header class="onboarding-topbar">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <!-- Evolvus Brand Logo -->
+        <div class="brand-area">
+          <img src="assets/images/EvolvusLogo.png" alt="Evolvus" class="brand-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+          <div class="brand-fallback-text" style="display: none;">
+            <span class="brand-text-evol">ev<span class="brand-dot">•</span>lvus</span>
+          </div>
+        </div>
+
+        <h1 class="page-title">Onboarding Details</h1>
+
+        <!-- Stepper Indicator (Matching Screenshot) -->
+        <nav class="stepper-nav">
+          <div class="step-item step-completed">
+            <span class="step-num-circle filled">1</span>
+            <span class="step-label">Employee Code</span>
+          </div>
+          <div class="step-item step-active">
+            <span class="step-num-circle outline-blue">2</span>
+            <span class="step-label">Personal Details</span>
+          </div>
+          <div class="step-item">
+            <span class="step-num-circle outline-gray">3</span>
+            <span class="step-label">Emergency Contact</span>
+          </div>
+          <div class="step-item">
+            <span class="step-num-circle outline-gray">4</span>
+            <span class="step-label">Banking Document</span>
+          </div>
+          <div class="step-item">
+            <span class="step-num-circle outline-gray">5</span>
+            <span class="step-label">Qualifications &amp; Skills</span>
+          </div>
+        </nav>
+      </div>
+
+      <div class="topbar-right">
+        <button
+          type="button"
+          class="btn-submit-top"
+          (click)="submitOnboarding()"
+          [disabled]="isSubmitting()"
+        >
+          {{ isSubmitting() ? 'Submitting...' : 'Submit' }}
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Content Container -->
+  <main class="onboarding-content">
+    <!-- User Banner Card (Matching Screenshot) -->
+    <section class="user-banner-card">
+      <div class="banner-user-info">
+        <div class="avatar-gradient">
+          <span>{{ candidateInitials() }}</span>
+        </div>
+        <div class="user-headings">
+          <div class="name-status-row">
+            <h2 class="user-name">{{ candidate().first_name }} {{ candidate().last_name }}</h2>
+            <span class="status-badge-pending">{{ candidate().status }}</span>
+          </div>
+          <div class="id-pill">
+            <app-icon name="id-card" [size]="13" color="#2563EB" />
+            <span>ID: {{ candidate().employee_code }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Radial Progress Widget -->
+      <div class="profile-progress-widget">
+        <div class="circular-chart-wrap">
+          <svg viewBox="0 0 36 36" class="circular-chart">
+            <path
+              class="circle-bg"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <path
+              class="circle-fill"
+              [attr.stroke-dasharray]="profileCompletion() + ', 100'"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+          </svg>
+          <span class="percent-text">{{ profileCompletion() }}%</span>
+        </div>
+        <div class="progress-details">
+          <span class="progress-title">Profile completion</span>
+          <span class="progress-remaining-note">
+            {{ remainingMandatoryCount() }} mandatory fields remaining
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: SET BY HR (READ ONLY) -->
+    <section class="form-card">
+      <div class="form-card-header">
+        <div class="card-title-wrap">
+          <div class="card-icon-badge badge-green">
+            <app-icon name="file-text" [size]="16" color="#059669" />
+          </div>
+          <h3 class="card-section-title">SET BY HR (READ ONLY)</h3>
+        </div>
+        <div class="header-pill locked-pill">
+          <app-icon name="lock" [size]="12" color="#64748B" />
+          <span>Locked by Administrator</span>
+        </div>
+      </div>
+
+      <div class="form-card-body">
+        <div class="grid-3col">
+          <!-- Employee code -->
+          <div class="field-item">
+            <label class="field-label">Employee code</label>
+            <div class="readonly-input-wrap">
+              <input type="text" class="field-input-readonly" [value]="candidate().employee_code" readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="lock-adornment" />
+            </div>
+          </div>
+
+          <!-- Entity -->
+          <div class="field-item">
+            <label class="field-label">Entity</label>
+            <div class="readonly-input-wrap">
+              <input type="text" class="field-input-readonly" [value]="candidate().entity" readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="lock-adornment" />
+            </div>
+          </div>
+
+          <!-- Company email -->
+          <div class="field-item">
+            <label class="field-label">Company email</label>
+            <div class="readonly-input-wrap">
+              <input type="text" class="field-input-readonly" [value]="candidate().company_email" readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="lock-adornment" />
+            </div>
+          </div>
+
+          <!-- Department -->
+          <div class="field-item">
+            <label class="field-label">Department</label>
+            <div class="readonly-input-wrap">
+              <input type="text" class="field-input-readonly" [value]="candidate().department" readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="lock-adornment" />
+            </div>
+          </div>
+
+          <!-- PF -->
+          <div class="field-item">
+            <label class="field-label">PF</label>
+            <div class="readonly-input-wrap">
+              <input type="text" class="field-input-readonly" [value]="candidate().pf_applicable" readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="lock-adornment" />
+            </div>
+          </div>
+
+          <!-- Role -->
+          <div class="field-item">
+            <label class="field-label">Role</label>
+            <div class="readonly-input-wrap">
+              <input type="text" class="field-input-readonly" [value]="candidate().role" readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="lock-adornment" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: PERSONAL AND CONTACT DETAILS -->
+    <section class="form-card">
+      <div class="form-card-header">
+        <div class="card-title-wrap">
+          <div class="card-icon-badge badge-blue">
+            <app-icon name="user" [size]="16" color="#2563EB" />
+          </div>
+          <h3 class="card-section-title">PERSONAL AND CONTACT DETAILS</h3>
+        </div>
+        <span class="required-note">* Required Fields</span>
+      </div>
+
+      <div class="form-card-body">
+        <div class="grid-3col">
+          <!-- Date of birth -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingDob">Date of birth <span class="req">*</span></label>
+            <div class="input-with-icon">
+              <input
+                id="onboardingDob"
+                type="date"
+                class="field-input"
+                [value]="dateOfBirth()"
+                (input)="dateOfBirth.set($any($event.target).value)"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Gender -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingGender">Gender <span class="req">*</span></label>
+            <div class="custom-select-box">
+              <select
+                id="onboardingGender"
+                class="field-select"
+                [value]="gender()"
+                (change)="gender.set($any($event.target).value)"
+                required
+              >
+                <option value="" disabled selected>Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              <app-icon name="chevron-down" [size]="12" color="#64748B" class="select-icon" />
+            </div>
+          </div>
+
+          <!-- Mobile (with country code) -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingMobile">Mobile (with country code) <span class="req">*</span></label>
+            <div class="input-with-icon">
+              <input
+                id="onboardingMobile"
+                type="tel"
+                class="field-input"
+                placeholder="+91 9876543210"
+                [value]="mobileNumber()"
+                (input)="mobileNumber.set($any($event.target).value)"
+                required
+              />
+              <app-icon name="phone" [size]="14" color="#94A3B8" class="right-adornment" />
+            </div>
+          </div>
+
+          <!-- Aadhaar (12 digits) -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingAadhaar">Aadhaar (12 digits) <span class="req">*</span></label>
+            <input
+              id="onboardingAadhaar"
+              type="text"
+              maxlength="14"
+              class="field-input"
+              placeholder="e.g. 1234 5678 9012"
+              [value]="aadhaarNumber()"
+              (input)="aadhaarNumber.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <!-- PAN Card -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingPan">PAN Card <span class="req">*</span></label>
+            <input
+              id="onboardingPan"
+              type="text"
+              maxlength="10"
+              class="field-input uppercase"
+              placeholder="E.G. ABCDE1234F"
+              [value]="panNumber()"
+              (input)="panNumber.set($any($event.target).value.toUpperCase())"
+              required
+            />
+          </div>
+
+          <!-- Passport number -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingPassport">Passport number</label>
+            <input
+              id="onboardingPassport"
+              type="text"
+              maxlength="20"
+              class="field-input uppercase"
+              placeholder="e.g. A1234567"
+              [value]="passportNumber()"
+              (input)="passportNumber.set($any($event.target).value.toUpperCase())"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: EMERGENCY CONTACT -->
+    <section class="form-card">
+      <div class="form-card-header">
+        <div class="card-title-wrap">
+          <div class="card-icon-badge badge-pink">
+            <app-icon name="life-buoy" [size]="16" color="#E11D48" />
+          </div>
+          <h3 class="card-section-title">EMERGENCY CONTACT</h3>
+        </div>
+        <div class="header-pill contact-pill">
+          <span>Primary point of contact</span>
+        </div>
+      </div>
+
+      <div class="form-card-body">
+        <div class="grid-3col">
+          <!-- Contact Name -->
+          <div class="field-item">
+            <label class="field-label" for="emergencyName">Contact Name <span class="req">*</span></label>
+            <input
+              id="emergencyName"
+              type="text"
+              class="field-input"
+              placeholder="Contact full name"
+              [value]="emergencyContactName()"
+              (input)="emergencyContactName.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <!-- Phone Number -->
+          <div class="field-item">
+            <label class="field-label" for="emergencyPhone">Phone Number <span class="req">*</span></label>
+            <input
+              id="emergencyPhone"
+              type="tel"
+              class="field-input"
+              placeholder="e.g. +91 9876543210"
+              [value]="emergencyContactPhone()"
+              (input)="emergencyContactPhone.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <!-- Relationship -->
+          <div class="field-item">
+            <label class="field-label" for="emergencyRelation">Relationship <span class="req">*</span></label>
+            <input
+              id="emergencyRelation"
+              type="text"
+              class="field-input"
+              placeholder="e.g. Spouse / Parent / Sibling"
+              [value]="emergencyContactRelationship()"
+              (input)="emergencyContactRelationship.set($any($event.target).value)"
+              required
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: BANKING & COMPLIANCE DOCUMENTS -->
+    <section class="form-card">
+      <div class="form-card-header">
+        <div class="card-title-wrap">
+          <div class="card-icon-badge badge-teal">
+            <app-icon name="landmark" [size]="16" color="#0D9488" />
+          </div>
+          <h3 class="card-section-title">BANKING &amp; COMPLIANCE DOCUMENTS</h3>
+        </div>
+        <div class="header-pill deposit-pill">
+          <span>Direct Deposit</span>
+        </div>
+      </div>
+
+      <div class="form-card-body">
+        <div class="grid-3col">
+          <!-- Bank Name -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingBank">Bank Name <span class="req">*</span></label>
+            <input
+              id="onboardingBank"
+              type="text"
+              class="field-input"
+              placeholder="e.g. HDFC Bank"
+              [value]="bankName()"
+              (input)="bankName.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <!-- Account Number -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingAccount">Account Number <span class="req">*</span></label>
+            <input
+              id="onboardingAccount"
+              type="text"
+              class="field-input"
+              placeholder="e.g. 50100234567890"
+              [value]="accountNumber()"
+              (input)="accountNumber.set($any($event.target).value)"
+              required
+            />
+          </div>
+
+          <!-- IFSC Code -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingIfsc">IFSC Code <span class="req">*</span></label>
+            <input
+              id="onboardingIfsc"
+              type="text"
+              maxlength="11"
+              class="field-input uppercase"
+              placeholder="E.G. HDFC0000123"
+              [value]="ifscCode()"
+              (input)="ifscCode.set($any($event.target).value.toUpperCase())"
+              required
+            />
+          </div>
+
+          <!-- UAN (PF Application) -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingUan">UAN (PF Application) <span class="req">*</span></label>
+            <input
+              id="onboardingUan"
+              type="text"
+              class="field-input"
+              placeholder="e.g. 100912345678"
+              [value]="uanNumber()"
+              (input)="uanNumber.set($any($event.target).value)"
+            />
+          </div>
+
+          <!-- Identity Proof -->
+          <div class="field-item">
+            <label class="field-label">Identity Proof <span class="req">*</span></label>
+            <div class="file-picker-row">
+              <label class="btn-choose-file">
+                Choose File
+                <input type="file" (change)="onIdentityProofChange($event)" accept=".pdf,.jpg,.jpeg,.png" hidden />
+              </label>
+              <div class="file-status-wrap">
+                <span class="file-name-text">{{ identityProofName() || 'No file chosen' }}</span>
+                <span class="file-help-text">PDF, JPG or PNG up to 5MB</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cancelled Cheque -->
+          <div class="field-item">
+            <label class="field-label">Cancelled Cheque <span class="req">*</span></label>
+            <div class="file-picker-row">
+              <label class="btn-choose-file">
+                Choose File
+                <input type="file" (change)="onCancelledChequeChange($event)" accept=".pdf,.jpg,.jpeg,.png" hidden />
+              </label>
+              <div class="file-status-wrap">
+                <span class="file-name-text">{{ cancelledChequeName() || 'No file chosen' }}</span>
+                <span class="file-help-text">Bank verified copy (PDF / Image)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: QUALIFICATION , SKILLS & LANGUAGES -->
+    <section class="form-card">
+      <div class="form-card-header">
+        <div class="card-title-wrap">
+          <div class="card-icon-badge badge-blue-light">
+            <app-icon name="graduation-cap" [size]="16" color="#3B82F6" />
+          </div>
+          <h3 class="card-section-title">QUALIFICATION , SKILLS &amp; LANGUAGES</h3>
+        </div>
+      </div>
+
+      <div class="form-card-body">
+        <div class="grid-2col">
+          <!-- Qualification -->
+          <div class="field-item">
+            <label class="field-label" for="onboardingQual">Qualification</label>
+            <input
+              id="onboardingQual"
+              type="text"
+              class="field-input"
+              placeholder="Enter your qualifications"
+              [value]="qualification()"
+              (input)="qualification.set($any($event.target).value)"
+            />
+          </div>
+
+          <!-- Languages Multi-Select Chips -->
+          <div class="field-item">
+            <label class="field-label" for="languageSelect">Languages</label>
+            <div class="languages-widget-box">
+              <div class="chips-container">
+                @for (lang of languages(); track lang) {
+                  <span class="language-chip">
+                    {{ lang }}
+                    <button type="button" class="btn-chip-remove" (click)="removeLanguage(lang)" title="Remove">
+                      &times;
+                    </button>
+                  </span>
+                }
+              </div>
+
+              <div class="add-language-dropdown">
+                <select
+                  id="languageSelect"
+                  class="select-add-lang"
+                  (change)="addLanguage($any($event.target).value); $any($event.target).value = ''"
+                >
+                  <option value="" disabled selected>+ Add</option>
+                  @for (avail of availableLanguages; track avail) {
+                    <option [value]="avail">{{ avail }}</option>
+                  }
+                </select>
+                <app-icon name="chevron-down" [size]="12" color="#64748B" class="lang-chevron" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Submit Bar -->
+    <div class="bottom-action-bar">
+      <button
+        type="button"
+        class="btn-bottom-submit"
+        (click)="submitOnboarding()"
+        [disabled]="isSubmitting()"
+      >
+        <app-icon name="check" [size]="16" color="#FFFFFF" />
+        <span>{{ isSubmitting() ? 'Submitting Application...' : 'Submit Onboarding Details' }}</span>
+      </button>
+    </div>
+  </main>
+</div>

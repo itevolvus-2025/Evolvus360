@@ -32,8 +32,8 @@ export class LoginComponent {
 
   /** Reactive login form with field validation */
   readonly form = this.fb.nonNullable.group({
-    email: ['admin@hrms.dev', [Validators.required, Validators.email]],
-    password: ['password', [Validators.required, Validators.minLength(6)]],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
     rememberMe: [true],
   });
 
@@ -58,8 +58,9 @@ export class LoginComponent {
       next: (result) => {
         this.isLoading.set(false);
         if (result.success) {
-          console.log('[Auth] Login successful. Redirecting to dashboard...');
-          void this.router.navigateByUrl('/dashboard');
+          const targetRoute = this.auth.getDefaultRoute();
+          console.log(`[Auth] Login successful. Redirecting to ${targetRoute}...`);
+          void this.router.navigateByUrl(targetRoute);
         } else {
           this.error.set(
             result.message || 'Authentication failed. Please check your email and password.'
@@ -68,10 +69,8 @@ export class LoginComponent {
       },
       error: (err: Error) => {
         this.isLoading.set(false);
-        console.warn('[Auth] API request encountered error, applying hardcoded session fallback:', err);
-        // Fallback to hardcoded user so login is never blocked
-        this.auth.fallbackHardcodedLogin(email);
-        void this.router.navigateByUrl('/dashboard');
+        console.warn('[Auth] API request encountered error:', err);
+        this.error.set(err.message || 'Authentication failed. Please verify your credentials.');
       },
     });
   }

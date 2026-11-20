@@ -52,72 +52,42 @@
     <div class="table-toolbar">
       <div class="table-search-wrap">
         <app-icon name="search" [size]="15" color="#94A3B8" class="search-icon" />
-        <input
-          type="text"
-          class="table-search-input"
-          placeholder="Search users by name, role, email..."
-          [value]="searchQuery()"
-          (input)="onSearchInput($event)"
-        />
+        <input type="text" class="table-search-input" placeholder="Search users by name, role, email..."
+          [value]="searchQuery()" (input)="onSearchInput($event)" />
         @if (searchQuery()) {
-          <button
-            type="button"
-            class="clear-search-btn"
-            (click)="clearSearch()"
-            aria-label="Clear search"
-          >
-            <app-icon name="close" [size]="12" color="#94A3B8" />
-          </button>
+        <button type="button" class="clear-search-btn" (click)="clearSearch()" aria-label="Clear search">
+          <app-icon name="close" [size]="12" color="#94A3B8" />
+        </button>
         }
       </div>
 
       <div class="toolbar-actions-right">
-        <button
-          type="button"
-          class="btn-filter"
-          (click)="toggleFilterDropdown()"
-          [class.active]="filterRole() !== 'All'"
-        >
+        <button type="button" class="btn-filter" (click)="toggleFilterDropdown()"
+          [class.active]="filterRole() !== 'All'">
           <app-icon name="filter" [size]="14" color="#2563EB" />
           <span>Filter</span>
         </button>
 
         @if (isFilterOpen()) {
-          <div class="filter-dropdown-menu">
-            <div class="filter-dropdown-header">Filter by Role</div>
-            <button
-              type="button"
-              class="filter-opt-btn"
-              [class.selected]="filterRole() === 'All'"
-              (click)="setFilter('All')"
-            >
-              All Roles
-            </button>
-            <button
-              type="button"
-              class="filter-opt-btn"
-              [class.selected]="filterRole() === 'Super Admin'"
-              (click)="setFilter('Super Admin')"
-            >
-              Super Admin
-            </button>
-            <button
-              type="button"
-              class="filter-opt-btn"
-              [class.selected]="filterRole() === 'HR Manager'"
-              (click)="setFilter('HR Manager')"
-            >
-              HR Manager
-            </button>
-            <button
-              type="button"
-              class="filter-opt-btn"
-              [class.selected]="filterRole() === 'Employee'"
-              (click)="setFilter('Employee')"
-            >
-              Employee
-            </button>
-          </div>
+        <div class="filter-dropdown-menu">
+          <div class="filter-dropdown-header">Filter by Role</div>
+          <button type="button" class="filter-opt-btn" [class.selected]="filterRole() === 'All'"
+            (click)="setFilter('All')">
+            All Roles
+          </button>
+          <button type="button" class="filter-opt-btn" [class.selected]="filterRole() === 'Super Admin'"
+            (click)="setFilter('Super Admin')">
+            Super Admin
+          </button>
+          <button type="button" class="filter-opt-btn" [class.selected]="filterRole() === 'HR Manager'"
+            (click)="setFilter('HR Manager')">
+            HR Manager
+          </button>
+          <button type="button" class="filter-opt-btn" [class.selected]="filterRole() === 'Employee'"
+            (click)="setFilter('Employee')">
+            Employee
+          </button>
+        </div>
         }
       </div>
     </div>
@@ -137,75 +107,87 @@
         </thead>
         <tbody>
           @for (user of paginatedUsers(); track user.id) {
-            <tr>
-              <!-- Name with Circle Initials Avatar -->
-              <td>
-                <div class="user-identity-cell">
-                  <span class="user-avatar-circle">
-                    {{ getInitials(user.name) }}
-                  </span>
-                  <span class="user-full-name">{{ user.name }}</span>
-                </div>
-              </td>
-
-              <!-- Code -->
-              <td class="cell-code">{{ user.code }}</td>
-
-              <!-- Role -->
-              <td class="cell-role">{{ user.role }}</td>
-
-              <!-- Status Badge Pill -->
-              <td>
-                <span
-                  class="table-status-pill"
-                  [class.status-active]="user.status === 'Active'"
-                  [class.status-inactive]="user.status === 'Inactive' || user.status === 'Deactive'"
-                  [class.status-pending]="user.status === 'Pending'"
-                >
-                  {{ user.status }}
+          <tr>
+            <!-- Name with Circle Initials Avatar -->
+            <td>
+              <div class="user-identity-cell">
+                <span class="user-avatar-circle">
+                  {{ getInitials(user.name) }}
                 </span>
-              </td>
+                <span class="user-full-name">{{ user.name }}</span>
+              </div>
+            </td>
 
-              <!-- Profile Badge Pill -->
-              <td>
-                <span
-                  class="table-profile-pill"
-                  [class.profile-pending]="user.profile === 'Pending'"
-                  [class.profile-submitted]="user.profile === 'Submitted'"
-                  [class.profile-approved]="user.profile === 'Approved'"
-                >
-                  {{ user.profile }}
-                </span>
-              </td>
+            <!-- Code -->
+            <td class="cell-code">{{ user.code }}</td>
 
-              <!-- Action: Edit Pencil Icon Button -->
-              <td>
-                <div class="action-btn-group">
-                  <a
-                    [routerLink]="['/users/edit', user.id]"
-                    class="table-action-icon-btn"
-                    title="Edit User"
-                  >
-                    <app-icon name="edit" [size]="16" color="#2563EB" />
-                  </a>
-                  <button
-                    type="button"
-                    class="table-action-icon-btn delete-btn"
-                    (click)="openDeleteModal(user)"
-                    title="Delete User"
-                  >
-                    <app-icon name="trash" [size]="15" color="#EF4444" />
-                  </button>
-                </div>
-              </td>
-            </tr>
+            <!-- Role -->
+            <td class="cell-role">{{ user.role }}</td>
+
+            <!-- Status Badge Pill -->
+            <td>
+              <span class="table-status-pill" [class.status-active]="user.status === 'Active'"
+                [class.status-inactive]="user.status === 'Inactive' || user.status === 'Deactive'"
+                [class.status-pending]="user.status === 'Pending'">
+                {{ user.status }}
+              </span>
+            </td>
+
+            <!-- Profile Badge Pill -->
+            <td>
+              <span class="table-profile-pill" [class.profile-pending]="user.profile === 'Pending'"
+                [class.profile-submitted]="user.profile === 'Submitted'"
+                [class.profile-approved]="user.profile === 'Approved'">
+                {{ user.profile }}
+              </span>
+              @if (canRetryInvitation(user)) {
+              <span class="mail-failed-pill" title="Email dispatch failed. Click retry to resend.">Mail Failed</span>
+              }
+            </td>
+
+            <!-- Action: Edit Pencil Icon Button -->
+            <td>
+              <div class="action-btn-group">
+                <a [routerLink]="['/users/edit', user.id]" class="table-action-icon-btn" title="Edit User">
+                  <app-icon name="edit" [size]="16" color="#2563EB" />
+                </a>
+
+                @if (canRetryInvitation(user)) {
+                <button type="button" class="table-action-icon-btn retry-btn" (click)="retryInvitation(user)"
+                  [disabled]="retryingUserIds().has(userIdKey(user.id))" title="Retry failed invitation email"
+                  aria-label="Retry failed invitation email">
+                  <app-icon name="arrow-right" [size]="15" color="#D97706" />
+                </button>
+                } @else if (user.status === 'Pending' || user.profile === 'Pending') {
+                <button type="button" class="table-action-icon-btn mail-btn" (click)="sendInvitation(user)"
+                  [disabled]="retryingUserIds().has(userIdKey(user.id))"
+                  title="Send onboarding invitation link via email"
+                  aria-label="Send onboarding invitation link via email">
+                  <app-icon name="tray-arrow-up" [size]="15" color="#2563EB" />
+                </button>
+                }
+
+                @if (user.profile === 'Submitted') {
+                <a routerLink="/approvals" class="table-action-icon-btn review-btn"
+                  title="Review submission in Approval Hub">
+                  <app-icon name="check-circle" [size]="15" color="#10B981" />
+                </a>
+                }
+
+                <button type="button" class="table-action-icon-btn delete-btn" (click)="openDeleteModal(user)"
+                  title="Delete User">
+                  <app-icon name="trash" [size]="15" color="#EF4444" />
+                </button>
+              </div>
+            </td>
+          </tr>
           } @empty {
-            <tr class="empty-row">
-              <td colspan="6" class="empty-cell">
-                <app-icon name="search" [size]="28" color="#94A3B8" />
-                <p>No users found</p>
-              </td>
-            </tr>
+          <tr class="empty-row">
+            <td colspan="6" class="empty-cell">
+              <app-icon name="search" [size]="28" color="#94A3B8" />
+              <p>No users found</p>
+            </td>
+          </tr>
           }
         </tbody>
       </table>
@@ -218,32 +200,19 @@
       </div>
 
       <div class="table-pagination">
-        <button
-          type="button"
-          class="pagination-btn"
-          [disabled]="currentPage() <= 1"
-          (click)="goToPage(currentPage() - 1)"
-        >
+        <button type="button" class="pagination-btn" [disabled]="currentPage() <= 1"
+          (click)="goToPage(currentPage() - 1)">
           Previous
         </button>
 
         @for (p of pageNumbers(); track p) {
-          <button
-            type="button"
-            class="pagination-page-num"
-            [class.active]="currentPage() === p"
-            (click)="goToPage(p)"
-          >
-            {{ p }}
-          </button>
+        <button type="button" class="pagination-page-num" [class.active]="currentPage() === p" (click)="goToPage(p)">
+          {{ p }}
+        </button>
         }
 
-        <button
-          type="button"
-          class="pagination-btn"
-          [disabled]="currentPage() >= totalPages()"
-          (click)="goToPage(currentPage() + 1)"
-        >
+        <button type="button" class="pagination-btn" [disabled]="currentPage() >= totalPages()"
+          (click)="goToPage(currentPage() + 1)">
           Next
         </button>
       </div>
@@ -252,21 +221,21 @@
 
   <!-- Delete User Confirmation Dialog -->
   @if (userToDelete()) {
-    <div class="delete-modal-backdrop" (click)="closeDeleteModal()">
-      <div class="delete-modal-dialog" (click)="$event.stopPropagation()">
-        <div class="delete-dialog-icon">
-          <app-icon name="trash" [size]="24" color="#DC2626" />
-        </div>
-        <h3 class="delete-dialog-title">Delete User</h3>
-        <p class="delete-dialog-message">
-          Are you sure you want to delete user <strong>"{{ userToDelete()?.name }}"</strong>?
-          This action will permanently remove access for this user.
-        </p>
-        <div class="delete-dialog-actions">
-          <button type="button" class="btn-cancel" (click)="closeDeleteModal()">Cancel</button>
-          <button type="button" class="btn-confirm-delete" (click)="confirmDelete()">Delete User</button>
-        </div>
+  <div class="delete-modal-backdrop" (click)="closeDeleteModal()">
+    <div class="delete-modal-dialog" (click)="$event.stopPropagation()">
+      <div class="delete-dialog-icon">
+        <app-icon name="trash" [size]="24" color="#DC2626" />
+      </div>
+      <h3 class="delete-dialog-title">Delete User</h3>
+      <p class="delete-dialog-message">
+        Are you sure you want to delete user <strong>"{{ userToDelete()?.name }}"</strong>?
+        This action will permanently remove access for this user.
+      </p>
+      <div class="delete-dialog-actions">
+        <button type="button" class="btn-cancel" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" class="btn-confirm-delete" (click)="confirmDelete()">Delete User</button>
       </div>
     </div>
+  </div>
   }
 </div>

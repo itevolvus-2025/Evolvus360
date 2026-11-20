@@ -10,8 +10,8 @@
 
     <div class="header-actions">
       <a routerLink="/users" class="btn-cancel">Cancel</a>
-      <button type="button" class="btn-save" (click)="saveUser()">
-        Save user
+      <button type="button" class="btn-save" (click)="saveUser()" [disabled]="userServiceRef.isSaving()">
+        {{ userServiceRef.isSaving() ? 'Saving...' : 'Save user' }}
       </button>
     </div>
   </header>
@@ -89,14 +89,12 @@
                 id="department"
                 class="form-select"
                 [value]="department()"
-                (change)="department.set($any($event.target).value)"
+                (change)="selectOption($event, 'department')"
               >
                 <option value="" disabled>Select department</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Human Resources">Human Resources</option>
-                <option value="Sales">Sales</option>
-                <option value="Finance">Finance</option>
-                <option value="Marketing">Marketing</option>
+                @for (option of departments(); track option.id) {
+                  <option [value]="option.id">{{ option.name }}</option>
+                }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>
@@ -109,13 +107,12 @@
                 id="role"
                 class="form-select"
                 [value]="role()"
-                (change)="role.set($any($event.target).value)"
+                (change)="selectOption($event, 'role')"
               >
                 <option value="" disabled>Select role</option>
-                <option value="Super Admin">Super Admin</option>
-                <option value="HR Manager">HR Manager</option>
-                <option value="Employee">Employee</option>
-                <option value="Consultant">Consultant</option>
+                @for (option of roles(); track option.id) {
+                  <option [value]="option.id">{{ option.name }}</option>
+                }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>
@@ -163,29 +160,18 @@
                 id="entity"
                 class="form-select"
                 [value]="entity()"
-                (change)="entity.set($any($event.target).value)"
+                (change)="selectOption($event, 'entity')"
               >
                 <option value="" disabled>Select entity</option>
-                <option value="Evolvus India Pvt Ltd">Evolvus India Pvt Ltd</option>
-                <option value="Evolvus Global LLC">Evolvus Global LLC</option>
-                <option value="Evolvus Fintech Solutions">Evolvus Fintech Solutions</option>
+                @for (option of entities(); track option.id) {
+                  <option [value]="option.id">{{ option.name }}</option>
+                }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="userCode">User/Employee code <span class="required">*</span></label>
-            <input
-              id="userCode"
-              type="text"
-              class="form-input"
-              placeholder="e.g. EV-8492"
-              [value]="code()"
-              (input)="code.set($any($event.target).value)"
-              required
-            />
-          </div>
+          <div class="form-group"></div>
         </div>
       </div>
     </section>
@@ -312,7 +298,7 @@
     <div class="callout-notice-box">
       <app-icon name="alert-circle" [size]="16" color="#B45309" class="notice-icon" />
       <span class="notice-text">
-        Saving creates the record only. The account activates after the invitation is accepted.
+        Saving creates the user and sends an onboarding invitation. The employee submits their profile from the invitation link.
       </span>
     </div>
   </form>

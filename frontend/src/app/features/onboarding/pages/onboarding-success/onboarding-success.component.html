@@ -1,0 +1,36 @@
+<div class="success-page-container">
+  <div class="success-card">
+    <div class="success-icon-wrap">
+      <app-icon name="check" [size]="36" color="#059669" />
+    </div>
+
+    <h1 class="success-title">Onboarding Submitted Successfully!</h1>
+    <p class="success-desc">
+      Thank you for submitting your onboarding details and compliance documents. Your profile is now pending verification and authorization by the Enterprise Super Administrator.
+    </p>
+
+    <div class="info-box">
+      <div class="info-row">
+        <span class="info-label">Application Status</span>
+        <span class="status-badge">Pending Approval</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Next Step</span>
+        <span class="info-val">Administrator review in Approval Hub</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Login Credentials</span>
+        <span class="info-val">Will be dispatched to your company email once approved</span>
+      </div>
+    </div>
+
+    <div class="card-actions">
+      <a routerLink="/auth/login" class="btn-return-login">
+        <span>Go to Sign In Portal</span>
+      </a>
+      <a routerLink="/onboarding" class="btn-review">
+        <span>Review Submission</span>
+      </a>
+    </div>
+  </div>
+</div>

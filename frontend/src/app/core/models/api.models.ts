@@ -48,6 +48,8 @@ export interface RoleDto {
   status: string;
   is_active?: boolean;
   permissions: string[];
+  effective_date?: string;
+  effectiveDate?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -77,4 +79,49 @@ export interface RoleUpdatePayload {
   purpose?: string;
   permissions?: string[];
   status?: string;
+}
+
+export interface MasterDataOption {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface EmployeeApiRecord {
+  id: string;
+  user_id?: string;
+  employee_code: string;
+  profile_status: string;
+  account_status: string;
+  email?: string;
+  onboarding_status?: string;
+  invitation_status?: string;
+  email_dispatch_status?: 'DISPATCHED' | 'FAILED' | string;
+  first_name?: string;
+  middle_name?: string | null;
+  last_name?: string;
+  department?: { id?: string; name?: string } | string;
+  role?: { id?: string; name?: string } | string;
+  designation?: string;
+  entity?: { id?: string; name?: string } | string;
+  company_email?: string;
+  personal_email?: string;
+  phone?: string;
+  location?: string;
+  pf_applicable?: boolean;
+  joining_date?: string;
+  start_date?: string;
+  end_date?: string | null;
+}
+
+export interface EmployeeApprovalRecord {
+  employee_id: string;
+  employee_code: string;
+  name: string;
+  email: string;
+  department: string;
+  designation: string;
+  onboarding_status: string;
+  submitted_at: string | null;
+  email_dispatch_status?: string;
 }

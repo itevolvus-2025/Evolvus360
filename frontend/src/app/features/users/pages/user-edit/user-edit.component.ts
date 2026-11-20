@@ -10,7 +10,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { UserService, UserStatus, ProfileStatus } from '../../data-access/user.service';
+import { UserService, UserRow, UserStatus, ProfileStatus } from '../../data-access/user.service';
+import { MasterDataOption } from '../../../../core/models/api.models';
 
 @Component({
   selector: 'app-user-edit',
@@ -26,7 +27,10 @@ export class UserEditComponent implements OnInit {
   private readonly userService = inject(UserService);
   private readonly notification = inject(NotificationService);
 
-  readonly userId = signal<number | string>(1);
+  readonly userId = signal<number | string>('');
+  readonly departments = this.userService.departments;
+  readonly roles = this.userService.roles;
+  readonly entities = this.userService.entities;
 
   // 01 Personal Identity
   readonly firstName = signal('');
@@ -34,11 +38,11 @@ export class UserEditComponent implements OnInit {
   readonly lastName = signal('');
 
   // 02 Department & Role Assignment
-  readonly department = signal('Engineering');
-  readonly role = signal('Employee');
+  readonly department = signal('');
+  readonly role = signal('');
   readonly designation = signal('');
-  readonly location = signal('Bengaluru');
-  readonly entity = signal('Evolvus India Pvt Ltd');
+  readonly location = signal('');
+  readonly entity = signal('');
   readonly code = signal('');
 
   // 03 Contact Information & Compliance
@@ -46,10 +50,8 @@ export class UserEditComponent implements OnInit {
   readonly personalEmail = signal('');
   readonly pfApplicable = signal<'Yes' | 'No'>('Yes');
   readonly status = signal<UserStatus>('Active');
-  readonly profile = signal<ProfileStatus>('Approved');
-  readonly reasonForChange = signal(
-    'Update user role and organizational identity profile'
-  );
+  readonly profile = signal<ProfileStatus>('Pending');
+  readonly reasonForChange = signal('');
 
   // 04 Employment Timeline
   readonly joiningDate = signal('');
@@ -60,35 +62,46 @@ export class UserEditComponent implements OnInit {
   readonly showDeleteModal = signal(false);
 
   ngOnInit(): void {
+    this.userService.loadMasterData();
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       const id: number | string = /^\d+$/.test(idParam) ? parseInt(idParam, 10) : idParam;
       this.userId.set(id);
 
-      const existing = this.userService.getUserById(id);
-      if (existing) {
-        this.firstName.set(existing.firstName || '');
-        this.middleName.set(existing.middleName || '');
-        this.lastName.set(existing.lastName || '');
-        this.department.set(existing.department || 'Engineering');
-        this.role.set(existing.role || 'Employee');
-        this.designation.set(existing.designation || '');
-        this.location.set(existing.location || 'Bengaluru');
-        this.entity.set(existing.entity || 'Evolvus India Pvt Ltd');
-        this.code.set(existing.code || '');
-        this.companyEmail.set(existing.companyEmail || existing.email || '');
-        this.personalEmail.set(existing.personalEmail || '');
-        this.pfApplicable.set(existing.pfApplicable || 'Yes');
-        this.status.set(existing.status || 'Active');
-        this.profile.set(existing.profile || 'Approved');
-        if (existing.reasonForChange) {
-          this.reasonForChange.set(existing.reasonForChange);
-        }
-        this.joiningDate.set(existing.joiningDate || '17-11-2026');
-        this.startDate.set(existing.startDate || '17-11-2026');
-        this.endDate.set(existing.endDate || '');
-      }
+      this.userService.getEmployee(id, (existing) => {
+        this.populateFields(existing);
+      });
     }
+  }
+
+  private populateFields(existing: UserRow): void {
+    this.firstName.set(existing.firstName || '');
+    this.middleName.set(existing.middleName || '');
+    this.lastName.set(existing.lastName || '');
+    this.department.set(existing.departmentId || existing.department || '');
+    this.role.set(existing.roleId || existing.role || '');
+    this.designation.set(existing.designation || '');
+    this.location.set(existing.location || '');
+    this.entity.set(existing.entityId || existing.entity || '');
+    this.code.set(existing.code || '');
+    this.companyEmail.set(existing.companyEmail || existing.email || '');
+    this.personalEmail.set(existing.personalEmail || '');
+    this.pfApplicable.set(existing.pfApplicable || 'Yes');
+    this.status.set(existing.status || 'Active');
+    this.profile.set(existing.profile || 'Pending');
+    if (existing.reasonForChange) {
+      this.reasonForChange.set(existing.reasonForChange);
+    }
+    this.joiningDate.set(existing.joiningDate || '');
+    this.startDate.set(existing.startDate || '');
+    this.endDate.set(existing.endDate || '');
+  }
+
+  selectOption(event: Event, target: 'department' | 'role' | 'entity'): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (target === 'department') this.department.set(value);
+    else if (target === 'role') this.role.set(value);
+    else this.entity.set(value);
   }
 
   saveUser(): void {
@@ -159,6 +172,47 @@ export class UserEditComponent implements OnInit {
       return;
     }
 
+    const parseDate = (value: string): string => {
+      const match = value.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+      return match ? `${match[3]}-${match[2]}-${match[1]}` : value;
+    };
+
+    const id = this.userId();
+    const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
+    // Check if id is a backend UUID
+    const isBackendUuid = typeof id === 'string' && id.includes('-') && id.length >= 32;
+
+    if (isBackendUuid) {
+      const deptOption = this.departments().find((d) => d.id === department || d.name === department);
+      const roleOption = this.roles().find((r) => r.id === role || r.name === role);
+      const entityOption = this.entities().find((e) => e.id === this.entity() || e.name === this.entity());
+
+      this.userService.updateEmployee(id, {
+        first_name: firstName,
+        middle_name: this.middleName().trim() || null,
+        last_name: lastName,
+        department_id: deptOption?.id || (department.includes('-') ? department : undefined),
+        role_id: roleOption?.id || (role.includes('-') ? role : undefined),
+        entity_id: entityOption?.id || (this.entity().includes('-') ? this.entity() : undefined),
+        designation,
+        location: this.location().trim() || null,
+        company_email: companyEmail,
+        personal_email: personalEmail,
+        pf_applicable: this.pfApplicable() === 'Yes',
+        joining_date: parseDate(joiningDate),
+        start_date: parseDate(startDate),
+        end_date: this.endDate().trim() ? parseDate(this.endDate().trim()) : null,
+      }, () => {
+        this.notification.show(`User "${fullName}" updated successfully!`, 'success');
+        void this.router.navigateByUrl('/users');
+      }, (errMsg) => {
+        this.notification.show(errMsg, 'error');
+      });
+      return;
+    }
+
+    // Local update fallback
     this.userService.updateUser(this.userId(), {
       firstName,
       middleName: this.middleName().trim(),
@@ -181,9 +235,20 @@ export class UserEditComponent implements OnInit {
       endDate: this.endDate().trim(),
     });
 
-    const fullName = [firstName, lastName].filter(Boolean).join(' ');
     this.notification.show(`User "${fullName}" updated successfully!`, 'success');
     void this.router.navigateByUrl('/users');
+  }
+
+  sendInvitationEmail(): void {
+    this.userService.sendInvitation(this.userId(), (success, message) => {
+      this.notification.show(message, success ? 'success' : 'error');
+    });
+  }
+
+  retryInvitationEmail(): void {
+    this.userService.retryInvitation(this.userId(), (success, message) => {
+      this.notification.show(message, success ? 'success' : 'error');
+    });
   }
 
   openDeleteConfirm(): void {

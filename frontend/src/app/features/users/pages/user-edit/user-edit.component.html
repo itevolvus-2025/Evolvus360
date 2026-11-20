@@ -9,6 +9,13 @@
     </div>
 
     <div class="header-actions">
+      @if (status() === 'Pending' || profile() === 'Pending') {
+        <button type="button" class="btn-resend-mail" (click)="sendInvitationEmail()" title="Send onboarding invitation email">
+          <app-icon name="tray-arrow-up" [size]="14" color="#2563EB" />
+          <span>Send Invitation Email</span>
+        </button>
+      }
+
       <button type="button" class="btn-delete" (click)="openDeleteConfirm()">
         <app-icon name="trash" [size]="14" color="#DC2626" />
         <span>Delete User</span>
@@ -97,11 +104,10 @@
                 [value]="department()"
                 (change)="department.set($any($event.target).value)"
               >
-                <option value="Engineering">Engineering</option>
-                <option value="Human Resources">Human Resources</option>
-                <option value="Sales">Sales</option>
-                <option value="Finance">Finance</option>
-                <option value="Marketing">Marketing</option>
+                <option value="" disabled>Select department</option>
+                @for (d of departments(); track d.id) {
+                  <option [value]="d.id">{{ d.name }}</option>
+                }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>
@@ -116,10 +122,10 @@
                 [value]="role()"
                 (change)="role.set($any($event.target).value)"
               >
-                <option value="Super Admin">Super Admin</option>
-                <option value="HR Manager">HR Manager</option>
-                <option value="Employee">Employee</option>
-                <option value="Consultant">Consultant</option>
+                <option value="" disabled>Select role</option>
+                @for (r of roles(); track r.id) {
+                  <option [value]="r.id">{{ r.name }}</option>
+                }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>
@@ -148,6 +154,7 @@
                 [value]="location()"
                 (change)="location.set($any($event.target).value)"
               >
+                <option value="" disabled>Select location</option>
                 <option value="Bengaluru">Bengaluru</option>
                 <option value="Hyderabad">Hyderabad</option>
                 <option value="Mumbai">Mumbai</option>
@@ -168,9 +175,10 @@
                 [value]="entity()"
                 (change)="entity.set($any($event.target).value)"
               >
-                <option value="Evolvus India Pvt Ltd">Evolvus India Pvt Ltd</option>
-                <option value="Evolvus Global LLC">Evolvus Global LLC</option>
-                <option value="Evolvus Fintech Solutions">Evolvus Fintech Solutions</option>
+                <option value="" disabled>Select entity</option>
+                @for (e of entities(); track e.id) {
+                  <option [value]="e.id">{{ e.name }}</option>
+                }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>

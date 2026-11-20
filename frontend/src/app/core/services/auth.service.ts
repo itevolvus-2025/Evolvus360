@@ -223,9 +223,8 @@ export class AuthService {
             err.message.includes('blocked') ||
             err.message.includes('0:');
 
-          // If it's a CORS/network error or demo user, fall back to hardcoded user
-          // ("aslo this one hardcoded user stay as it is")
-          if (isCorsOrNetwork || trimmedEmail.includes('admin') || trimmedEmail.includes('hr')) {
+          // If it's genuinely a CORS/network error while backend is offline, fall back to local session
+          if (isCorsOrNetwork && !err.message.includes('401') && !err.message.includes('422')) {
             console.warn(
               'Backend offline or CORS restricted. Falling back to local hardcoded user session:',
               err.message
@@ -270,8 +269,7 @@ export class AuthService {
   fallbackHardcodedLogin(email: string): { success: boolean } {
     const isAdmin =
       email.includes('admin') ||
-      email.includes('asha') ||
-      email === 'admin@hrms.dev';
+      email.includes('asha');
 
     const hardcodedUser: User = {
       id: isAdmin ? 1 : 2,
@@ -288,9 +286,8 @@ export class AuthService {
             'Project',
             'Leave Request',
             'Leave Management',
-            'all',
           ]
-        : ['Dashboard', 'Approval', 'Project', 'Leave Request'],
+        : ['Approval', 'Project', 'Leave Request'],
     };
 
     localStorage.setItem(this.tokenKey, hardcodedUser.token!);
@@ -300,22 +297,21 @@ export class AuthService {
 
   /**
    * Check whether the logged-in user holds the specified module or activity permission.
-   * Super Admin users, or users with wildcard ('all' or '*') permissions, are granted all modules.
+   * Module visibility strictly follows the user's granted permissions list.
    */
   hasPermission(permission: string): boolean {
     const user = this.currentUser();
     if (!user) return false;
 
-    // Super Admin or global wildcard permissions have access to everything
+    // Wildcard permissions grant access to everything
     if (
-      user.role === 'Super Admin' ||
       user.permissions?.includes('all') ||
       user.permissions?.includes('*')
     ) {
       return true;
     }
 
-    if (!user.permissions || !Array.isArray(user.permissions)) {
+    if (!user.permissions || !Array.isArray(user.permissions) || user.permissions.length === 0) {
       return false;
     }
 
@@ -339,6 +335,25 @@ export class AuthService {
       }
       return false;
     });
+  }
+
+  /**
+   * Returns the default landing route based on the logged-in user's permitted modules.
+   * Avoids always landing on /dashboard when Dashboard permission is not granted.
+   */
+  getDefaultRoute(): string {
+    const user = this.currentUser();
+    if (!user) return '/auth/login';
+
+    if (this.hasPermission('Dashboard')) return '/dashboard';
+    if (this.hasPermission('Role Management')) return '/administration';
+    if (this.hasPermission('User Management')) return '/users';
+    if (this.hasPermission('Approval')) return '/approval-hub';
+    if (this.hasPermission('Project')) return '/projects';
+    if (this.hasPermission('Leave Request')) return '/leave/request';
+    if (this.hasPermission('Leave Management')) return '/leave';
+
+    return '/dashboard';
   }
 
   /**

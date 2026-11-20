@@ -30,7 +30,7 @@ export type FilterOption =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ApprovalHubComponent {
-  private readonly approvalService = inject(ApprovalHubService);
+  readonly approvalService = inject(ApprovalHubService);
 
   // KPI Metrics signals
   readonly totalPending = this.approvalService.totalPending;
@@ -43,6 +43,11 @@ export class ApprovalHubComponent {
   readonly searchQuery = signal('');
   readonly selectedFilter = signal<FilterOption>('Pending Only');
   readonly isFilterOpen = signal(false);
+
+  // Rejection Reason Modal
+  readonly isRejectModalOpen = signal(false);
+  readonly rejectTargetId = signal<string | number | null>(null);
+  readonly rejectReason = signal('Please review and correct the submitted onboarding details.');
 
   /** Filtered list based on status filter and search query */
   readonly filteredItems = computed<ApprovalItem[]>(() => {
@@ -92,7 +97,59 @@ export class ApprovalHubComponent {
     this.approvalService.authorize(id);
   }
 
-  reject(id: string | number): void {
-    this.approvalService.reject(id);
+  openRejectDialog(id: string | number): void {
+    this.rejectTargetId.set(id);
+    this.rejectReason.set('Please review and re-upload the banking and identification documents.');
+    this.isRejectModalOpen.set(true);
+  }
+
+  closeRejectDialog(): void {
+    this.isRejectModalOpen.set(false);
+    this.rejectTargetId.set(null);
+  }
+
+  confirmReject(): void {
+    const id = this.rejectTargetId();
+    const reason = this.rejectReason().trim() || 'Please correct the submitted profile details.';
+    if (id) {
+      this.approvalService.reject(id, reason);
+    }
+    this.closeRejectDialog();
+  }
+
+  review(id: string | number): void {
+    this.approvalService.review(id);
+  }
+
+  closeReview(): void {
+    this.approvalService.closeReview();
+  }
+
+  approveReviewed(): void {
+    const details = this.approvalService.reviewDetails();
+    if (details) this.approvalService.authorize(details.employee_id || details.id);
+  }
+
+  rejectReviewed(): void {
+    const details = this.approvalService.reviewDetails();
+    if (details) {
+      this.openRejectDialog(details.employee_id || details.id);
+    }
+  }
+
+  downloadDocument(employeeId: string | number, documentId: string | number): void {
+    this.approvalService.downloadDocument(employeeId, documentId);
+  }
+
+  retryEmail(id: string | number, event: 'approval' | 'rejection' | string): void {
+    this.approvalService.retryEmail(id, event);
+  }
+
+  retryInvitation(id: string | number): void {
+    this.approvalService.retryInvitation(id);
+  }
+
+  sendInvitation(id: string | number): void {
+    this.approvalService.sendInvitation(id);
   }
 }

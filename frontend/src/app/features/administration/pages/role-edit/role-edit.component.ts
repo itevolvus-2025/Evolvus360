@@ -27,26 +27,19 @@ export class RoleEditComponent implements OnInit {
   private readonly roleService = inject(RoleService);
   private readonly notification = inject(NotificationService);
 
-  readonly roleId = signal<number | string>(2); // Default to HR (id: 2)
+  readonly roleId = signal<number | string>('');
 
-  // Form Fields matching Screenshot
-  readonly roleName = signal('HR');
-  readonly purpose = signal('Responsible for reviewing employee onboarding details');
-  readonly status = signal<RoleStatus>('Deactive');
-  readonly reasonForChange = signal(
-    'To introduce a structured employee onboarding approval process, allowing HR to review employee information'
-  );
-  readonly effectiveDate = signal('17-11-2026');
+  // Form Fields
+  readonly roleName = signal('');
+  readonly purpose = signal('');
+  readonly status = signal<RoleStatus>('Active');
+  readonly reasonForChange = signal('');
+  readonly effectiveDate = signal('');
 
   // Permissions array centralized and passed to/from API
   readonly availablePermissions = AVAILABLE_PERMISSIONS;
 
-  readonly selectedPermissions = signal<string[]>([
-    'Dashboard',
-    'User Management',
-    'Approval',
-    'Leave Request',
-  ]);
+  readonly selectedPermissions = signal<string[]>([]);
 
   // Delete modal state
   readonly showDeleteModal = signal(false);
@@ -135,7 +128,7 @@ export class RoleEditComponent implements OnInit {
         status: this.status(),
         reasonForChange: this.reasonForChange().trim() || 'Role details updated via administration console',
         permissions: this.selectedPermissions(),
-        effectiveDate: this.effectiveDate().trim() || '17-11-2026',
+        effectiveDate: this.effectiveDate().trim() || new Date().toISOString().slice(0, 10),
       })
       .subscribe({
         next: () => {

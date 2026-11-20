@@ -7,6 +7,12 @@ export const AUTH_ROUTES: Routes = [
       import('./pages/login/login.component').then((m) => m.LoginComponent)
   },
   {
+    path: 'employee-profile',
+    loadComponent: () =>
+      import('../onboarding/pages/onboarding/onboarding.component')
+        .then((m) => m.OnboardingComponent)
+  },
+  {
     path: 'forgot-password',
     loadComponent: () =>
       import('./pages/forgot-password/forgot-password.component')

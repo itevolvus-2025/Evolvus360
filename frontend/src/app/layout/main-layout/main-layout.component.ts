@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnInit,
   computed,
   inject,
   signal,
@@ -63,7 +64,7 @@ interface PageState {
   styleUrl: './main-layout.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MainLayoutComponent {
+export class MainLayoutComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
@@ -115,7 +116,23 @@ export class MainLayoutComponent {
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event) => {
         this.currentUrl.set((event as NavigationEnd).urlAfterRedirects);
+        this.redirectIfNoAccess();
       });
+  }
+
+  ngOnInit(): void {
+    this.redirectIfNoAccess();
+  }
+
+  private redirectIfNoAccess(): void {
+    const current = (this.router.url || '').split('?')[0].split('#')[0];
+    if (current === '/dashboard' || current === '' || current === '/') {
+      const allowed = this.workspaceNav();
+      const hasDashboard = allowed.some((item) => item.path === '/dashboard');
+      if (!hasDashboard && allowed.length > 0) {
+        void this.router.navigateByUrl(allowed[0].path);
+      }
+    }
   }
 
   readonly pageState = computed<PageState>(() => {

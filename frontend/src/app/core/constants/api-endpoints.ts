@@ -26,6 +26,21 @@ export const API_ENDPOINTS = {
     invite: (id: string | number) => `${BASE_URL}/users/${id}/invite`,
     inviteRetry: (id: string | number) => `${BASE_URL}/users/${id}/invite/retry`,
     approve: (id: string | number) => `${BASE_URL}/users/${id}/approve`,
+    reject: (id: string | number) => `${BASE_URL}/approvals/employees/${id}/reject`,
+  },
+
+  /** Employee profile approval and email delivery endpoints */
+  approvals: {
+    employees: `${BASE_URL}/approvals/employees`,
+    employee: (id: string | number) => `${BASE_URL}/approvals/employees/${id}`,
+    document: (employeeId: string | number, documentId: string | number) =>
+      `${BASE_URL}/approvals/employees/${employeeId}/documents/${documentId}`,
+    approveEmployee: (id: string | number) => `${BASE_URL}/approvals/employees/${id}/approve`,
+    rejectEmployee: (id: string | number) => `${BASE_URL}/approvals/employees/${id}/reject`,
+    retryEmail: (id: string | number, event: 'approval' | 'rejection' | string) =>
+      `${BASE_URL}/approvals/employees/${id}/emails/${event}/retry`,
+    regenerateCredentials: (id: string | number) =>
+      `${BASE_URL}/approvals/employees/${id}/credentials/regenerate`,
   },
 
   /** Role Management endpoints */
@@ -48,5 +63,7 @@ export const API_ENDPOINTS = {
   onboarding: {
     validate: `${BASE_URL}/onboarding/invitations/validate`,
     submit: `${BASE_URL}/onboarding/submit`,
+    employeeForm: `${BASE_URL}/employee/onboarding/form`,
+    employeeSubmit: `${BASE_URL}/employee/onboarding/submit`,
   },
 } as const;

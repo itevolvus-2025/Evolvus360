@@ -23,58 +23,7 @@ export class RoleService {
   private readonly apiService = inject(ApiService);
 
   /** Live dataset of roles backed by API and optimistic state */
-  readonly roles = signal<RoleRow[]>([
-    {
-      id: 1,
-      role: 'Super Admin',
-      purpose: 'Full control of access',
-      status: 'Active',
-      scope: 'Department',
-      permissions: [
-        'Dashboard',
-        'Role Management',
-        'User Management',
-        'Approval',
-        'Project',
-        'Leave Request',
-        'Leave Management',
-      ],
-      effectiveDate: '17-11-2026',
-    },
-    {
-      id: 2,
-      role: 'HR Manager',
-      purpose: 'Manage employee records',
-      status: 'Active',
-      scope: 'Department',
-      permissions: [
-        'Dashboard',
-        'User Management',
-        'Approval',
-        'Leave Request',
-        'Leave Management',
-      ],
-      effectiveDate: '17-11-2026',
-    },
-    {
-      id: 3,
-      role: 'Employee',
-      purpose: 'Standard self-service',
-      status: 'Active',
-      scope: 'Department',
-      permissions: ['Dashboard', 'Project', 'Leave Request'],
-      effectiveDate: '17-11-2026',
-    },
-    {
-      id: 4,
-      role: 'Consultant',
-      purpose: 'Standard self-service',
-      status: 'Active',
-      scope: 'Department',
-      permissions: ['Dashboard', 'Project', 'Leave Request'],
-      effectiveDate: '17-11-2026',
-    },
-  ]);
+  readonly roles = signal<RoleRow[]>([]);
 
   /** Loading state indicator */
   readonly isLoading = signal(false);
@@ -85,7 +34,6 @@ export class RoleService {
 
   /**
    * Fetch roles from backend API (GET /api/v1/roles).
-   * Falls back to default roles if offline or not yet seeded.
    */
   loadRoles(): void {
     this.isLoading.set(true);
@@ -93,27 +41,30 @@ export class RoleService {
       next: (res) => {
         this.isLoading.set(false);
         const items = res?.data?.items;
-        if (Array.isArray(items) && items.length > 0) {
+        if (Array.isArray(items)) {
           const mapped: RoleRow[] = items.map((r: RoleDto) => ({
             id: r.id,
             role: r.role || r.name || r.role_name || 'Role',
-            purpose: r.purpose || r.description || 'Access role',
+            purpose: r.purpose || r.description || '',
             status: (r.status === 'Active' || r.status === 'ACTIVE' || r.is_active
               ? 'Active'
               : 'Deactive') as RoleStatus,
             scope: 'Department',
             permissions: r.permissions || [],
-            effectiveDate: '17-11-2026',
+            effectiveDate: r.effective_date || r.effectiveDate || (r.created_at ? r.created_at.slice(0, 10) : ''),
             role_code: r.role_code,
           }));
           this.roles.set(mapped);
           console.log(`[RoleService] Loaded ${mapped.length} roles from backend API.`);
+        } else {
+          this.roles.set([]);
         }
       },
       error: (err) => {
         this.isLoading.set(false);
+        this.roles.set([]);
         console.warn(
-          '[RoleService] Backend offline or unavailable, keeping local roles:',
+          '[RoleService] Could not load roles from backend API:',
           err.message
         );
       },
@@ -147,7 +98,7 @@ export class RoleService {
               : 'Deactive') as RoleStatus,
             scope: 'Department',
             permissions: r.permissions || [],
-            effectiveDate: '17-11-2026',
+            effectiveDate: r.effective_date || r.effectiveDate || (r.created_at ? r.created_at.slice(0, 10) : ''),
             role_code: r.role_code,
           };
           this.roles.update((list) => {
@@ -235,7 +186,7 @@ export class RoleService {
         status: updated.status || 'Active',
         scope: 'Department',
         permissions: updated.permissions || [],
-        effectiveDate: '17-11-2026',
+        effectiveDate: updated.effectiveDate || '',
       }),
       ...updated,
     };
@@ -269,7 +220,7 @@ export class RoleService {
               : 'Deactive') as RoleStatus,
             scope: 'Department',
             permissions: r.permissions || updated.permissions || [],
-            effectiveDate: '17-11-2026',
+            effectiveDate: r.effective_date || r.effectiveDate || updated.effectiveDate || (r.created_at ? r.created_at.slice(0, 10) : ''),
             role_code: r.role_code || existing?.role_code,
           };
           this.roles.update((list) =>

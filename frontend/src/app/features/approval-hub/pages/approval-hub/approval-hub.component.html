@@ -197,12 +197,22 @@
 
         <!-- Action Buttons (Bottom Right) -->
         <div class="request-footer-row">
-          @if (item.status === 'Pending') {
-            <div class="action-buttons-group">
+          <div class="action-buttons-group">
+            <button
+              type="button"
+              class="btn-action-review"
+              (click)="review(item.id)"
+              title="Review full onboarding submission"
+            >
+              <app-icon name="eye" [size]="14" />
+              <span>Review profile</span>
+            </button>
+
+            @if (item.status === 'Pending') {
               <button
                 type="button"
                 class="btn-action-reject"
-                (click)="reject(item.id)"
+                (click)="openRejectDialog(item.id)"
               >
                 ✕ Reject
               </button>
@@ -213,17 +223,40 @@
               >
                 ✓ Authorize &amp; Enable Login
               </button>
-            </div>
-          } @else if (item.status === 'Authorized') {
-            <div class="status-summary-authorized">
-              <app-icon name="check" [size]="14" color="#10B981" />
-              <span>Authorized &amp; Login Credentials Activated</span>
-            </div>
-          } @else {
-            <div class="status-summary-rejected">
-              <span>Request Rejected</span>
-            </div>
-          }
+            } @else if (item.status === 'Authorized') {
+              <div class="status-summary-authorized">
+                <app-icon name="check" [size]="14" color="#10B981" />
+                <span>Authorized &amp; Credentials Dispatched</span>
+              </div>
+            } @else {
+              <div class="status-summary-rejected">
+                <span>Request Rejected</span>
+              </div>
+            }
+
+            @if (item.emailDispatchStatus === 'FAILED') {
+              <button
+                type="button"
+                class="btn-action-retry-email"
+                (click)="retryInvitation(item.id)"
+                title="Retry failed email invitation"
+              >
+                <app-icon name="arrow-right" [size]="13" />
+                <span>Retry invitation email</span>
+              </button>
+            }
+
+            @if (item.status === 'Authorized') {
+              <button
+                type="button"
+                class="btn-action-subtle"
+                (click)="retryEmail(item.id, 'approval')"
+                title="Resend approval credentials email"
+              >
+                Resend approval email
+              </button>
+            }
+          </div>
         </div>
       </article>
     } @empty {
@@ -234,4 +267,190 @@
       </div>
     }
   </section>
+
+  <!-- Profile Review Modal Backdrop -->
+  @if (approvalService.reviewLoading()) {
+    <div class="review-modal-backdrop">
+      <div class="review-modal loading-box">
+        <p>Loading candidate onboarding submission...</p>
+      </div>
+    </div>
+  } @else if (approvalService.reviewDetails(); as review) {
+    <div class="review-modal-backdrop" (click)="closeReview()">
+      <section
+        class="review-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="review-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="review-modal-header">
+          <div>
+            <h2 id="review-title">{{ review.name }}</h2>
+            <p>
+              Code: <strong>{{ review.employee_code || review.id }}</strong> • 
+              Status: <span class="profile-status-badge">{{ review.profile_status }}</span>
+            </p>
+          </div>
+          <button type="button" class="review-close" (click)="closeReview()" aria-label="Close">×</button>
+        </header>
+
+        <div class="review-content">
+          <!-- 1. SET BY HR -->
+          <div class="review-section-box">
+            <h3 class="section-title">
+              <app-icon name="lock" [size]="14" color="#2563EB" />
+              <span>HR &amp; Employment Assignment (Read-Only)</span>
+            </h3>
+            <dl class="review-dl-grid">
+              <dt>Company Email</dt><dd><strong>{{ review.employment.company_email || '—' }}</strong></dd>
+              <dt>Personal Email</dt><dd>{{ review.employment.personal_email || '—' }}</dd>
+              <dt>Department</dt><dd>{{ review.employment.department || '—' }}</dd>
+              <dt>Designation</dt><dd>{{ review.employment.designation || '—' }}</dd>
+              <dt>Entity</dt><dd>{{ review.employment.entity || '—' }}</dd>
+              <dt>Work Location</dt><dd>{{ review.employment.work_location || '—' }}</dd>
+              <dt>PF Applicable</dt><dd>{{ review.employment.pf_applicable || '—' }}</dd>
+              <dt>Joining Date</dt><dd>{{ review.employment.joining_date || '—' }}</dd>
+            </dl>
+          </div>
+
+          <!-- 2. SUBMITTED PROFILE DETAILS -->
+          @if (review.profile; as prof) {
+            <div class="review-section-box">
+              <h3 class="section-title">
+                <app-icon name="user" [size]="14" color="#10B981" />
+                <span>Personal &amp; Contact Details</span>
+              </h3>
+              <dl class="review-dl-grid">
+                <dt>Date of Birth</dt><dd>{{ prof.date_of_birth || '—' }}</dd>
+                <dt>Gender</dt><dd>{{ prof.gender || '—' }}</dd>
+                <dt>Mobile Number</dt><dd>{{ prof.mobile_number || '—' }}</dd>
+                <dt>Aadhaar</dt><dd>{{ prof.aadhaar_number || '—' }}</dd>
+                <dt>PAN Number</dt><dd>{{ prof.pan_number || '—' }}</dd>
+                <dt>Passport</dt><dd>{{ prof.passport_number || 'Not Provided' }}</dd>
+              </dl>
+            </div>
+
+            <!-- 3. EMERGENCY CONTACT -->
+            <div class="review-section-box">
+              <h3 class="section-title">
+                <app-icon name="phone" [size]="14" color="#EF4444" />
+                <span>Emergency Contact</span>
+              </h3>
+              <dl class="review-dl-grid">
+                <dt>Contact Name</dt><dd>{{ prof.emergency_contact_name || '—' }}</dd>
+                <dt>Phone Number</dt><dd>{{ prof.emergency_contact_phone || '—' }}</dd>
+                <dt>Relationship</dt><dd>{{ prof.emergency_contact_relation || '—' }}</dd>
+              </dl>
+            </div>
+
+            <!-- 4. BANKING DETAILS -->
+            <div class="review-section-box">
+              <h3 class="section-title">
+                <app-icon name="landmark" [size]="14" color="#F59E0B" />
+                <span>Banking &amp; Compliance Details</span>
+              </h3>
+              <dl class="review-dl-grid">
+                <dt>Bank Name</dt><dd>{{ prof.bank_name || '—' }}</dd>
+                <dt>Account Number</dt><dd>{{ prof.account_number || '—' }}</dd>
+                <dt>IFSC Code</dt><dd>{{ prof.ifsc_code || '—' }}</dd>
+              </dl>
+            </div>
+
+            <!-- 5. QUALIFICATIONS & LANGUAGES -->
+            <div class="review-section-box">
+              <h3 class="section-title">
+                <app-icon name="graduation-cap" [size]="14" color="#6366F1" />
+                <span>Qualifications &amp; Languages</span>
+              </h3>
+              <dl class="review-dl-grid">
+                <dt>Qualification</dt><dd>{{ prof.qualification || '—' }}</dd>
+                <dt>Languages</dt><dd>{{ prof.languages?.join(', ') || '—' }}</dd>
+              </dl>
+            </div>
+          } @else {
+            <div class="review-empty">
+              <p>Candidate has not completed onboarding submission yet.</p>
+            </div>
+          }
+
+          <!-- 6. SUBMITTED DOCUMENTS -->
+          @if (review.documents.length > 0) {
+            <div class="review-section-box">
+              <h3 class="section-title">
+                <app-icon name="file-text" [size]="14" color="#2563EB" />
+                <span>Compliance Documents ({{ review.documents.length }})</span>
+              </h3>
+              <div class="review-docs-list">
+                @for (doc of review.documents; track doc.id) {
+                  <div class="doc-card-row">
+                    <div class="doc-info">
+                      <app-icon name="id-card" [size]="18" color="#64748B" />
+                      <div>
+                        <span class="doc-type-label">{{ doc.document_type }}</span>
+                        <span class="doc-filename">{{ doc.filename }}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn-doc-download"
+                      (click)="downloadDocument(review.employee_id, doc.id)"
+                      title="Download/View Document"
+                    >
+                      <app-icon name="tray-arrow-up" [size]="13" color="#2563EB" />
+                      <span>Download</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- REJECTION REASON IF ANY -->
+          @if (review.rejection_reason) {
+            <div class="rejection-notice-box">
+              <strong>Previous Rejection Feedback:</strong>
+              <p>{{ review.rejection_reason }}</p>
+            </div>
+          }
+        </div>
+
+        <footer class="review-modal-actions">
+          <button type="button" class="btn-action-reject" (click)="rejectReviewed()">
+            ✕ Reject Profile
+          </button>
+          <button
+            type="button"
+            class="btn-action-authorize"
+            (click)="approveReviewed()"
+          >
+            ✓ Authorize &amp; Enable Login
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  <!-- Interactive Rejection Modal Dialog -->
+  @if (isRejectModalOpen()) {
+    <div class="review-modal-backdrop" (click)="closeRejectDialog()">
+      <div class="reject-dialog-card" (click)="$event.stopPropagation()">
+        <h3 class="reject-title">Reject Onboarding Submission</h3>
+        <p class="reject-subtitle">
+          Specify the rejection reason or mandatory correction required. This will be recorded and notified to the candidate.
+        </p>
+        <textarea
+          class="reject-reason-input"
+          rows="4"
+          [ngModel]="rejectReason()"
+          (ngModelChange)="rejectReason.set($event)"
+          placeholder="Enter detailed reason for rejection..."
+        ></textarea>
+        <div class="reject-dialog-actions">
+          <button type="button" class="btn-cancel" (click)="closeRejectDialog()">Cancel</button>
+          <button type="button" class="btn-confirm-reject" (click)="confirmReject()">Confirm Rejection</button>
+        </div>
+      </div>
+    </div>
+  }
 </div>

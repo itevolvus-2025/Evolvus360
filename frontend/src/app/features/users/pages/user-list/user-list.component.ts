@@ -47,6 +47,7 @@ export class UserListComponent implements OnInit {
 
   // Delete State
   readonly userToDelete = signal<UserRow | null>(null);
+  readonly retryingUserIds = signal<Set<string>>(new Set());
 
   /** Filtered users based on search input and role filter */
   readonly filteredUsers = computed(() => {
@@ -143,5 +144,38 @@ export class UserListComponent implements OnInit {
       this.notification.show(`User "${user.name}" has been deleted.`, 'info');
       this.userToDelete.set(null);
     }
+  }
+
+  retryInvitation(user: UserRow): void {
+    this.retryingUserIds.update((ids) => new Set(ids).add(String(user.id)));
+    this.userService.retryInvitation(user.id, (success, message) => {
+      this.retryingUserIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(String(user.id));
+        return next;
+      });
+      this.notification.show(message, success ? 'success' : 'error');
+    });
+  }
+
+  sendInvitation(user: UserRow): void {
+    const key = String(user.id);
+    this.retryingUserIds.update((ids) => new Set(ids).add(key));
+    this.userService.sendInvitation(user.id, (success, message) => {
+      this.retryingUserIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(key);
+        return next;
+      });
+      this.notification.show(message, success ? 'success' : 'error');
+    });
+  }
+
+  canRetryInvitation(user: UserRow): boolean {
+    return user.emailDispatchStatus === 'FAILED' || this.userService.failedInvitationIds().has(String(user.id));
+  }
+
+  userIdKey(id: string | number): string {
+    return String(id);
   }
 }

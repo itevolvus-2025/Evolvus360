@@ -307,6 +307,7 @@ def _get_employee(
             joinedload(EmployeeEmploymentDetails.user),
             joinedload(EmployeeEmploymentDetails.department),
             joinedload(EmployeeEmploymentDetails.entity),
+            joinedload(EmployeeEmploymentDetails.invitation),
             selectinload(EmployeeEmploymentDetails.documents),
             joinedload(EmployeeEmploymentDetails.personal_details),
             joinedload(EmployeeEmploymentDetails.contact_details),
@@ -445,7 +446,13 @@ def validate_invitation(db: Session, raw_token: str) -> dict:
     return {
         "first_name": employee.first_name,
         "last_name": employee.last_name,
+        "employee_code": employee.employee_code,
         "company_name": employee.entity_name or "Evolvus360",
+        "entity": employee.entity_name or "ETPL",
+        "company_email": employee.company_email or f"{employee.first_name.lower()}@evolvus.com",
+        "department": employee.department_name or "Chemistry",
+        "pf_applicable": "YES" if employee.pf_applicable else "NO",
+        "role": employee.designation or "Employee",
         "expires_at": invitation.expires_at,
     }
 
@@ -1049,12 +1056,17 @@ def _employee_list_item(employee: EmployeeEmploymentDetails) -> dict:
         if assignment:
             role_name = assignment.role.role_name
             role_id = str(assignment.role.id)
+    invitation = getattr(employee, "invitation", None)
     return {
-        "id": str(user.id) if user else None,
+        "id": str(user.id) if user else str(employee.id),
+        "user_id": str(user.id) if user else None,
+        "employee_id": str(employee.id),
         "first_name": employee.first_name,
         "middle_name": employee.middle_name,
         "last_name": employee.last_name,
         "employee_code": employee.employee_code,
+        "company_email": employee.company_email,
+        "personal_email": employee.personal_email,
         "department": (
             {"id": str(employee.department.id), "name": employee.department.name}
             if employee.department
@@ -1074,6 +1086,11 @@ def _employee_list_item(employee: EmployeeEmploymentDetails) -> dict:
         "location": employee.work_location,
         "account_status": user.account_status if user else None,
         "profile_status": employee.profile_status,
+        "pf_applicable": employee.pf_applicable,
+        "joining_date": str(employee.joining_date) if employee.joining_date else None,
+        "start_date": str(employee.employment_start_date) if employee.employment_start_date else None,
+        "end_date": str(employee.employment_end_date) if employee.employment_end_date else None,
+        "invitation_status": invitation.invitation_status if invitation else None,
     }
 
 
@@ -1103,6 +1120,7 @@ def list_employees(
             .joinedload(UserRole.role),
             joinedload(EmployeeEmploymentDetails.department),
             joinedload(EmployeeEmploymentDetails.entity),
+            joinedload(EmployeeEmploymentDetails.invitation),
         )
         .where(EmployeeEmploymentDetails.deleted_at.is_(None))
     )
