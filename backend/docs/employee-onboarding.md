@@ -2,9 +2,8 @@
 
 This module reuses `users`, `roles`, `user_roles`, and the existing employee,
 personal, contact, bank, document, skills, and invitation tables. Departments
-are grouped by a `company_id` UUID; entities are global and have no company ID.
-There is no companies registry table. Employee records retain a `company_id`
-UUID as their tenant grouping value.
+are global records. The HRMS has no companies registry table or `company_id`
+columns; departments, entities, and employee records are not scoped by company.
 There are dropdown APIs but no master-data write APIs in this module.
 
 Apply the schema update from `backend`:
@@ -13,15 +12,12 @@ Apply the schema update from `backend`:
 .\.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head
 ```
 
-## Access and tenant scope
+## Access
 
 All `/master-data` and `/users` endpoints require a bearer access token and an
-active `HR` or `SUPER_ADMIN` role. HR requests are restricted to their own
-`users.company_id`. Super Admin can read across groups. On employee creation,
-Super Admin may provide `company_id`; if omitted, the backend derives it from
-the selected active department. HR cannot
-override their `company_id`. Role IDs are loaded from the active roles table; HR
-may not assign the Super Admin role.
+active `HR` or `SUPER_ADMIN` role. Department and employee records are available
+globally to these roles. Role IDs are loaded from the active roles table; HR may
+not assign the Super Admin role.
 
 ## Master data
 
@@ -31,9 +27,8 @@ GET /api/v1/master-data/entities
 GET /api/v1/master-data/roles
 ```
 
-Super Admin can pass `?company_id=<uuid>` to scope the department dropdown. HR
-receives only departments in their own tenant; active entities are global.
-Responses contain IDs, names, and codes; role responses use `name` and `code`.
+The department, entity, and role dropdowns return active records. Responses
+contain IDs, names, and codes; role responses use `name` and `code`.
 
 Example response:
 
@@ -74,8 +69,7 @@ Content-Type: application/json
 }
 ```
 
-For a global Super Admin, `company_id` is optional and is derived from the
-selected active department. The selected entity must be active. `employee_code`
+The selected department, entity, and role must be active. `employee_code`
 is rejected if supplied; the backend locks the entity row and generates the
 next two-character uppercase prefix plus three-digit sequence, such as `ET-001`,
 from existing employee codes in the same transaction.
@@ -124,7 +118,7 @@ Content-Type: application/json
 {"token": "INVITATION_TOKEN_FROM_EMAIL"}
 ```
 
-Only employee first/last name, company display name, and expiry are returned.
+Only employee first/last name, entity display name, and expiry are returned.
 Invalid, expired, revoked, and already accepted tokens are rejected.
 
 ## Submit onboarding
@@ -165,7 +159,7 @@ PUT /api/v1/users/USER_UUID
 POST /api/v1/users/USER_UUID/approve
 ```
 
-All require HR/Super Admin authorization and tenant checks. List responses omit
+All require HR/Super Admin authorization. List responses omit
 personal, contact, bank, and document details. Details return only HR-entered
 fields while pending (`employee_details: null`); submitted/approved profiles
 include employee details, with government identifiers and bank account numbers

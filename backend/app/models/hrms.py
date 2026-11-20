@@ -54,17 +54,9 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),
         ),
-        Index(
-            "ix_users_company_id",
-            "company_id",
-            postgresql_where=text("deleted_at IS NULL"),
-        ),
         {"schema": None},
     )
     id: Mapped[UUID] = _id()
-    company_id: Mapped[UUID | None] = mapped_column(
-        Uuid(as_uuid=True), index=True
-    )
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[str | None] = mapped_column(String(255))
     first_name: Mapped[str | None] = mapped_column(String(100))
@@ -79,6 +71,15 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
         Integer, nullable=False, server_default="0"
     )
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    temporary_password_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    temporary_password_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
     )
@@ -141,6 +142,8 @@ class Role(TimestampMixin, Base):
     permission_assignments: Mapped[list[RolePermission]] = relationship(
         back_populates="role", cascade="all, delete-orphan"
     )
+
+
 class Permission(Base):
     __tablename__ = "permissions"
     __table_args__ = (
@@ -280,20 +283,12 @@ class PasswordResetToken(Base):
 
 class Department(TimestampMixin, Base):
     __tablename__ = "departments"
-    __table_args__ = (
-        UniqueConstraint("company_id", "name", name="uq_departments_company_name"),
-        UniqueConstraint("company_id", "code", name="uq_departments_company_code"),
-        Index("ix_departments_company_active", "company_id", "is_active"),
-        {"schema": None},
-    )
+    __table_args__ = ({"schema": None},)
     id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
         primary_key=True,
         default=uuid4,
         server_default=text("gen_random_uuid()"),
-    )
-    company_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
     )
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     code: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -328,23 +323,14 @@ class Entity(TimestampMixin, Base):
 class EmployeeEmploymentDetails(TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "employee_employment_details"
     __table_args__ = (
-        UniqueConstraint(
-            "company_id",
-            "entity_id",
-            "employee_code",
-            name="uq_employee_employment_company_entity_code",
-        ),
-        UniqueConstraint(
-            "company_id", "company_email", name="uq_employee_employment_company_email"
-        ),
         CheckConstraint(
             "employment_end_date IS NULL OR employment_end_date >= "
             "employment_start_date",
             name="employment_end_date_valid",
         ),
         CheckConstraint(
-            "onboarding_status IN ('INVITED','DRAFT_SAVED','SUBMITTED',"
-            "'CHANGES_REQUESTED','APPROVED')",
+            "onboarding_status IN ('INVITED','ONBOARDING','DRAFT_SAVED','SUBMITTED',"
+            "'PENDING_APPROVAL','CHANGES_REQUESTED','APPROVED','REJECTED')",
             name="onboarding_status_valid",
         ),
         CheckConstraint(
@@ -352,44 +338,33 @@ class EmployeeEmploymentDetails(TimestampMixin, SoftDeleteMixin, Base):
             name="employment_status_valid",
         ),
         CheckConstraint(
-            "profile_status IN ('PENDING','SUBMITTED','APPROVED')",
+            "profile_status IN ('PENDING','SUBMITTED','PENDING_APPROVAL',"
+            "'APPROVED','REJECTED')",
             name="profile_status_valid",
         ),
         Index(
-            "ix_employee_employment_company_id",
-            "company_id",
-            postgresql_where=text("deleted_at IS NULL"),
-        ),
-        Index(
             "ix_employee_employment_department",
-            "company_id",
             "department_name",
             postgresql_where=text("deleted_at IS NULL"),
         ),
         Index(
             "ix_employee_employment_department_id",
-            "company_id",
             "department_id",
             postgresql_where=text("deleted_at IS NULL"),
         ),
         Index(
             "ix_employee_employment_entity_id",
-            "company_id",
             "entity_id",
             postgresql_where=text("deleted_at IS NULL"),
         ),
         Index(
             "ix_employee_employment_profile_status",
-            "company_id",
             "profile_status",
             postgresql_where=text("deleted_at IS NULL"),
         ),
         {"schema": None},
     )
     id: Mapped[UUID] = _id()
-    company_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
-    )
     department_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("departments.id", ondelete="RESTRICT")
     )
@@ -428,6 +403,7 @@ class EmployeeEmploymentDetails(TimestampMixin, SoftDeleteMixin, Base):
         ForeignKey("users.id", ondelete="SET NULL")
     )
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    rejection_reason: Mapped[str | None] = mapped_column(Text)
     employment_status: Mapped[str] = mapped_column(
         String(30), nullable=False, server_default="ACTIVE"
     )
@@ -692,3 +668,29 @@ class EmailDispatchOutbox(TimestampMixin, Base):
     )
     last_error: Mapped[str | None] = mapped_column(String(120))
     dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class EmployeeApprovalDecision(Base):
+    """Append-only approval/rejection audit history for employee profiles."""
+
+    __tablename__ = "employee_approval_decisions"
+    __table_args__ = (
+        CheckConstraint(
+            "action IN ('APPROVED','REJECTED','RESUBMITTED')", name="action_valid"
+        ),
+        Index("ix_employee_approval_decisions_employee", "employee_id", "created_at"),
+    )
+    id: Mapped[UUID] = _id()
+    employee_id: Mapped[UUID] = mapped_column(
+        ForeignKey("employee_employment_details.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    action: Mapped[str] = mapped_column(String(20), nullable=False)
+    actor_user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    reason: Mapped[str | None] = mapped_column(Text)
+    snapshot_encrypted: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

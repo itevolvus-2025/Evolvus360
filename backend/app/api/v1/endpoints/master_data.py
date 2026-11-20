@@ -1,8 +1,6 @@
-"""Tenant-aware dropdown data used by employee administration screens."""
+"""Relational dropdown data used by employee administration screens."""
 
 from typing import Annotated
-from uuid import UUID
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -23,9 +21,8 @@ AdminUser = Annotated[User, Depends(require_roles("HR", "SUPER_ADMIN"))]
 def departments(
     db: DbSession,
     user: AdminUser,
-    company_id: UUID | None = None,
 ):
-    rows = employee_service.list_departments(db, user, company_id)
+    rows = employee_service.list_departments(db, user)
     return success_response(
         "Departments fetched successfully",
         [MasterDataItem(id=row.id, name=row.name, code=row.code) for row in rows],

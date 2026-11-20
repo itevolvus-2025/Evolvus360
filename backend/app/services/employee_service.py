@@ -15,14 +15,15 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.config import get_settings
 from app.core.security import (
-    hash_password,
     hash_token,
     new_opaque_token,
     normalize_email,
 )
+from app.database.session import SessionLocal
 from app.models.hrms import (
     Department,
     EmailDispatchOutbox,
+    EmployeeApprovalDecision,
     EmployeeBankDetails,
     EmployeeContactDetails,
     EmployeeDocuments,
@@ -38,7 +39,7 @@ from app.models.hrms import (
 from app.services import email_dispatch
 
 ALLOWED_ROLES = {"HR", "SUPER_ADMIN"}
-PROFILE_STATES = {"PENDING", "SUBMITTED", "APPROVED"}
+PROFILE_STATES = {"PENDING", "SUBMITTED", "PENDING_APPROVAL", "APPROVED", "REJECTED"}
 
 
 def _role_codes(user: User) -> set[str]:
@@ -49,24 +50,8 @@ def _role_codes(user: User) -> set[str]:
     }
 
 
-def _company_scope(user: User, requested_company_id: UUID | None = None) -> UUID | None:
-    roles = _role_codes(user)
-    if "SUPER_ADMIN" in roles:
-        return requested_company_id
-    if "HR" not in roles or user.company_id is None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Tenant access is required")
-    if requested_company_id and requested_company_id != user.company_id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Insufficient tenant access")
-    return user.company_id
-
-
-def list_departments(
-    db: Session, user: User, company_id: UUID | None = None
-) -> list[Department]:
-    scope = _company_scope(user, company_id)
+def list_departments(db: Session, _user: User) -> list[Department]:
     query = select(Department).where(Department.is_active.is_(True))
-    if scope:
-        query = query.where(Department.company_id == scope)
     return list(db.scalars(query.order_by(Department.name)).all())
 
 
@@ -88,7 +73,6 @@ def list_roles(db: Session) -> list[Role]:
 def _resolve_masters(
     db: Session,
     actor: User,
-    company_id: UUID,
     department_id: UUID,
     entity_id: UUID,
     role_id: UUID,
@@ -96,7 +80,6 @@ def _resolve_masters(
     department = db.scalar(
         select(Department).where(
             Department.id == department_id,
-            Department.company_id == company_id,
             Department.is_active.is_(True),
         )
     )
@@ -116,11 +99,11 @@ def _resolve_masters(
     if department is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Department is not active in this tenant",
+            "Department is not active",
         )
     if entity is None:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entity is not active in this tenant"
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Entity is not active"
         )
     if role is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Role is not active")
@@ -171,20 +154,6 @@ def _next_employee_code(db: Session, entity: Entity) -> str:
 
 def create_employee(db: Session, actor: User, payload: object) -> dict:
     try:
-        company_id = _company_scope(actor, getattr(payload, "company_id", None))
-        if company_id is None:
-            department_scope = db.scalar(
-                select(Department.company_id).where(
-                    Department.id == payload.department_id,
-                    Department.is_active.is_(True),
-                )
-            )
-            if department_scope is None:
-                raise HTTPException(
-                    status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    "Department is not active",
-                )
-            company_id = department_scope
         if not payload.first_name.strip() or not payload.last_name.strip():
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -207,7 +176,6 @@ def create_employee(db: Session, actor: User, payload: object) -> dict:
         department, entity, role = _resolve_masters(
             db,
             actor,
-            company_id,
             payload.department_id,
             payload.entity_id,
             payload.role_id,
@@ -225,19 +193,17 @@ def create_employee(db: Session, actor: User, payload: object) -> dict:
             )
         if db.scalar(
             select(EmployeeEmploymentDetails.id).where(
-                EmployeeEmploymentDetails.company_id == company_id,
                 func.lower(EmployeeEmploymentDetails.personal_email) == personal_email,
                 EmployeeEmploymentDetails.deleted_at.is_(None),
             )
         ):
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
-                "Personal email already exists in this company",
+                "Personal email already exists",
             )
 
         employee_code = _next_employee_code(db, entity)
         user = User(
-            company_id=company_id,
             email=company_email,
             first_name=payload.first_name.strip(),
             last_name=payload.last_name.strip(),
@@ -248,7 +214,6 @@ def create_employee(db: Session, actor: User, payload: object) -> dict:
         db.flush()
         db.add(UserRole(user_id=user.id, role_id=role.id, assigned_by_user_id=actor.id))
         employee = EmployeeEmploymentDetails(
-            company_id=company_id,
             user_id=user.id,
             department_id=department.id,
             entity_id=entity.id,
@@ -285,13 +250,46 @@ def create_employee(db: Session, actor: User, payload: object) -> dict:
             )
         )
         db.commit()
+        # The employee and pending invitation are durable before delivery. The
+        # invitation sender uses the encrypted outbox, so a temporary email
+        # service failure is retryable without recreating either record.
+        invitation_db = SessionLocal()
+        try:
+            invitation_result = send_invitation(invitation_db, actor, user.id)
+        except Exception:
+            # The user and the initial invitation are already committed. Never
+            # report creation as rolled back or create a second employee just
+            # because the delivery/outbox configuration is temporarily broken.
+            invitation_result = {
+                "invitation_status": "PENDING",
+                "email_dispatch_status": "FAILED",
+            }
+        finally:
+            invitation_db.close()
         return {
             "id": str(user.id),
             "employee_code": employee_code,
             "profile_status": employee.profile_status,
+            "onboarding_status": employee.onboarding_status,
+            "invitation_status": invitation_result["invitation_status"],
+            "email_dispatch_status": invitation_result["email_dispatch_status"],
         }
-    except IntegrityError:
+    except IntegrityError as error:
         db.rollback()
+        sqlstate = getattr(error.orig, "sqlstate", None) or getattr(
+            error.orig, "pgcode", None
+        )
+        column_name = getattr(getattr(error.orig, "diag", None), "column_name", None)
+        if sqlstate == "23502" and column_name == "company_id":
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "HRMS schema is behind; run Alembic upgrade head",
+            ) from None
+        if sqlstate and sqlstate != "23505":
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "Employee creation failed because of a database integrity error",
+            ) from None
         raise HTTPException(
             status.HTTP_409_CONFLICT, "Employee email or employee code already exists"
         ) from None
@@ -300,10 +298,9 @@ def create_employee(db: Session, actor: User, payload: object) -> dict:
         raise
 
 
-def _employee_for_actor(
-    db: Session, actor: User, user_id: UUID, lock: bool = False
+def _get_employee(
+    db: Session, user_id: UUID, lock: bool = False
 ) -> EmployeeEmploymentDetails:
-    scope = _company_scope(actor)
     query = (
         select(EmployeeEmploymentDetails)
         .options(
@@ -322,10 +319,8 @@ def _employee_for_actor(
             EmployeeEmploymentDetails.deleted_at.is_(None),
         )
     )
-    if scope:
-        query = query.where(EmployeeEmploymentDetails.company_id == scope)
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(of=EmployeeEmploymentDetails)
     employee = db.scalar(query)
     if employee is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Employee not found")
@@ -334,7 +329,7 @@ def _employee_for_actor(
 
 def send_invitation(db: Session, actor: User, user_id: UUID) -> dict:
     try:
-        employee = _employee_for_actor(db, actor, user_id, lock=True)
+        employee = _get_employee(db, user_id, lock=True)
         if employee.profile_status != "PENDING":
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
@@ -366,7 +361,7 @@ def send_invitation(db: Session, actor: User, user_id: UUID) -> dict:
             template_key="EMPLOYEE_INVITATION",
             variables={
                 "employee_name": f"{employee.first_name} {employee.last_name}".strip(),
-                "company_name": employee.entity_name or str(employee.company_id),
+                "company_name": employee.entity_name or "Evolvus360",
                 "invitation_link": invitation_url,
                 "expiry_hours": get_settings().onboarding_invitation_expire_hours,
             },
@@ -384,7 +379,7 @@ def send_invitation(db: Session, actor: User, user_id: UUID) -> dict:
 
 
 def retry_invitation(db: Session, actor: User, user_id: UUID) -> dict:
-    employee = _employee_for_actor(db, actor, user_id)
+    employee = _get_employee(db, user_id)
     invitation = employee.invitation
     if (
         invitation is None
@@ -420,9 +415,7 @@ def retry_invitation(db: Session, actor: User, user_id: UUID) -> dict:
 def validate_invitation(db: Session, raw_token: str) -> dict:
     invitation = db.scalar(
         select(OnboardingInvitation)
-        .options(
-            joinedload(OnboardingInvitation.employee)
-        )
+        .options(joinedload(OnboardingInvitation.employee))
         .where(OnboardingInvitation.invitation_token_hash == hash_token(raw_token))
     )
     now = datetime.now(UTC)
@@ -438,17 +431,21 @@ def validate_invitation(db: Session, raw_token: str) -> dict:
         )
     if (
         invitation is None
-        or invitation.invitation_status != "SENT"
-        or invitation.employee.profile_status != "PENDING"
+        or invitation.invitation_status not in {"SENT", "ACCEPTED"}
+        or invitation.employee.profile_status not in {"PENDING", "REJECTED"}
+        or invitation.expires_at <= now
     ):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, "Invalid or expired invitation"
         )
     employee = invitation.employee
+    if employee.onboarding_status in {"INVITED", "REJECTED"}:
+        employee.onboarding_status = "ONBOARDING"
+        db.commit()
     return {
         "first_name": employee.first_name,
         "last_name": employee.last_name,
-        "company_name": employee.entity_name or str(employee.company_id),
+        "company_name": employee.entity_name or "Evolvus360",
         "expires_at": invitation.expires_at,
     }
 
@@ -518,6 +515,312 @@ def _mask(value: str | None, visible: int = 4) -> str | None:
     return "*" * max(0, len(value) - visible) + value[-visible:]
 
 
+def _submission_snapshot(employee: EmployeeEmploymentDetails) -> str:
+    """Encrypt the previous rejected submission before a correction replaces it."""
+    snapshot = {
+        "personal": {
+            key: getattr(employee.personal_details, key)
+            for key in (
+                "aadhaar_number_encrypted",
+                "aadhaar_number_last_four",
+                "pan_number_encrypted",
+                "passport_number_encrypted",
+                "birth_date",
+                "gender",
+                "blood_group",
+                "mother_tongue",
+                "marital_status",
+                "uan_number_encrypted",
+            )
+        }
+        if employee.personal_details
+        else None,
+        "contact": {
+            key: getattr(employee.contact_details, key)
+            for key in (
+                "mobile_number",
+                "landline_number",
+                "alternate_phone_number",
+                "emergency_contact_name",
+                "emergency_contact_phone",
+                "emergency_contact_relation",
+            )
+        }
+        if employee.contact_details
+        else None,
+        "bank": {
+            key: getattr(employee.bank_details, key)
+            for key in (
+                "bank_name",
+                "bank_account_number_encrypted",
+                "bank_account_number_last_four",
+                "ifsc_code",
+                "account_holder_name",
+            )
+        }
+        if employee.bank_details
+        else None,
+        "skills": {
+            key: getattr(employee.skills_and_interests, key)
+            for key in (
+                "additional_qualifications",
+                "additional_skills",
+                "hobbies",
+                "languages_spoken",
+                "languages_read_and_written",
+            )
+        }
+        if employee.skills_and_interests
+        else None,
+        "documents": [
+            {
+                "id": str(doc.id),
+                "document_type": doc.document_type,
+                "original_filename": doc.original_filename,
+                "storage_path": doc.storage_path,
+                "mime_type": doc.mime_type,
+                "file_size_bytes": doc.file_size_bytes,
+            }
+            for doc in employee.documents
+        ],
+    }
+    raw = json.dumps(snapshot, default=str, ensure_ascii=False).encode()
+    return _encryptor().encrypt(raw).decode()
+
+
+def get_employee_onboarding_form(db: Session, user: User) -> dict:
+    employee = _get_employee(db, user.id)
+    personal = employee.personal_details
+    contact = employee.contact_details
+    bank = employee.bank_details
+    skills = employee.skills_and_interests
+    return {
+        "employee": {
+            "id": str(employee.id),
+            "employee_code": employee.employee_code,
+            "first_name": employee.first_name,
+            "middle_name": employee.middle_name,
+            "last_name": employee.last_name,
+            "company_email": employee.company_email,
+            "personal_email": employee.personal_email,
+            "department": employee.department_name,
+            "entity": employee.entity_name,
+            "designation": employee.designation,
+            "work_location": employee.work_location,
+            "joining_date": employee.joining_date,
+            "employment_start_date": employee.employment_start_date,
+            "employment_end_date": employee.employment_end_date,
+            "pf_applicable": employee.pf_applicable,
+        },
+        "personal_details": None
+        if personal is None
+        else {
+            "birth_date": personal.birth_date,
+            "gender": personal.gender,
+            "aadhaar_last_four": personal.aadhaar_number_last_four,
+        },
+        "contact_details": None
+        if contact is None
+        else {
+            "mobile_number": contact.mobile_number,
+            "landline_number": contact.landline_number,
+            "alternate_phone_number": contact.alternate_phone_number,
+            "emergency_contact_name": contact.emergency_contact_name,
+            "emergency_contact_phone": contact.emergency_contact_phone,
+            "emergency_contact_relation": contact.emergency_contact_relation,
+        },
+        "bank_details": None
+        if bank is None
+        else {
+            "bank_name": bank.bank_name,
+            "account_number_last_four": bank.bank_account_number_last_four,
+            "ifsc_code": bank.ifsc_code,
+            "verification_status": bank.verification_status,
+        },
+        "education_and_skills": None
+        if skills is None
+        else {
+            "additional_qualifications": skills.additional_qualifications,
+            "additional_skills": skills.additional_skills,
+            "languages_spoken": skills.languages_spoken,
+            "languages_read_and_written": skills.languages_read_and_written,
+        },
+        "documents": [
+            {
+                "document_type": doc.document_type,
+                "original_filename": doc.original_filename,
+                "verification_status": doc.verification_status,
+            }
+            for doc in employee.documents
+        ],
+        "required_documents": ["identity_proof", "cancelled_cheque"],
+        "onboarding_status": employee.onboarding_status,
+        "profile_status": employee.profile_status,
+        "submitted_at": employee.invitation.submitted_at
+        if employee.invitation
+        else None,
+    }
+
+
+def submit_employee_onboarding(
+    db: Session,
+    user: User,
+    fields: dict,
+    files: dict[str, tuple[str, str | None, bytes]],
+) -> dict:
+    """Persist an authenticated employee's full profile against existing tables."""
+    stored_paths: list[Path] = []
+    replaced_paths: list[Path] = []
+    try:
+        employee = _get_employee(db, user.id, lock=True)
+        if employee.profile_status == "APPROVED":
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Approved profiles cannot be changed"
+            )
+        was_rejected = employee.profile_status == "REJECTED"
+        previous_snapshot = _submission_snapshot(employee) if was_rejected else None
+        encryptor = _encryptor()
+        aadhaar = re.sub(r"\D", "", fields.get("aadhaar_number", ""))
+        pan = fields.get("pan_number", "").strip().upper()
+        if len(aadhaar) != 12:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "aadhaar_number: must contain 12 digits",
+            )
+        if not re.fullmatch(r"[A-Z]{5}[0-9]{4}[A-Z]", pan):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "pan_number: invalid format"
+            )
+        gender = fields.get("gender", "").upper()
+        if gender not in {"MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"}:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "gender: invalid value"
+            )
+        if fields["date_of_birth"] >= date.today():
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "date_of_birth: must be in the past",
+            )
+        if not re.fullmatch(r"\+[1-9][0-9]{7,14}", fields.get("mobile_number", "")):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "mobile_number: use international format",
+            )
+        if not re.fullmatch(
+            r"[A-Z]{4}0[A-Z0-9]{6}", fields.get("ifsc_code", "").strip().upper()
+        ):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "ifsc_code: invalid format"
+            )
+        for field_name in (
+            "emergency_contact_name",
+            "emergency_contact_phone",
+            "emergency_contact_relationship",
+            "bank_name",
+        ):
+            if not fields[field_name].strip():
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    f"{field_name}: this field is required",
+                )
+        account = re.sub(r"\s", "", fields.get("account_number", ""))
+        if not account.isdigit() or not 4 <= len(account) <= 50:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "account_number: invalid value"
+            )
+        required = {"identity_proof", "cancelled_cheque"}
+        if not required.issubset(files):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Both required documents must be provided",
+            )
+        new_docs = []
+        for kind, (filename, content_type, contents) in files.items():
+            for old_doc in employee.documents:
+                if old_doc.document_type == kind:
+                    replaced_paths.append(Path(old_doc.storage_path))
+                    db.delete(old_doc)
+            path, clean, mime = _store_document(kind, filename, content_type, contents)
+            stored_paths.append(Path(path))
+            new_docs.append(
+                EmployeeDocuments(
+                    document_type=kind,
+                    original_filename=clean,
+                    storage_path=path,
+                    file_size_bytes=len(contents),
+                    mime_type=mime,
+                    uploaded_by_user_id=user.id,
+                )
+            )
+        p = employee.personal_details or EmployeePersonalDetails(
+            employee_id=employee.id
+        )
+        p.birth_date = fields["date_of_birth"]
+        p.gender = gender
+        p.aadhaar_number_encrypted = encryptor.encrypt(aadhaar.encode()).decode()
+        p.aadhaar_number_last_four = aadhaar[-4:]
+        p.pan_number_encrypted = encryptor.encrypt(pan.encode()).decode()
+        passport = (fields.get("passport_number") or "").strip()
+        p.passport_number_encrypted = (
+            encryptor.encrypt(passport.encode()).decode() if passport else None
+        )
+        employee.personal_details = p
+        c = employee.contact_details or EmployeeContactDetails(employee_id=employee.id)
+        c.mobile_number = fields["mobile_number"].strip()
+        c.emergency_contact_name = fields["emergency_contact_name"].strip()
+        c.emergency_contact_phone = fields["emergency_contact_phone"].strip()
+        c.emergency_contact_relation = fields["emergency_contact_relationship"].strip()
+        employee.contact_details = c
+        b = employee.bank_details or EmployeeBankDetails(employee_id=employee.id)
+        b.bank_name = fields["bank_name"].strip()
+        b.bank_account_number_encrypted = encryptor.encrypt(account.encode()).decode()
+        b.bank_account_number_last_four = account[-4:]
+        b.ifsc_code = fields["ifsc_code"].strip().upper()
+        b.account_holder_name = f"{employee.first_name} {employee.last_name}".strip()
+        employee.bank_details = b
+        sk = employee.skills_and_interests or EmployeeSkillsAndInterests(
+            employee_id=employee.id
+        )
+        sk.additional_qualifications = fields.get("qualification") or None
+        sk.additional_skills = fields.get("skills") or None
+        sk.languages_spoken = fields.get("languages") or None
+        employee.skills_and_interests = sk
+        employee.documents.extend(new_docs)
+        if previous_snapshot is not None:
+            db.add(
+                EmployeeApprovalDecision(
+                    employee_id=employee.id,
+                    action="RESUBMITTED",
+                    actor_user_id=user.id,
+                    reason="Previous rejected submission preserved",
+                    snapshot_encrypted=previous_snapshot,
+                )
+            )
+        now = datetime.now(UTC)
+        employee.profile_status = "PENDING_APPROVAL"
+        employee.onboarding_status = "PENDING_APPROVAL"
+        employee.user.account_status = "PENDING_APPROVAL"
+        employee.rejection_reason = None
+        if employee.invitation:
+            employee.invitation.submitted_at = now
+            employee.invitation.invitation_status = "ACCEPTED"
+        db.commit()
+        if not was_rejected:
+            for path in replaced_paths:
+                path.unlink(missing_ok=True)
+        return {
+            "employee_id": str(employee.id),
+            "onboarding_status": employee.onboarding_status,
+            "profile_status": employee.profile_status,
+            "submitted_at": now,
+        }
+    except BaseException:
+        db.rollback()
+        for path in stored_paths:
+            path.unlink(missing_ok=True)
+        raise
+
+
 def submit_onboarding(
     db: Session,
     raw_token: str,
@@ -525,6 +828,7 @@ def submit_onboarding(
     files: dict[str, tuple[str, str | None, bytes]],
 ) -> dict:
     stored_paths: list[Path] = []
+    replaced_paths: list[Path] = []
     try:
         invitation = db.scalar(
             select(OnboardingInvitation)
@@ -546,23 +850,25 @@ def submit_onboarding(
                 ),
             )
             .where(OnboardingInvitation.invitation_token_hash == hash_token(raw_token))
-            .with_for_update()
+            .with_for_update(of=OnboardingInvitation)
         )
         now = datetime.now(UTC)
         if (
             invitation is None
-            or invitation.invitation_status != "SENT"
+            or invitation.invitation_status not in {"SENT", "ACCEPTED"}
             or invitation.expires_at <= now
         ):
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, "Invalid or expired invitation"
             )
         employee = invitation.employee
-        if employee.profile_status != "PENDING":
+        if employee.profile_status not in {"PENDING", "REJECTED"}:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, "Employee profile was already submitted"
             )
-        if (
+        was_rejected = employee.profile_status == "REJECTED"
+        previous_snapshot = _submission_snapshot(employee) if was_rejected else None
+        if employee.profile_status == "PENDING" and (
             employee.personal_details
             or employee.contact_details
             or employee.bank_details
@@ -570,16 +876,6 @@ def submit_onboarding(
             raise HTTPException(
                 status.HTTP_409_CONFLICT, "Employee profile was already submitted"
             )
-        if fields["new_password"] != fields["confirm_password"]:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "Passwords do not match"
-            )
-        try:
-            password_hash = hash_password(fields["new_password"])
-        except ValueError as exc:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)
-            ) from None
         encryptor = _encryptor()
         aadhaar = re.sub(r"\D", "", fields["aadhaar_number"])
         pan = fields["pan_number"].strip().upper()
@@ -649,6 +945,10 @@ def submit_onboarding(
 
         stored: list[tuple[str, str, str, int, str]] = []
         for document_type, (filename, content_type, contents) in files.items():
+            for previous in employee.documents:
+                if previous.document_type == document_type:
+                    replaced_paths.append(Path(previous.storage_path))
+                    db.delete(previous)
             path, clean_name, media_type = _store_document(
                 document_type, filename, content_type, contents
             )
@@ -660,6 +960,7 @@ def submit_onboarding(
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY, "Gender is invalid"
             )
+        passport_number = (fields.get("passport_number") or "").strip()
         employee.personal_details = EmployeePersonalDetails(
             birth_date=fields["date_of_birth"],
             gender=gender,
@@ -667,8 +968,8 @@ def submit_onboarding(
             aadhaar_number_last_four=aadhaar[-4:],
             pan_number_encrypted=encryptor.encrypt(pan.encode()).decode(),
             passport_number_encrypted=(
-                encryptor.encrypt(fields["passport_number"].strip().encode()).decode()
-                if fields.get("passport_number", "").strip()
+                encryptor.encrypt(passport_number.encode()).decode()
+                if passport_number
                 else None
             ),
         )
@@ -701,17 +1002,30 @@ def submit_onboarding(
                     mime_type=media_type,
                 )
             )
-        employee.profile_status = "SUBMITTED"
-        employee.onboarding_status = "SUBMITTED"
+        if previous_snapshot is not None:
+            db.add(
+                EmployeeApprovalDecision(
+                    employee_id=employee.id,
+                    action="RESUBMITTED",
+                    actor_user_id=employee.user_id,
+                    reason="Previous rejected submission preserved",
+                    snapshot_encrypted=previous_snapshot,
+                )
+            )
+        employee.profile_status = "PENDING_APPROVAL"
+        employee.onboarding_status = "PENDING_APPROVAL"
         invitation.invitation_status = "ACCEPTED"
         invitation.submitted_at = now
         invitation.draft_form_data = None
-        employee.user.password_hash = password_hash
+        employee.rejection_reason = None
         employee.user.phone_number = mobile_number
-        employee.user.account_status = "ACTIVE"
+        employee.user.account_status = "PENDING_APPROVAL"
         employee.user.is_active = True
         db.commit()
-        return {"profile_status": "SUBMITTED"}
+        if not was_rejected:
+            for path in replaced_paths:
+                path.unlink(missing_ok=True)
+        return {"profile_status": "PENDING_APPROVAL"}
     except BaseException:
         db.rollback()
         for path in stored_paths:
@@ -728,8 +1042,7 @@ def _employee_list_item(employee: EmployeeEmploymentDetails) -> dict:
             (
                 item
                 for item in user.role_assignments
-                if item.role.is_active
-                and not getattr(item.role, "is_deleted", False)
+                if item.role.is_active and not getattr(item.role, "is_deleted", False)
             ),
             None,
         )
@@ -766,7 +1079,7 @@ def _employee_list_item(employee: EmployeeEmploymentDetails) -> dict:
 
 def list_employees(
     db: Session,
-    actor: User,
+    _actor: User,
     *,
     search: str | None,
     role_id: UUID | None,
@@ -777,7 +1090,6 @@ def list_employees(
     page: int,
     page_size: int,
 ) -> dict:
-    scope = _company_scope(actor)
     if profile_status and profile_status.upper() not in PROFILE_STATES:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid profile status"
@@ -795,8 +1107,6 @@ def list_employees(
         .where(EmployeeEmploymentDetails.deleted_at.is_(None))
     )
     conditions = []
-    if scope:
-        conditions.append(EmployeeEmploymentDetails.company_id == scope)
     if role_id:
         conditions.append(
             select(UserRole.id)
@@ -867,15 +1177,14 @@ def _decrypt(encryptor: Fernet, value: str | None) -> str | None:
 
 
 def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
-    employee = _employee_for_actor(db, actor, user_id)
+    employee = _get_employee(db, user_id)
     user = employee.user
     assignment = (
         next(
             (
                 item
                 for item in user.role_assignments
-                if item.role.is_active
-                and not getattr(item.role, "is_deleted", False)
+                if item.role.is_active and not getattr(item.role, "is_deleted", False)
             ),
             None,
         )
@@ -911,7 +1220,12 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
         "start_date": employee.employment_start_date,
         "end_date": employee.employment_end_date,
     }
-    submitted = employee.profile_status in {"SUBMITTED", "APPROVED"}
+    submitted = employee.profile_status in {
+        "SUBMITTED",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "REJECTED",
+    }
     details = None
     if submitted:
         if not (
@@ -983,10 +1297,9 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
 
 def update_employee(db: Session, actor: User, user_id: UUID, payload: object) -> dict:
     try:
-        employee = _employee_for_actor(db, actor, user_id, lock=True)
+        employee = _get_employee(db, user_id, lock=True)
         user = employee.user
         values = payload.model_dump(exclude_unset=True)
-        company_id = employee.company_id
         required_fields = {
             "first_name",
             "last_name",
@@ -1014,14 +1327,13 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
             department = db.scalar(
                 select(Department).where(
                     Department.id == department_id,
-                    Department.company_id == company_id,
                     Department.is_active.is_(True),
                 )
             )
             if department is None:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    "Department is not active in this tenant",
+                    "Department is not active",
                 )
             employee.department_id = department.id
             employee.department_name = department.name
@@ -1040,7 +1352,7 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
             if entity is None:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    "Entity is not active in this tenant",
+                    "Entity is not active",
                 )
             employee.entity_id = entity.id
             employee.entity_name = entity.name
@@ -1100,7 +1412,6 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
             email = normalize_email(str(values["personal_email"]))
             duplicate = db.scalar(
                 select(EmployeeEmploymentDetails.id).where(
-                    EmployeeEmploymentDetails.company_id == company_id,
                     EmployeeEmploymentDetails.user_id != user_id,
                     func.lower(EmployeeEmploymentDetails.personal_email) == email,
                     EmployeeEmploymentDetails.deleted_at.is_(None),
@@ -1109,7 +1420,7 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
             if duplicate:
                 raise HTTPException(
                     status.HTTP_409_CONFLICT,
-                    "Personal email already exists in this company",
+                    "Personal email already exists",
                 )
             employee.personal_email = email
         if employee.employment_start_date < employee.joining_date:
@@ -1139,31 +1450,6 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
 
 
 def approve_employee(db: Session, actor: User, user_id: UUID) -> dict:
-    try:
-        employee = _employee_for_actor(db, actor, user_id, lock=True)
-        if employee.profile_status != "SUBMITTED":
-            raise HTTPException(
-                status.HTTP_409_CONFLICT, "Only submitted profiles can be approved"
-            )
-        required_documents = {doc.document_type for doc in employee.documents}
-        if not {"identity_proof", "cancelled_cheque"}.issubset(required_documents):
-            raise HTTPException(
-                status.HTTP_409_CONFLICT, "Required documents are missing"
-            )
-        if not (
-            employee.personal_details
-            and employee.contact_details
-            and employee.bank_details
-        ):
-            raise HTTPException(
-                status.HTTP_409_CONFLICT, "Submitted employee details are incomplete"
-            )
-        employee.profile_status = "APPROVED"
-        employee.onboarding_status = "APPROVED"
-        employee.approved_by_user_id = actor.id
-        employee.approved_at = datetime.now(UTC)
-        db.commit()
-        return {"profile_status": "APPROVED"}
-    except BaseException:
-        db.rollback()
-        raise
+    from app.services.approval_service import approve
+
+    return approve(db, actor, user_id)

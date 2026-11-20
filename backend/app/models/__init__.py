@@ -3,6 +3,7 @@
 from app.models.hrms import (
     Department,
     EmailDispatchOutbox,
+    EmployeeApprovalDecision,
     EmployeeBankDetails,
     EmployeeContactDetails,
     EmployeeDocuments,
@@ -21,6 +22,7 @@ from app.models.hrms import (
 )
 
 __all__ = [
+    "EmployeeApprovalDecision",
     "EmailDispatchOutbox",
     "User",
     "Role",

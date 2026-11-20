@@ -13,7 +13,7 @@ from app.database.session import get_db
 from app.models.hrms import User
 from app.schemas.auth import ApiResponse
 from app.schemas.employee import EmployeeCreate, EmployeeUpdate
-from app.services import employee_service
+from app.services import approval_service, employee_service
 from app.utils.responses import success_response
 
 router = APIRouter(prefix="/users", tags=["Employee management"])
@@ -96,5 +96,5 @@ def update_employee(
 
 @router.post("/{user_id}/approve", response_model=ApiResponse[dict])
 def approve_employee(user_id: UUID, db: DbSession, user: AdminUser):
-    result = employee_service.approve_employee(db, user, user_id)
+    result = approval_service.approve(db, user, user_id)
     return success_response("Employee profile approved successfully", result)

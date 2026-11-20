@@ -66,18 +66,22 @@ def _jwt_secret() -> str:
     return raw_secret
 
 
-def create_access_token(user_id: str, company_id: str | None) -> tuple[str, int]:
+def create_access_token(
+    user_id: str, *, purpose: str = "normal", credential_use: str | None = None
+) -> tuple[str, int]:
     settings = get_settings()
     now = datetime.now(UTC)
     lifetime = settings.access_token_expire_minutes * 60
     claims = {
         "sub": user_id,
-        "company_id": company_id,
         "type": "access",
+        "purpose": purpose,
         "iat": now,
         "exp": now + timedelta(seconds=lifetime),
         "jti": str(uuid4()),
     }
+    if credential_use is not None:
+        claims["credential_use"] = credential_use
     return jwt.encode(claims, _jwt_secret(), algorithm=settings.jwt_algorithm), lifetime
 
 

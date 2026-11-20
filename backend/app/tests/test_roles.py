@@ -398,7 +398,6 @@ def test_login_bundle_merges_role_json_permissions_and_preserves_response_fields
         email="login@example.com",
         first_name="Lee",
         last_name="User",
-        company_id=None,
         role_assignments=[
             SimpleNamespace(role=role)
             for role in (first_role, second_role, inactive_role, deleted_role)
@@ -437,7 +436,6 @@ def test_login_bundle_returns_empty_permissions_without_active_roles(
         email="norole@example.com",
         first_name="No",
         last_name="Role",
-        company_id=None,
         role_assignments=[],
     )
 
