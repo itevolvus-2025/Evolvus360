@@ -7,14 +7,84 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.dependencies import get_current_user
 from app.database.session import get_db
+from app.models.hrms import User
 from app.schemas.auth import ApiResponse
 from app.schemas.employee import InvitationTokenRequest
 from app.services import employee_service
 from app.utils.responses import success_response
 
 router = APIRouter(prefix="/onboarding", tags=["Employee onboarding"])
+employee_router = APIRouter(prefix="/employee/onboarding", tags=["Employee onboarding"])
 DbSession = Annotated[Session, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+@employee_router.get("/form", response_model=ApiResponse[dict])
+def get_onboarding_form(db: DbSession, user: CurrentUser):
+    return success_response(
+        "Onboarding form fetched successfully",
+        employee_service.get_employee_onboarding_form(db, user),
+    )
+
+
+@employee_router.post("/submit", response_model=ApiResponse[dict])
+async def submit_employee_form(
+    db: DbSession,
+    user: CurrentUser,
+    date_of_birth: Annotated[date, Form()],
+    gender: Annotated[str, Form(min_length=1, max_length=20)],
+    mobile_number: Annotated[str, Form(min_length=5, max_length=25)],
+    aadhaar_number: Annotated[str, Form(min_length=12, max_length=20)],
+    pan_number: Annotated[str, Form(min_length=10, max_length=10)],
+    emergency_contact_name: Annotated[str, Form(min_length=1, max_length=150)],
+    emergency_contact_phone: Annotated[str, Form(min_length=5, max_length=25)],
+    emergency_contact_relationship: Annotated[str, Form(min_length=1, max_length=50)],
+    bank_name: Annotated[str, Form(min_length=1, max_length=150)],
+    account_number: Annotated[str, Form(min_length=4, max_length=50)],
+    ifsc_code: Annotated[str, Form(min_length=11, max_length=11)],
+    identity_proof: Annotated[UploadFile, File()],
+    cancelled_cheque: Annotated[UploadFile, File()],
+    passport_number: Annotated[str | None, Form(max_length=30)] = None,
+    qualification: Annotated[str | None, Form(max_length=4000)] = None,
+    skills: Annotated[str | None, Form(max_length=4000)] = None,
+    languages: Annotated[str | None, Form(max_length=1000)] = None,
+):
+    limit = get_settings().max_onboarding_file_size_bytes + 1
+    files = {}
+    for kind, upload in (
+        ("identity_proof", identity_proof),
+        ("cancelled_cheque", cancelled_cheque),
+    ):
+        files[kind] = (
+            upload.filename or kind,
+            upload.content_type,
+            await upload.read(limit),
+        )
+    result = employee_service.submit_employee_onboarding(
+        db,
+        user,
+        {
+            "date_of_birth": date_of_birth,
+            "gender": gender,
+            "mobile_number": mobile_number,
+            "aadhaar_number": aadhaar_number,
+            "pan_number": pan_number,
+            "emergency_contact_name": emergency_contact_name,
+            "emergency_contact_phone": emergency_contact_phone,
+            "emergency_contact_relationship": emergency_contact_relationship,
+            "bank_name": bank_name,
+            "account_number": account_number,
+            "ifsc_code": ifsc_code,
+            "passport_number": passport_number,
+            "qualification": qualification,
+            "skills": skills,
+            "languages": languages,
+        },
+        files,
+    )
+    return success_response("Employee onboarding submitted successfully", result)
 
 
 @router.post("/invitations/validate", response_model=ApiResponse[dict])
@@ -39,8 +109,6 @@ async def submit_onboarding(
     bank_name: Annotated[str, Form(min_length=1, max_length=150)],
     account_number: Annotated[str, Form(min_length=4, max_length=50)],
     ifsc_code: Annotated[str, Form(min_length=11, max_length=11)],
-    new_password: Annotated[str, Form(min_length=12, max_length=128)],
-    confirm_password: Annotated[str, Form(min_length=12, max_length=128)],
     identity_proof: Annotated[UploadFile, File()],
     cancelled_cheque: Annotated[UploadFile, File()],
     passport_number: Annotated[str | None, Form(max_length=30)] = None,
@@ -69,8 +137,6 @@ async def submit_onboarding(
             "ifsc_code": ifsc_code,
             "qualification": qualification,
             "languages": languages,
-            "new_password": new_password,
-            "confirm_password": confirm_password,
         },
         {
             "identity_proof": (

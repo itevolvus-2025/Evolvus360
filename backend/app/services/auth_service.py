@@ -169,9 +169,7 @@ def _issue_bundle(
     db: Session, user: User, session: RefreshTokenSession | None = None
 ) -> dict:
     settings = get_settings()
-    access_token, expires_in = create_access_token(
-        str(user.id), str(user.company_id) if user.company_id else None
-    )
+    access_token, expires_in = create_access_token(str(user.id))
     refresh_token = new_opaque_token()
     now = datetime.now(UTC)
     replacement = RefreshTokenSession(
@@ -207,6 +205,7 @@ def login(db: Session, email: str, password: str) -> dict:
             func.lower(User.email) == normalize_email(email),
             User.deleted_at.is_(None),
         )
+        .with_for_update()
     )
     # Keep unknown, incorrect, locked, and disabled account errors indistinguishable.
     now = datetime.now(UTC)
@@ -231,12 +230,55 @@ def login(db: Session, email: str, password: str) -> dict:
         or user.account_status != "ACTIVE"
     ):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, GENERIC_CREDENTIAL_ERROR)
+    if user.must_change_password:
+        if (
+            user.temporary_password_expires_at is None
+            or user.temporary_password_expires_at <= now
+            or user.temporary_password_used_at is not None
+        ):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, GENERIC_CREDENTIAL_ERROR)
+        access_token, expires_in = create_access_token(
+            str(user.id),
+            purpose="temporary_password_change",
+            credential_use=now.isoformat(),
+        )
+        user.temporary_password_used_at = now
+        user.last_login_at = now
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        db.commit()
+        payload = _user_payload(user)
+        return {
+            "access_token": access_token,
+            "refresh_token": "",
+            "token_type": "bearer",
+            "expires_in": expires_in,
+            "user": payload,
+            "permissions": payload["permissions"],
+            "password_change_required": True,
+        }
     user.failed_login_attempts = 0
     user.locked_until = None
     user.last_login_at = now
     result = _issue_bundle(db, user)
     db.commit()
     return result
+
+
+def change_temporary_password(db: Session, user: User, new_password: str) -> None:
+    try:
+        user.password_hash = hash_password(new_password)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from None
+    now = datetime.now(UTC)
+    user.must_change_password = False
+    user.temporary_password_expires_at = None
+    user.temporary_password_used_at = None
+    db.query(RefreshTokenSession).filter(
+        RefreshTokenSession.user_id == user.id,
+        RefreshTokenSession.revoked_at.is_(None),
+    ).update({RefreshTokenSession.revoked_at: now}, synchronize_session=False)
+    db.commit()
 
 
 def refresh(db: Session, raw_token: str) -> dict:
@@ -268,6 +310,7 @@ def refresh(db: Session, raw_token: str) -> dict:
         not user.is_active
         or user.deleted_at is not None
         or user.account_status != "ACTIVE"
+        or user.must_change_password
     ):
         old.revoked_at = now
         db.commit()
@@ -391,6 +434,9 @@ def reset_password(
             status.HTTP_400_BAD_REQUEST, "Invalid or expired reset token"
         )
     user.password_hash = hash_password(new_password)
+    user.must_change_password = False
+    user.temporary_password_expires_at = None
+    user.temporary_password_used_at = None
     reset.used_at = now
     db.query(RefreshTokenSession).filter(
         RefreshTokenSession.user_id == user.id, RefreshTokenSession.revoked_at.is_(None)

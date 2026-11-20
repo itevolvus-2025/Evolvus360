@@ -2,7 +2,6 @@
 
 from pathlib import Path
 from shutil import rmtree
-from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -14,7 +13,6 @@ from app.core.config import get_settings
 from app.main import app
 from app.schemas.employee import EmployeeCreate, EmployeeUpdate
 from app.services.employee_service import (
-    _company_scope,
     _decrypt,
     _employee_prefix,
     _encryptor,
@@ -60,32 +58,6 @@ def test_employee_update_rejects_employee_code_and_employee_data_fields() -> Non
         EmployeeUpdate.model_validate({"employee_code": "ET-002"})
     with pytest.raises(ValidationError):
         EmployeeUpdate.model_validate({"account_number": "123456"})
-
-
-def test_hr_company_scope_is_enforced() -> None:
-    company_id = uuid4()
-    hr = SimpleNamespace(
-        company_id=company_id,
-        role_assignments=[
-            SimpleNamespace(role=SimpleNamespace(role_code="HR", is_active=True))
-        ],
-    )
-    assert _company_scope(hr) == company_id
-    with pytest.raises(HTTPException) as error:
-        _company_scope(hr, uuid4())
-    assert error.value.status_code == 403
-
-
-def test_super_admin_can_select_global_company_scope() -> None:
-    admin = SimpleNamespace(
-        company_id=None,
-        role_assignments=[
-            SimpleNamespace(
-                role=SimpleNamespace(role_code="SUPER_ADMIN", is_active=True)
-            )
-        ],
-    )
-    assert _company_scope(admin) is None
 
 
 def test_sensitive_values_are_encrypted_and_decrypted_from_configured_key(
@@ -149,4 +121,11 @@ def test_onboarding_and_employee_routes_are_registered() -> None:
         "/api/v1/users/{user_id}/approve",
         "/api/v1/onboarding/invitations/validate",
         "/api/v1/onboarding/submit",
+        "/api/v1/employee/onboarding/form",
+        "/api/v1/employee/onboarding/submit",
+        "/api/v1/approvals/employees",
+        "/api/v1/approvals/employees/{employee_id}",
+        "/api/v1/approvals/employees/{employee_id}/approve",
+        "/api/v1/approvals/employees/{employee_id}/reject",
+        "/api/v1/auth/change-temporary-password",
     } <= set(paths)

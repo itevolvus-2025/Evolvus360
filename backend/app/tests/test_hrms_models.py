@@ -27,6 +27,7 @@ def test_all_hrms_models_are_registered_with_uuid_primary_keys() -> None:
         "onboarding_invitations",
         "password_reset_tokens",
         "email_dispatch_outbox",
+        "employee_approval_decisions",
     }
     assert {table.name for table in Base.metadata.tables.values()} == expected
     assert all(table.c.id.primary_key for table in Base.metadata.tables.values())
@@ -40,7 +41,6 @@ def test_all_hrms_models_are_registered_with_uuid_primary_keys() -> None:
 def test_hrms_relationships_and_constraints_are_configured() -> None:
     configure_mappers()
     employee = Base.metadata.tables["employee_employment_details"]
-    assert employee.c.company_id.nullable is False
     assert employee.c.user_id.nullable is True
     assert employee.c.profile_status.server_default is not None
     assert employee.c.department_id.nullable is True
@@ -54,15 +54,9 @@ def test_hrms_relationships_and_constraints_are_configured() -> None:
     )
     assert any(isinstance(c, CheckConstraint) for c in personal.constraints)
     assert len(Base.metadata.tables["employee_documents"].indexes) >= 1
-    assert Base.metadata.tables["users"].c.company_id.nullable is True
     assert "company_id" not in Base.metadata.tables["entities"].c
     assert "next_employee_sequence" not in Base.metadata.tables["entities"].c
-    for table_name in (
-        "users",
-        "departments",
-        "employee_employment_details",
-    ):
-        assert not Base.metadata.tables[table_name].c.company_id.foreign_keys
+    assert all("company_id" not in table.c for table in Base.metadata.tables.values())
 
 
 def test_authentication_timestamps_are_timezone_aware() -> None:

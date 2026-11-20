@@ -65,9 +65,10 @@ autogeneration to its own model metadata; migrations must still be reviewed to
 ensure they touch only that service's tables. Do not create or restore
 `master_data` or `companies` tables: HRMS roles, permissions, departments, and
 entities are modeled as separate relational tables. Entities are global and
-have no `company_id` or sequence-counter columns. `company_id` remains an opaque
-grouping UUID on users, departments, and employee records, with no registry-table
-foreign key. The compatibility migration restores
+have no `company_id` or sequence-counter columns. A forward-only HRMS migration
+also removes remaining `company_id` columns from users, departments, and
+employee records. Historical migrations are retained so previously migrated
+environments keep a valid migration history. The compatibility migration restores
 recoverable role, permission, and menu rows before removing the legacy table;
 it stops without changing data if department/entity ownership cannot be
 reconstructed. Relational menu and role-menu tables are retained for existing

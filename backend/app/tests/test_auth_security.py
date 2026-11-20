@@ -1,6 +1,7 @@
 """Authentication utility checks that do not require a live database."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import Mock
 from uuid import uuid4
 
@@ -8,6 +9,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.core import security
+from app.services import approval_service, auth_service
 
 
 def test_password_hashing_uses_one_way_argon2_hashes() -> None:
@@ -16,6 +18,48 @@ def test_password_hashing_uses_one_way_argon2_hashes() -> None:
     assert encoded != "StrongPassword123!"
     assert security.verify_password("StrongPassword123!", encoded)
     assert not security.verify_password("WrongPassword123!", encoded)
+
+
+def test_temporary_passwords_are_strong_and_temporary_login_is_single_use(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JWT_SECRET_KEY", "0123456789abcdef0123456789abcdef")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    user = SimpleNamespace(
+        id=uuid4(),
+        email="employee@example.test",
+        first_name="Test",
+        last_name="User",
+        password_hash=security.hash_password("Temporary123!"),
+        account_status="ACTIVE",
+        is_active=True,
+        must_change_password=True,
+        temporary_password_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        temporary_password_used_at=None,
+        locked_until=None,
+        failed_login_attempts=0,
+        role_assignments=[],
+    )
+    db = Mock()
+    db.scalar.return_value = user
+    try:
+        password = approval_service._temp_password()
+        security.validate_password_strength(password)
+        result = auth_service.login(db, user.email, "Temporary123!")
+        assert result["password_change_required"] is True
+        assert result["refresh_token"] == ""
+        assert (
+            security.decode_access_token(result["access_token"])["purpose"]
+            == "temporary_password_change"
+        )
+        assert user.temporary_password_used_at is not None
+        with pytest.raises(HTTPException) as error:
+            auth_service.login(db, user.email, "Temporary123!")
+        assert error.value.status_code == 401
+    finally:
+        get_settings.cache_clear()
 
 
 @pytest.mark.parametrize("password", ["short", "alllowercase123!", "NoNumbersHere!"])
@@ -78,7 +122,7 @@ def test_forgot_password_reports_when_email_is_not_registered() -> None:
     db.commit.assert_not_called()
 
 
-def test_access_token_has_expiry_type_subject_and_tenant(
+def test_access_token_has_expiry_type_subject_and_jti(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.core.config import get_settings
@@ -87,11 +131,11 @@ def test_access_token_has_expiry_type_subject_and_tenant(
     monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15")
     get_settings.cache_clear()
     try:
-        signed, lifetime = security.create_access_token("user-123", "company-123")
+        signed, lifetime = security.create_access_token("user-123")
         claims = security.decode_access_token(signed)
         assert lifetime == 15 * 60
         assert claims["sub"] == "user-123"
-        assert claims["company_id"] == "company-123"
+        assert "company_id" not in claims
         assert claims["type"] == "access"
         assert claims["exp"] > int(datetime.now(UTC).timestamp())
         assert claims["jti"]

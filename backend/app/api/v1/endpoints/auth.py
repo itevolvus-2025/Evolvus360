@@ -5,12 +5,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_password_change_user
 from app.database.session import get_db
 from app.models.hrms import User
 from app.schemas.auth import (
     ApiResponse,
     AuthUser,
+    ChangeTemporaryPasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     RefreshRequest,
@@ -72,6 +73,16 @@ def forgot_password(payload: ForgotPasswordRequest, db: DbSession):
 def reset_password(payload: ResetPasswordRequest, db: DbSession):
     auth_service.reset_password(db, payload.token, payload.new_password, payload.email)
     return success_response("Password reset successful")
+
+
+@router.post("/change-temporary-password", response_model=ApiResponse[None])
+def change_temporary_password(
+    payload: ChangeTemporaryPasswordRequest,
+    db: DbSession,
+    user: Annotated[User, Depends(get_password_change_user)],
+):
+    auth_service.change_temporary_password(db, user, payload.new_password)
+    return success_response("Password changed. Please sign in again.")
 
 
 @router.get(

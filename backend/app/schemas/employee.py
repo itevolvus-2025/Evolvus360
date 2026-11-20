@@ -35,7 +35,6 @@ class EmployeeCreate(BaseModel):
     joining_date: date
     start_date: date
     end_date: date | None = None
-    company_id: UUID | None = None
 
 
 class EmployeeUpdate(BaseModel):

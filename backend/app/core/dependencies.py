@@ -1,6 +1,7 @@
 """Database-backed authentication and authorization dependencies."""
 
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -26,15 +27,10 @@ def get_current_user(
             "Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    try:
-        claims = decode_access_token(credentials.credentials)
-        user_id = UUID(claims["sub"])
-    except (ValueError, KeyError, TypeError):
-        raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED,
-            "Invalid or expired access token",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from None
+    claims = _access_claims(credentials.credentials)
+    if claims.get("purpose", "normal") != "normal":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Password change is required")
+    user_id = UUID(claims["sub"])
     # Load current database role state; JWT role claims are never authoritative.
     user = db.scalar(
         select(User)
@@ -43,12 +39,52 @@ def get_current_user(
         )
         .where(User.id == user_id, User.deleted_at.is_(None))
     )
-    if user is None or not user.is_active or user.account_status != "ACTIVE":
+    if (
+        user is None
+        or not user.is_active
+        or user.account_status != "ACTIVE"
+        or user.must_change_password
+    ):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or inactive account")
-    current_company_id = str(user.company_id) if user.company_id else None
-    if claims.get("company_id") != current_company_id:
+    return user
+
+
+def _access_claims(token: str) -> dict:
+    try:
+        claims = decode_access_token(token)
+        UUID(claims["sub"])
+        return claims
+    except (ValueError, KeyError, TypeError):
         raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED, "Invalid access token tenant context"
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid or expired access token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from None
+
+
+def get_password_change_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Authentication required")
+    claims = _access_claims(credentials.credentials)
+    if claims.get("purpose") != "temporary_password_change":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Temporary credential required")
+    user_id = UUID(claims["sub"])
+    user = db.scalar(select(User).where(User.id == user_id, User.deleted_at.is_(None)))
+    if (
+        user is None
+        or not user.is_active
+        or user.account_status != "ACTIVE"
+        or not user.must_change_password
+        or user.temporary_password_used_at is None
+        or claims.get("credential_use") != user.temporary_password_used_at.isoformat()
+        or user.temporary_password_expires_at is None
+        or user.temporary_password_expires_at <= datetime.now(UTC)
+    ):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, "Temporary credential expired"
         )
     return user
 
@@ -61,7 +97,8 @@ def _role_codes(user: User) -> set[str]:
     return {
         assignment.role.role_code
         for assignment in user.role_assignments
-        if assignment.role.is_active and not getattr(assignment.role, "is_deleted", False)
+        if assignment.role.is_active
+        and not getattr(assignment.role, "is_deleted", False)
     }
 
 
