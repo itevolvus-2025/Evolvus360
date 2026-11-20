@@ -1,6 +1,6 @@
 """Add PostgreSQL-generated UUID defaults to Email Service primary keys.
 
-Revision ID: 0004_email_uuid_primary_key_defaults
+Revision ID: 0004_uuid_pk_defaults
 Revises: 0003_email_audit_cleanup
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "0004_email_uuid_primary_key_defaults"
+revision: str = "0004_uuid_pk_defaults"
 down_revision: str | Sequence[str] | None = "0003_email_audit_cleanup"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
