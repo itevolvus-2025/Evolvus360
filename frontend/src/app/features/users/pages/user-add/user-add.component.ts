@@ -55,15 +55,15 @@ export class UserAddComponent {
     middle_name: 'Middle name must contain only letters and spaces.',
     last_name: 'Last name must contain only letters and spaces.',
     designation: 'Designation must contain only letters and spaces.',
-    location: 'Location must contain only letters and spaces.',
+    location: 'Please enter a valid location.',
     company_email: 'Please enter a valid company email address.',
     personal_email: 'Please enter a valid personal email address.',
     department_id: 'Please select an active department.',
     role_id: 'Please select an active role.',
     entity_id: 'Please select an active entity.',
-    joining_date: 'Invalid joining date. Please provide a valid date in YYYY-MM-DD format.',
-    start_date: 'Invalid start date. Please provide a valid date in YYYY-MM-DD format.',
-    end_date: 'Invalid end date. Please provide a valid date in YYYY-MM-DD format.',
+    joining_date: 'Please select a valid joining date.',
+    start_date: 'Please select a valid start date.',
+    end_date: 'Please select a valid end date.',
   };
 
   constructor() {
@@ -81,6 +81,18 @@ export class UserAddComponent {
     else this.entity.set(value);
     const field = target === 'department' ? 'department_id' : target === 'role' ? 'role_id' : 'entity_id';
     this.fieldErrors.update((errors) => ({ ...errors, [field]: '' }));
+  }
+
+  openDatePicker(input: HTMLInputElement): void {
+    try {
+      if ('showPicker' in input && typeof input.showPicker === 'function') {
+        input.showPicker();
+      } else {
+        input.focus();
+      }
+    } catch {
+      input.focus();
+    }
   }
 
   optionName(options: MasterDataOption[], id: string): string {
@@ -141,8 +153,10 @@ export class UserAddComponent {
       error = field === 'first_name' ? 'First name is required.' : `${field.replace('_', ' ')} is required.`;
     } else if (field === 'middle_name' && !value) {
       error = null;
-    } else if (['first_name', 'middle_name', 'last_name', 'designation', 'location'].includes(field)
+    } else if (['first_name', 'middle_name', 'last_name', 'designation'].includes(field)
       && value && [...value].some((char) => !(char === ' ' || /\p{L}/u.test(char)))) {
+      error = this.messages[field];
+    } else if (field === 'location' && value && !/^[\p{L}\p{N}\s,.-]+$/u.test(value)) {
       error = this.messages[field];
     } else if (field === 'personal_email' && !value) {
       error = 'Personal email is required.';
@@ -156,6 +170,10 @@ export class UserAddComponent {
   }
 
   private isValidDate(value: string): boolean {
+    if (!value) return true;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return !isNaN(Date.parse(value));
+    }
     const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value);
     if (!match) return false;
     const date = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
@@ -258,6 +276,8 @@ export class UserAddComponent {
   }
 
   private toIso(value: string): string {
+    if (!value) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
     const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value);
     return match ? `${match[3]}-${match[2]}-${match[1]}` : value;
   }

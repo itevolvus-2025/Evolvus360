@@ -171,10 +171,12 @@
                 </a>
                 }
 
-                <button type="button" class="table-action-icon-btn delete-btn" (click)="openDeleteModal(user)"
-                  title="Delete User">
-                  <app-icon name="trash" [size]="15" color="#EF4444" />
+                @if (user.status !== 'Inactive' && user.status !== 'Deactive') {
+                <button type="button" class="table-action-icon-btn deactivate-btn" (click)="openDeactivateModal(user)"
+                  title="Deactivate User" aria-label="Deactivate User">
+                  <app-icon name="user-x" [size]="15" color="#EF4444" />
                 </button>
+                }
               </div>
             </td>
           </tr>
@@ -220,21 +222,23 @@
     </div>
   </div>
 
-  <!-- Delete User Confirmation Dialog -->
-  @if (userToDelete()) {
-  <div class="delete-modal-backdrop" (click)="closeDeleteModal()">
+  <!-- Deactivate User Confirmation Dialog -->
+  @if (userToDeactivate()) {
+  <div class="delete-modal-backdrop" (click)="closeDeactivateModal()">
     <div class="delete-modal-dialog" (click)="$event.stopPropagation()">
       <div class="delete-dialog-icon">
-        <app-icon name="trash" [size]="24" color="#DC2626" />
+        <app-icon name="user-x" [size]="24" color="#DC2626" />
       </div>
-      <h3 class="delete-dialog-title">Delete User</h3>
+      <h3 class="delete-dialog-title">Deactivate User</h3>
       <p class="delete-dialog-message">
-        Are you sure you want to delete user <strong>"{{ userToDelete()?.name }}"</strong>?
-        This action will permanently remove access for this user.
+        Are you sure you want to deactivate user <strong>"{{ userToDeactivate()?.name }}"</strong>?
+        This action will immediately disable their account, revoke all active sessions, and prevent future logins.
       </p>
       <div class="delete-dialog-actions">
-        <button type="button" class="btn-cancel" (click)="closeDeleteModal()">Cancel</button>
-        <button type="button" class="btn-confirm-delete" (click)="confirmDelete()">Delete User</button>
+        <button type="button" class="btn-cancel" (click)="closeDeactivateModal()">Cancel</button>
+        <button type="button" class="btn-confirm-delete" (click)="confirmDeactivate()" [disabled]="isDeactivating()">
+          {{ isDeactivating() ? 'Deactivating...' : 'Deactivate User' }}
+        </button>
       </div>
     </div>
   </div>

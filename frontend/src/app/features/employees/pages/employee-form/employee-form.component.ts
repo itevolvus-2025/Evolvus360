@@ -48,7 +48,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
           </div>
           <div>
             <label>Date of Birth *</label>
-            <input class="form-control" type="date" formControlName="dateOfBirth">
+            <input class="form-control" type="date" [max]="todayDate" formControlName="dateOfBirth">
           </div>
           <div class="span-2">
             <label>Address *</label>
@@ -132,6 +132,17 @@ export class EmployeeFormComponent {
 
   readonly employeeId = Number(this.route.snapshot.paramMap.get('id'));
   readonly isEdit = Number.isFinite(this.employeeId) && this.employeeId > 0;
+  readonly todayDate = new Date().toISOString().slice(0, 10);
+
+  private readonly birthDateValidator = (control: { value: string }) => {
+    if (!control.value) return null;
+    const currentYear = new Date().getFullYear();
+    const parts = control.value.split('-');
+    const year = parts.length === 3 ? parseInt(parts[0], 10) : null;
+    if (year !== null && year > currentYear) return { futureBirthYear: true };
+    if (control.value > this.todayDate) return { futureBirthDate: true };
+    return null;
+  };
 
   readonly form = this.fb.nonNullable.group({
     employeeCode: ['', Validators.required],
@@ -146,7 +157,7 @@ export class EmployeeFormComponent {
     status: ['Active' as EmployeeStatus, Validators.required],
     location: ['', Validators.required],
     salary: [0, [Validators.required, Validators.min(1)]],
-    dateOfBirth: ['', Validators.required],
+    dateOfBirth: ['', [Validators.required, this.birthDateValidator]],
     address: ['', Validators.required],
     emergencyContact: ['', Validators.required]
   });

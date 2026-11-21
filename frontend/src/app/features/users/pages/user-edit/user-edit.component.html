@@ -16,10 +16,17 @@
         </button>
       }
 
-      <button type="button" class="btn-delete" (click)="openDeleteConfirm()">
-        <app-icon name="trash" [size]="14" color="#DC2626" />
-        <span>Delete User</span>
-      </button>
+      @if (status() !== 'Inactive' && status() !== 'Deactive') {
+        <button type="button" class="btn-deactivate" (click)="openDeactivateConfirm()" title="Deactivate user account and revoke access">
+          <app-icon name="user-x" [size]="14" color="#DC2626" />
+          <span>Deactivate User</span>
+        </button>
+      } @else {
+        <div class="badge-deactivated" title="Account is inactive">
+          <app-icon name="alert-circle" [size]="14" color="#64748B" />
+          <span>User Inactive</span>
+        </div>
+      }
 
       <a routerLink="/users" class="btn-cancel">Cancel</a>
 
@@ -106,7 +113,7 @@
               >
                 <option value="" disabled>Select department</option>
                 @for (d of departments(); track d.id) {
-                  <option [value]="d.id">{{ d.name }}</option>
+                  <option [value]="d.id" [selected]="d.id === department() || d.name === department()">{{ d.name }}</option>
                 }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
@@ -124,7 +131,7 @@
               >
                 <option value="" disabled>Select role</option>
                 @for (r of roles(); track r.id) {
-                  <option [value]="r.id">{{ r.name }}</option>
+                  <option [value]="r.id" [selected]="r.id === role() || r.name === role()">{{ r.name }}</option>
                 }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
@@ -146,28 +153,21 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="editLocation">Location</label>
-            <div class="custom-select-wrap">
-              <select
-                id="editLocation"
-                class="form-select"
-                [value]="location()"
-                (change)="location.set($any($event.target).value)"
-              >
-                <option value="" disabled>Select location</option>
-                <option value="Bengaluru">Bengaluru</option>
-                <option value="Hyderabad">Hyderabad</option>
-                <option value="Mumbai">Mumbai</option>
-                <option value="Noida">Noida</option>
-                <option value="Pune">Pune</option>
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <label class="form-label" for="editLocation">Location <span class="required">*</span></label>
+            <input
+              id="editLocation"
+              type="text"
+              class="form-input"
+              placeholder="e.g. Mumbai, Bengaluru, Hyderabad"
+              [value]="location()"
+              (input)="location.set($any($event.target).value)"
+              required
+            />
           </div>
 
           <!-- Row 3: Entity & User/Employee Code -->
           <div class="form-group">
-            <label class="form-label" for="editEntity">Entity</label>
+            <label class="form-label" for="editEntity">Entity <span class="required">*</span></label>
             <div class="custom-select-wrap">
               <select
                 id="editEntity"
@@ -177,7 +177,7 @@
               >
                 <option value="" disabled>Select entity</option>
                 @for (e of entities(); track e.id) {
-                  <option [value]="e.id">{{ e.name }}</option>
+                  <option [value]="e.id" [selected]="e.id === entity() || e.name === entity()">{{ e.name }}</option>
                 }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
@@ -303,15 +303,16 @@
             <label class="form-label" for="editJoiningDate">Joining date <span class="required">*</span></label>
             <div class="date-input-wrap">
               <input
+                #editJoiningDateInput
                 id="editJoiningDate"
-                type="text"
+                type="date"
                 class="form-input date-input"
-                placeholder="dd-mm-yyyy"
                 [value]="joiningDate()"
                 (input)="joiningDate.set($any($event.target).value)"
+                (change)="joiningDate.set($any($event.target).value)"
                 required
               />
-              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editJoiningDateInput)" />
             </div>
           </div>
 
@@ -319,15 +320,16 @@
             <label class="form-label" for="editStartDate">Start date <span class="required">*</span></label>
             <div class="date-input-wrap">
               <input
+                #editStartDateInput
                 id="editStartDate"
-                type="text"
+                type="date"
                 class="form-input date-input"
-                placeholder="dd-mm-yyyy"
                 [value]="startDate()"
                 (input)="startDate.set($any($event.target).value)"
+                (change)="startDate.set($any($event.target).value)"
                 required
               />
-              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editStartDateInput)" />
             </div>
           </div>
 
@@ -335,36 +337,178 @@
             <label class="form-label" for="editEndDate">End date</label>
             <div class="date-input-wrap">
               <input
+                #editEndDateInput
                 id="editEndDate"
-                type="text"
+                type="date"
                 class="form-input date-input"
-                placeholder="dd-mm-yyyy"
                 [value]="endDate()"
                 (input)="endDate.set($any($event.target).value)"
+                (change)="endDate.set($any($event.target).value)"
               />
-              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editEndDateInput)" />
             </div>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- 05 Employee Profile & Onboarding Details (When Available) -->
+    @if (employeeDetails(); as emp) {
+      <section class="form-section-card">
+        <div class="section-card-header">
+          <div class="section-title-wrap">
+            <span class="step-badge">05</span>
+            <div>
+              <h2 class="section-title">Employee Profile & Verification Details</h2>
+              <span class="section-subtitle">Candidate-submitted data and KYC documentation</span>
+            </div>
+          </div>
+          <div class="profile-status-pill" [class.status-approved]="profile() === 'Approved'" [class.status-submitted]="profile() === 'Submitted'">
+            {{ profile() }} Profile
+          </div>
+        </div>
+
+        <div class="section-card-body">
+          <!-- Personal & KYC Information -->
+          <h4 class="sub-section-title">Personal & Identity Information</h4>
+          <div class="form-row-3col">
+            <div class="form-group">
+              <label class="form-label">Date of birth</label>
+              <div class="date-input-wrap">
+                <input
+                  #empDobInput
+                  type="date"
+                  class="form-input date-input"
+                  [value]="emp.date_of_birth"
+                  [max]="todayDate"
+                  readonly
+                />
+                <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(empDobInput)" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Gender</label>
+              <input type="text" class="form-input" [value]="emp.gender || '—'" readonly />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Mobile number</label>
+              <input type="text" class="form-input" [value]="emp.mobile_number || '—'" readonly />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Aadhaar number</label>
+              <input type="text" class="form-input" [value]="emp.aadhaar_number || '—'" readonly />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">PAN number</label>
+              <input type="text" class="form-input" [value]="emp.pan_number || '—'" readonly />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Passport number</label>
+              <input type="text" class="form-input" [value]="emp.passport_number || '—'" readonly />
+            </div>
+          </div>
+
+          <!-- Emergency Contact -->
+          @if (emp.emergency_contact) {
+            <h4 class="sub-section-title" style="margin-top: 18px;">Emergency Contact</h4>
+            <div class="form-row-3col">
+              <div class="form-group">
+                <label class="form-label">Contact Name</label>
+                <input type="text" class="form-input" [value]="emp.emergency_contact.name || '—'" readonly />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Relationship</label>
+                <input type="text" class="form-input" [value]="emp.emergency_contact.relationship || '—'" readonly />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contact Phone</label>
+                <input type="text" class="form-input" [value]="emp.emergency_contact.phone || '—'" readonly />
+              </div>
+            </div>
+          }
+
+          <!-- Bank Details -->
+          @if (emp.bank_details) {
+            <h4 class="sub-section-title" style="margin-top: 18px;">Bank & Payroll Details</h4>
+            <div class="form-row-3col">
+              <div class="form-group">
+                <label class="form-label">Bank Name</label>
+                <input type="text" class="form-input" [value]="emp.bank_details.bank_name || '—'" readonly />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Account Number</label>
+                <input type="text" class="form-input" [value]="emp.bank_details.account_number || '—'" readonly />
+              </div>
+              <div class="form-group">
+                <label class="form-label">IFSC Code</label>
+                <input type="text" class="form-input" [value]="emp.bank_details.ifsc_code || '—'" readonly />
+              </div>
+            </div>
+          }
+
+          <!-- Qualifications & Languages -->
+          @if (emp.qualification || (emp.languages && emp.languages.length)) {
+            <h4 class="sub-section-title" style="margin-top: 18px;">Qualifications & Languages</h4>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label class="form-label">Highest Qualification</label>
+                <input type="text" class="form-input" [value]="emp.qualification || '—'" readonly />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Languages Known</label>
+                <input type="text" class="form-input" [value]="(emp.languages || []).join(', ') || '—'" readonly />
+              </div>
+            </div>
+          }
+
+          <!-- Documents -->
+          @if (emp.documents && emp.documents.length) {
+            <h4 class="sub-section-title" style="margin-top: 18px;">Uploaded Documents ({{ emp.documents.length }})</h4>
+            <div class="doc-cards-list">
+              @for (doc of emp.documents; track doc.id) {
+                <div class="doc-card-item">
+                  <div class="doc-icon">
+                    <app-icon name="document-text" [size]="20" color="#2563EB" />
+                  </div>
+                  <div class="doc-info">
+                    <span class="doc-title">{{ doc.document_type.replace('_', ' ') | uppercase }}</span>
+                    <span class="doc-filename">{{ doc.file_name }}</span>
+                    <span class="doc-meta">{{ (doc.file_size_bytes / 1024).toFixed(1) }} KB</span>
+                  </div>
+                  <span class="doc-status-badge" [class.status-verified]="doc.verification_status === 'VERIFIED'">
+                    {{ doc.verification_status }}
+                  </span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
   </form>
 
-  <!-- Delete User Confirmation Dialog Modal -->
-  @if (showDeleteModal()) {
-    <div class="delete-modal-backdrop" (click)="closeDeleteConfirm()">
+  <!-- Deactivate User Confirmation Dialog Modal -->
+  @if (showDeactivateModal()) {
+    <div class="delete-modal-backdrop" (click)="closeDeactivateConfirm()">
       <div class="delete-modal-dialog" (click)="$event.stopPropagation()">
         <div class="delete-dialog-icon">
-          <app-icon name="trash" [size]="24" color="#DC2626" />
+          <app-icon name="user-x" [size]="24" color="#DC2626" />
         </div>
-        <h3 class="delete-dialog-title">Delete User</h3>
+        <h3 class="delete-dialog-title">Deactivate User</h3>
         <p class="delete-dialog-message">
-          Are you sure you want to delete user <strong>"{{ firstName() }} {{ lastName() }}"</strong>?
-          This action will permanently revoke access and cannot be undone.
+          Are you sure you want to deactivate user <strong>"{{ firstName() }} {{ lastName() }}"</strong>?
+          This will immediately disable their account, revoke all active sessions, and prevent future logins.
         </p>
         <div class="delete-dialog-actions">
-          <button type="button" class="btn-cancel-modal" (click)="closeDeleteConfirm()">Cancel</button>
-          <button type="button" class="btn-confirm-delete" (click)="confirmDelete()">Delete User</button>
+          <button type="button" class="btn-cancel-modal" (click)="closeDeactivateConfirm()">Cancel</button>
+          <button type="button" class="btn-confirm-delete" (click)="confirmDeactivate()" [disabled]="isDeactivating()">
+            {{ isDeactivating() ? 'Deactivating...' : 'Deactivate User' }}
+          </button>
         </div>
       </div>
     </div>

@@ -363,7 +363,9 @@ export class MainLayoutComponent implements OnInit {
   triggerDelete(): void {
     const comp = this.activeChildComponent();
     if (!comp) return;
-    if (typeof comp.openDeleteConfirm === 'function') {
+    if (typeof comp.openDeactivateConfirm === 'function') {
+      comp.openDeactivateConfirm();
+    } else if (typeof comp.openDeleteConfirm === 'function') {
       comp.openDeleteConfirm();
     }
   }

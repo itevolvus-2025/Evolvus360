@@ -283,12 +283,24 @@
 
   .date-input {
     padding-right: 40px;
+    cursor: pointer;
+
+    &::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0;
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 44px;
+      height: 100%;
+    }
   }
 
   .calendar-icon {
     position: absolute;
     right: 14px;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
     display: flex;
     align-items: center;
   }

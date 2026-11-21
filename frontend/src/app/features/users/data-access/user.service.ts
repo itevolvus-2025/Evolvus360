@@ -44,6 +44,8 @@ export interface UserRow {
   invitationStatus?: string;
   reasonForChange?: string;
   effectiveDate?: string;
+  employeeDetails?: any;
+  rawDetails?: any;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -208,7 +210,7 @@ export class UserService {
     });
   }
 
-  getEmployee(id: string | number, onSuccess: (user: UserRow) => void, onError?: (msg: string) => void): void {
+  getEmployee(id: string | number, onSuccess: (user: UserRow, fullData?: any) => void, onError?: (msg: string) => void): void {
     this.apiService.get<any>(API_ENDPOINTS.users.detail(id)).subscribe({
       next: (res) => {
         const d = res.data;
@@ -225,7 +227,7 @@ export class UserService {
             companyEmail: hr.company_email || '',
             personalEmail: hr.personal_email || '',
             email: hr.company_email || '',
-            phone: hr.phone || '',
+            phone: hr.phone || d.employee_details?.mobile_number || '',
             role: typeof hr.role === 'object' ? hr.role?.name : hr.role || 'Employee',
             roleId: typeof hr.role === 'object' ? hr.role?.id : undefined,
             department: typeof hr.department === 'object' ? hr.department?.name : hr.department || '',
@@ -240,8 +242,10 @@ export class UserService {
             endDate: hr.end_date || '',
             status: this.mapAccountStatus(d.account_status),
             profile: (d.profile_status === 'APPROVED' ? 'Approved' : ['SUBMITTED', 'PENDING_APPROVAL'].includes(d.profile_status) ? 'Submitted' : 'Pending'),
+            employeeDetails: d.employee_details || null,
+            rawDetails: d,
           };
-          onSuccess(mapped);
+          onSuccess(mapped, d);
           return;
         }
         if (onError) onError('The server returned incomplete user details.');
@@ -335,6 +339,25 @@ export class UserService {
         return merged;
       })
     );
+  }
+
+  deactivateEmployee(id: string | number, onSuccess: () => void, onError: (msg: string) => void): void {
+    if (this.isSaving()) return;
+    this.isSaving.set(true);
+    this.apiService.post(API_ENDPOINTS.users.deactivate(id), {}).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.users.update((list) =>
+          list.map((u) => (String(u.id) === String(id) ? { ...u, status: 'Inactive' as UserStatus } : u))
+        );
+        this.loadUsers();
+        onSuccess();
+      },
+      error: (err) => {
+        this.isSaving.set(false);
+        onError(err.message || 'Could not deactivate user.');
+      },
+    });
   }
 
   deleteUser(id: number | string): void {

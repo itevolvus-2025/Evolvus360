@@ -202,6 +202,7 @@
                 class="field-input"
                 [class.field-invalid]="!!fieldErrors()['date_of_birth']"
                 [value]="dateOfBirth()"
+                [max]="todayDate"
                 (input)="updateField('date_of_birth', $any($event.target).value)"
                 (blur)="validateField('date_of_birth')"
                 required

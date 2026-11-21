@@ -276,6 +276,18 @@ export const APP_ICONS: Record<string, string> = {
 <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"></line>
 <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"></line>
 </svg>`,
+
+  power: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+<line x1="12" y1="2" x2="12" y2="12"></line>
+</svg>`,
+
+  "user-x": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+<circle cx="8.5" cy="7" r="4"></circle>
+<line x1="18" y1="8" x2="23" y2="13"></line>
+<line x1="23" y1="8" x2="18" y2="13"></line>
+</svg>`,
 };
 
 /**
