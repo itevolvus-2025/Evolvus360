@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     email_service_api_key: SecretStr | None = None
     email_service_timeout_seconds: int = Field(default=10, ge=1, le=60)
     smtp_from_email: str | None = None
-    frontend_reset_password_url: str = "http://localhost:4200/reset-password"
+    frontend_reset_password_url: str = "http://localhost:4200/auth/reset-password"
     frontend_onboarding_url: str = "http://localhost:4200/onboarding"
     onboarding_invitation_expire_hours: int = Field(default=48, gt=0)
     temporary_password_expire_hours: int = Field(default=24, gt=0)

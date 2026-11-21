@@ -62,7 +62,7 @@ def logout(payload: RefreshRequest, db: DbSession):
 )
 def forgot_password(payload: ForgotPasswordRequest, db: DbSession):
     auth_service.forgot_password(db, payload.email)
-    return success_response("Password reset instructions sent.")
+    return success_response("Password reset link has been sent to your email.")
 
 
 @router.post(

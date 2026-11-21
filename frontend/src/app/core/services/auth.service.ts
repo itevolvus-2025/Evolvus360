@@ -366,14 +366,14 @@ export class AuthService {
   /**
    * Request password recovery link for registered user account (POST /api/v1/auth/forgot-password)
    */
-  forgotPassword(email: string): Observable<{ success: boolean; message: string; data?: any }> {
+  forgotPassword(email: string): Observable<{ success: boolean; message: string }> {
     const trimmedEmail = email.trim().toLowerCase();
     return this.apiService
       .post<any>(API_ENDPOINTS.auth.forgotPassword, { email: trimmedEmail })
       .pipe(
         map((res) => ({
           success: true,
-          message: res?.message || 'Password reset instructions have been sent.',
+          message: res?.message || 'Password reset link has been sent to your email.',
           data: res?.data,
         })),
         catchError((err: Error) => {

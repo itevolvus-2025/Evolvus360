@@ -122,6 +122,84 @@ def test_forgot_password_reports_when_email_is_not_registered() -> None:
     db.commit.assert_not_called()
 
 
+def test_forgot_password_uses_login_email_when_employee_has_no_company_email(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("PII_ENCRYPTION_KEY", "b" * 44)
+    monkeypatch.setenv("FRONTEND_RESET_PASSWORD_URL", "https://hr.example.test/auth/reset-password")
+    monkeypatch.setenv("DEV_PASSWORD_RESET_TOKEN", "local-console-only-token")
+    get_settings.cache_clear()
+    user = SimpleNamespace(
+        id=uuid4(),
+        email="personal@example.test",
+        employee=SimpleNamespace(company_email=None),
+    )
+    db = Mock()
+    db.scalar.return_value = user
+    db.scalars.return_value.all.return_value = []
+    dispatch_row = SimpleNamespace(id=uuid4())
+    enqueue = Mock(return_value=dispatch_row)
+    dispatch = Mock(return_value=True)
+    monkeypatch.setattr(auth_service.email_dispatch, "enqueue", enqueue)
+    monkeypatch.setattr(auth_service.email_dispatch, "dispatch", dispatch)
+    try:
+        auth_service.forgot_password(db, user.email)
+    finally:
+        get_settings.cache_clear()
+
+    assert enqueue.call_args.kwargs["recipient"] == user.email
+    assert enqueue.call_args.kwargs["template_key"] == "PASSWORD_RESET"
+    reset_link = enqueue.call_args.kwargs["variables"]["reset_link"]
+    assert reset_link.startswith("https://hr.example.test/auth/reset-password?token=")
+    emailed_token = reset_link.split("?token=", 1)[1]
+    assert len(emailed_token) >= 32
+    assert emailed_token != "local-console-only-token"
+    dispatch.assert_called_once_with(dispatch_row.id)
+    db.commit.assert_called_once()
+
+
+def test_password_recovery_api_accepts_the_frontend_json_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from fastapi.testclient import TestClient
+
+    from app.database.session import get_db
+    from app.main import app
+
+    fake_forgot = Mock()
+    fake_reset = Mock()
+    monkeypatch.setattr(auth_service, "forgot_password", fake_forgot)
+    monkeypatch.setattr(auth_service, "reset_password", fake_reset)
+    app.dependency_overrides[get_db] = lambda: object()
+    try:
+        client = TestClient(app)
+        forgot_response = client.post(
+            "/api/v1/auth/forgot-password",
+            json={"email": "employee@example.com"},
+        )
+        reset_response = client.post(
+            "/api/v1/auth/reset-password",
+            json={
+                "token": "single-use-token",
+                "new_password": "StrongPassword123!",
+                "confirm_password": "StrongPassword123!",
+            },
+        )
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert forgot_response.status_code == 200
+    assert fake_forgot.call_args.args[1] == "employee@example.com"
+    assert reset_response.status_code == 200
+    assert fake_reset.call_args.args[1:] == (
+        "single-use-token",
+        "StrongPassword123!",
+        None,
+    )
+
+
 def test_access_token_has_expiry_type_subject_and_jti(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

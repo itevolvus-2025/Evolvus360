@@ -25,9 +25,8 @@ export const apiInterceptor: HttpInterceptorFn = (request, next) => {
       if (
         error instanceof HttpErrorResponse &&
         error.status === 401 &&
-        !request.url.includes('/auth/login') &&
-        !request.url.includes('/auth/refresh') &&
-        !request.url.includes('/auth/logout')
+        !['/auth/login', '/auth/refresh', '/auth/logout', '/auth/forgot-password', '/auth/reset-password']
+          .some((path) => request.url.includes(path))
       ) {
         console.warn(
           `[ApiInterceptor] 401 Unauthorized on ${request.url}. Attempting token refresh...`

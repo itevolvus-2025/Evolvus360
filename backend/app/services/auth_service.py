@@ -19,6 +19,7 @@ from app.core.security import (
     verify_password,
 )
 from app.models.hrms import (
+    EmployeeEmploymentDetails,
     PasswordResetToken,
     RefreshTokenSession,
     Role,
@@ -333,19 +334,23 @@ def logout(db: Session, raw_token: str) -> None:
 
 def forgot_password(db: Session, email: str) -> None:
     user = db.scalar(
-        select(User).where(
-            func.lower(User.email) == normalize_email(email),
+        select(User)
+        .join(User.employee)
+        .where(
+            func.lower(EmployeeEmploymentDetails.company_email) == normalize_email(email),
+            EmployeeEmploymentDetails.deleted_at.is_(None),
+            EmployeeEmploymentDetails.profile_status == "APPROVED",
             User.deleted_at.is_(None),
             User.is_active.is_(True),
+            User.account_status == "ACTIVE",
         )
     )
     if user is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Email not found")
-    recipient_email = user.email
-    if user.employee is not None:
-        if not user.employee.company_email:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Email not found")
-        recipient_email = user.employee.company_email
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "No active, approved account found for this company email",
+        )
+    recipient_email = user.employee.company_email
     now = datetime.now(UTC)
     previous_tokens = db.scalars(
         select(PasswordResetToken).where(
@@ -357,7 +362,9 @@ def forgot_password(db: Session, email: str) -> None:
             previous.revoked_at = now
         # Rotate old digests because the local fixed token is reused.
         previous.token_hash = hash_token(new_opaque_token())
-    raw = _new_password_reset_token()
+    # Reset links are delivered by email, so they must be self-contained and
+    # high entropy even when a fixed local-console token is configured.
+    raw = new_opaque_token()
     reset = PasswordResetToken(
         user_id=user.id,
         token_hash=_reset_token_hash(raw, user.id),
