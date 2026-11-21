@@ -3,11 +3,12 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.dependencies import require_roles
 from app.database.session import get_db
 from app.models.hrms import User
@@ -98,6 +99,30 @@ def update_employee(
 def deactivate_employee(user_id: UUID, db: DbSession, user: AdminUser):
     result = employee_service.deactivate_user(db, user_id)
     return success_response("User deactivated successfully", result)
+
+
+@router.put("/{user_id}/documents", response_model=ApiResponse[dict])
+async def replace_employee_documents(
+    user_id: UUID,
+    db: DbSession,
+    user: AdminUser,
+    identity_proof: UploadFile | None = File(default=None),
+    cancelled_cheque: UploadFile | None = File(default=None),
+):
+    limit = get_settings().max_onboarding_file_size_bytes + 1
+    files = {}
+    for document_type, upload in (
+        ("identity_proof", identity_proof),
+        ("cancelled_cheque", cancelled_cheque),
+    ):
+        if upload is not None and upload.filename:
+            files[document_type] = (
+                upload.filename,
+                upload.content_type,
+                await upload.read(limit),
+            )
+    result = employee_service.replace_employee_documents(db, user, user_id, files)
+    return success_response("Employee documents updated successfully", result)
 
 
 @router.post("/{user_id}/approve", response_model=ApiResponse[dict])

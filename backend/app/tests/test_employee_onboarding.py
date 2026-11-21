@@ -198,7 +198,7 @@ def test_employee_create_rejects_invalid_field_values(
         EmployeeCreate.model_validate(payload)
 
 
-def test_employee_update_rejects_generated_code_and_employee_data_fields() -> None:
+def test_employee_update_accepts_profile_fields_but_rejects_generated_code() -> None:
     with pytest.raises(ValidationError):
         EmployeeUpdate.model_validate({"employee_code": "ET-002"})
     update = EmployeeUpdate.model_validate(
@@ -209,8 +209,18 @@ def test_employee_update_rejects_generated_code_and_employee_data_fields() -> No
     )
     assert update.account_status == "INACTIVE"
     assert update.reason_for_change == "Role change"
+    profile_update = EmployeeUpdate.model_validate(
+        {
+            "emergency_contact_phone": "+14155552671",
+            "account_number": "12345678",
+            "ifsc_code": "ABCD0123456",
+            "languages": ["English", "Hindi"],
+        }
+    )
+    assert profile_update.account_number == "12345678"
+    assert profile_update.languages == ["English", "Hindi"]
     with pytest.raises(ValidationError):
-        EmployeeUpdate.model_validate({"account_number": "123456"})
+        EmployeeUpdate.model_validate({"unmapped_field": "value"})
 
 
 def test_sensitive_values_are_encrypted_and_decrypted_from_configured_key(
@@ -278,10 +288,14 @@ def test_onboarding_contact_bank_qualification_and_pf_validations() -> None:
     assert uan == "100912345678"
 
     fields["uan_number"] = ""
+    assert _validate_onboarding_contact_and_compliance(fields, True) == ("AB1234567890", None)
+    assert _validate_onboarding_contact_and_compliance(fields, False)[1] is None
+
+    fields["uan_number"] = "123"
     with pytest.raises(HTTPException) as error:
         _validate_onboarding_contact_and_compliance(fields, True)
     assert error.value.detail["errors"].keys() == {"uan_number"}
-    assert _validate_onboarding_contact_and_compliance(fields, False)[1] is None
+    fields["uan_number"] = ""
 
     fields["qualification"] = "BSc Biology!"
     with pytest.raises(HTTPException) as error:
