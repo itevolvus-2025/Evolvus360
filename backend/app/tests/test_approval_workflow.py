@@ -62,6 +62,7 @@ def _employee():
     return SimpleNamespace(
         id=uuid4(),
         user=user,
+        company_email=user.email,
         first_name="Employee",
         profile_status="PENDING_APPROVAL",
         onboarding_status="PENDING_APPROVAL",
@@ -208,14 +209,21 @@ def test_submission_approval_and_forced_password_change_end_to_end(
         session.add(employee)
         session.commit()
 
+        from app.schemas.validators import has_valid_verhoeff
+
+        aadhaar = next(
+            str(value)
+            for value in range(100_000_000_000, 100_000_001_000)
+            if has_valid_verhoeff(str(value))
+        )
         submitted = employee_service.submit_employee_onboarding(
             session,
             user,
             {
                 "date_of_birth": datetime(1995, 1, 2).date(),
                 "gender": "OTHER",
-                "mobile_number": "+14155550123",
-                "aadhaar_number": "123456789012",
+                "mobile_number": "9876543210",
+                "aadhaar_number": aadhaar,
                 "pan_number": "ABCDE1234F",
                 "emergency_contact_name": "Contact",
                 "emergency_contact_phone": "+14155550124",

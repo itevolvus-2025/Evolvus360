@@ -36,10 +36,53 @@ from app.models.hrms import (
     User,
     UserRole,
 )
+from app.schemas.validators import (
+    validate_aadhaar,
+    validate_mobile,
+    validate_pan,
+)
 from app.services import email_dispatch
 
 ALLOWED_ROLES = {"HR", "SUPER_ADMIN"}
 PROFILE_STATES = {"PENDING", "SUBMITTED", "PENDING_APPROVAL", "APPROVED", "REJECTED"}
+
+
+def _field_validation_error(field: str, message: str) -> HTTPException:
+    return HTTPException(
+        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        {
+            "message": "Validation failed. Please correct the highlighted fields.",
+            "errors": {field: message},
+        },
+    )
+
+
+def _validate_onboarding_contact_and_compliance(fields: dict, pf_applicable: bool) -> tuple[str, str | None]:
+    name = (fields.get("emergency_contact_name") or "").strip()
+    if not name or not all(char.isalpha() or char in " '-." for char in name):
+        raise _field_validation_error("emergency_contact_name", "Enter a name using letters, spaces, apostrophes, hyphens or periods only.")
+    relation = (fields.get("emergency_contact_relationship") or "").strip()
+    if not relation or not all(char.isalpha() or char in " '-." for char in relation):
+        raise _field_validation_error("emergency_contact_relationship", "Enter a relationship using letters, spaces, apostrophes, hyphens or periods only.")
+    phone = re.sub(r"[\s()-]", "", fields.get("emergency_contact_phone") or "")
+    phone_match = re.fullmatch(r"(?:\+[1-9][0-9]{7,14}|[6-9][0-9]{9})", phone)
+    if not phone_match:
+        raise _field_validation_error("emergency_contact_phone", "Enter a valid 10-digit Indian mobile number or an international number in +country-code format.")
+    bank_name = (fields.get("bank_name") or "").strip()
+    if not bank_name or not all(char.isalnum() or char in " &().,'-/" for char in bank_name):
+        raise _field_validation_error("bank_name", "Enter a valid bank name using letters, numbers, spaces or common punctuation.")
+    account = re.sub(r"\s", "", fields.get("account_number") or "")
+    if not re.fullmatch(r"[A-Za-z0-9]{6,35}", account):
+        raise _field_validation_error("account_number", "Account number must contain 6 to 35 letters or digits.")
+    if not re.fullmatch(r"[A-Z]{4}0[A-Z0-9]{6}", (fields.get("ifsc_code") or "").strip().upper()):
+        raise _field_validation_error("ifsc_code", "Enter a valid 11-character IFSC code.")
+    qualification = (fields.get("qualification") or "").strip()
+    if len(qualification) > 4000 or any(not (char.isalnum() or char.isspace()) for char in qualification):
+        raise _field_validation_error("qualification", "Qualification may contain letters, numbers and spaces only.")
+    uan = (fields.get("uan_number") or "").strip()
+    if pf_applicable and not re.fullmatch(r"[0-9]{12}", uan):
+        raise _field_validation_error("uan_number", "UAN is required when PF applies and must contain exactly 12 digits.")
+    return account, uan if pf_applicable else None
 
 
 def _role_codes(user: User) -> set[str]:
@@ -197,7 +240,10 @@ def create_employee(db: Session, actor: User, payload: object) -> dict:
             )
         ):
             raise HTTPException(
-                status.HTTP_409_CONFLICT, "Company email already exists"
+                status.HTTP_409_CONFLICT,
+                "Company email already exists"
+                if company_email
+                else "Personal email already exists",
             )
         if db.scalar(
             select(EmployeeEmploymentDetails.id).where(
@@ -692,41 +738,44 @@ def submit_employee_onboarding(
             raise HTTPException(
                 status.HTTP_409_CONFLICT, "Approved profiles cannot be changed"
             )
+        account, uan = _validate_onboarding_contact_and_compliance(
+            fields, employee.pf_applicable
+        )
         was_rejected = employee.profile_status == "REJECTED"
         previous_snapshot = _submission_snapshot(employee) if was_rejected else None
         encryptor = _encryptor()
-        aadhaar = re.sub(r"\D", "", fields.get("aadhaar_number", ""))
-        pan = fields.get("pan_number", "").strip().upper()
-        if len(aadhaar) != 12:
+        try:
+            aadhaar = validate_aadhaar(fields.get("aadhaar_number", ""))
+        except ValueError as error:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "aadhaar_number: must contain 12 digits",
-            )
-        if not re.fullmatch(r"[A-Z]{5}[0-9]{4}[A-Z]", pan):
+                {"message": "Validation failed. Please correct the highlighted fields.", "errors": {"aadhaar_number": str(error)}},
+            ) from None
+        try:
+            pan = validate_pan(fields.get("pan_number", ""))
+        except ValueError as error:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "pan_number: invalid format"
-            )
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                {"message": "Validation failed. Please correct the highlighted fields.", "errors": {"pan_number": str(error)}},
+            ) from None
         gender = fields.get("gender", "").upper()
         if gender not in {"MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"}:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "gender: invalid value"
-            )
+            raise _field_validation_error("gender", "Please select a valid gender.")
         if fields["date_of_birth"] >= date.today():
+            raise _field_validation_error(
+                "date_of_birth", "Date of birth must be in the past."
+            )
+        try:
+            validate_mobile(fields.get("mobile_number", ""))
+        except ValueError as error:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "date_of_birth: must be in the past",
-            )
-        if not re.fullmatch(r"\+[1-9][0-9]{7,14}", fields.get("mobile_number", "")):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "mobile_number: use international format",
-            )
+                {"message": "Validation failed. Please correct the highlighted fields.", "errors": {"mobile_number": str(error)}},
+            ) from None
         if not re.fullmatch(
             r"[A-Z]{4}0[A-Z0-9]{6}", fields.get("ifsc_code", "").strip().upper()
         ):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "ifsc_code: invalid format"
-            )
+            raise _field_validation_error("ifsc_code", "Enter a valid IFSC code.")
         for field_name in (
             "emergency_contact_name",
             "emergency_contact_phone",
@@ -734,20 +783,24 @@ def submit_employee_onboarding(
             "bank_name",
         ):
             if not fields[field_name].strip():
-                raise HTTPException(
-                    status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    f"{field_name}: this field is required",
-                )
+                label = field_name.replace("_", " ").capitalize()
+                raise _field_validation_error(field_name, f"{label} is required.")
         account = re.sub(r"\s", "", fields.get("account_number", ""))
-        if not account.isdigit() or not 4 <= len(account) <= 50:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "account_number: invalid value"
+        if not re.fullmatch(r"[A-Za-z0-9]{6,35}", account):
+            raise _field_validation_error(
+                "account_number", "Account number must contain 6 to 35 letters or digits."
             )
         required = {"identity_proof", "cancelled_cheque"}
         if not required.issubset(files):
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "Both required documents must be provided",
+                {
+                    "message": "Validation failed. Please correct the highlighted fields.",
+                    "errors": {
+                        kind: f"{kind.replace('_', ' ').capitalize()} is required."
+                        for kind in required.difference(files)
+                    },
+                },
             )
         new_docs = []
         for kind, (filename, content_type, contents) in files.items():
@@ -778,6 +831,9 @@ def submit_employee_onboarding(
         passport = (fields.get("passport_number") or "").strip()
         p.passport_number_encrypted = (
             encryptor.encrypt(passport.encode()).decode() if passport else None
+        )
+        p.uan_number_encrypted = (
+            encryptor.encrypt(uan.encode()).decode() if uan else None
         )
         employee.personal_details = p
         c = employee.contact_details or EmployeeContactDetails(employee_id=employee.id)
@@ -819,6 +875,7 @@ def submit_employee_onboarding(
         if employee.invitation:
             employee.invitation.submitted_at = now
             employee.invitation.invitation_status = "ACCEPTED"
+            employee.invitation.expires_at = now
         db.commit()
         if not was_rejected:
             for path in replaced_paths:
@@ -891,54 +948,56 @@ def submit_onboarding(
             raise HTTPException(
                 status.HTTP_409_CONFLICT, "Employee profile was already submitted"
             )
+        account_number, uan = _validate_onboarding_contact_and_compliance(
+            fields, employee.pf_applicable
+        )
         encryptor = _encryptor()
-        aadhaar = re.sub(r"\D", "", fields["aadhaar_number"])
-        pan = fields["pan_number"].strip().upper()
-        if len(aadhaar) != 12:
+        try:
+            aadhaar = validate_aadhaar(fields["aadhaar_number"])
+        except ValueError as error:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "Aadhaar number must contain 12 digits",
-            )
-        if not re.fullmatch(r"[A-Z]{5}[0-9]{4}[A-Z]", pan):
+                {"message": "Validation failed. Please correct the highlighted fields.", "errors": {"aadhaar_number": str(error)}},
+            ) from None
+        try:
+            pan = validate_pan(fields["pan_number"])
+        except ValueError as error:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "PAN number is invalid"
-            )
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                {"message": "Validation failed. Please correct the highlighted fields.", "errors": {"pan_number": str(error)}},
+            ) from None
         if not re.fullmatch(
             r"[A-Z]{4}0[A-Z0-9]{6}", fields["ifsc_code"].strip().upper()
         ):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "IFSC code is invalid"
-            )
+            raise _field_validation_error("ifsc_code", "Enter a valid IFSC code.")
         account_number = re.sub(r"\s", "", fields["account_number"])
-        if not account_number.isdigit() or not 4 <= len(account_number) <= 50:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "Bank account number must contain only digits",
-            )
         if fields["date_of_birth"] >= date.today():
+            raise _field_validation_error(
+                "date_of_birth", "Date of birth must be in the past."
+            )
+        mobile_number = fields["mobile_number"]
+        try:
+            validate_mobile(mobile_number)
+        except ValueError as error:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "Date of birth must be in the past",
-            )
-        mobile_number = fields["mobile_number"].strip()
-        if not re.fullmatch(r"\+[1-9][0-9]{7,14}", mobile_number):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "Mobile number must include a valid country code",
-            )
+                {"message": "Validation failed. Please correct the highlighted fields.", "errors": {"mobile_number": str(error)}},
+            ) from None
         if (
             not fields["emergency_contact_name"].strip()
             or not fields["emergency_contact_phone"].strip()
             or not fields["emergency_contact_relationship"].strip()
         ):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "Emergency contact name and phone are required",
-            )
+            for field_name in (
+                "emergency_contact_name",
+                "emergency_contact_phone",
+                "emergency_contact_relationship",
+            ):
+                if not fields[field_name].strip():
+                    label = field_name.replace("_", " ").capitalize()
+                    raise _field_validation_error(field_name, f"{label} is required.")
         if not fields["bank_name"].strip():
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "Bank name is required"
-            )
+            raise _field_validation_error("bank_name", "Bank name is required.")
         try:
             languages = json.loads(fields["languages"] or "[]")
         except (TypeError, ValueError):
@@ -953,9 +1012,16 @@ def submit_onboarding(
                 "Languages must be a JSON array of strings",
             )
         if set(files) != {"identity_proof", "cancelled_cheque"}:
+            missing = {"identity_proof", "cancelled_cheque"}.difference(files)
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "Both required documents must be provided",
+                {
+                    "message": "Validation failed. Please correct the highlighted fields.",
+                    "errors": {
+                        kind: f"{kind.replace('_', ' ').capitalize()} is required."
+                        for kind in missing
+                    },
+                },
             )
 
         stored: list[tuple[str, str, str, int, str]] = []
@@ -972,9 +1038,7 @@ def submit_onboarding(
 
         gender = fields["gender"].upper()
         if gender not in {"MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"}:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "Gender is invalid"
-            )
+            raise _field_validation_error("gender", "Please select a valid gender.")
         passport_number = (fields.get("passport_number") or "").strip()
         employee.personal_details = EmployeePersonalDetails(
             birth_date=fields["date_of_birth"],
@@ -986,6 +1050,9 @@ def submit_onboarding(
                 encryptor.encrypt(passport_number.encode()).decode()
                 if passport_number
                 else None
+            ),
+            uan_number_encrypted=(
+                encryptor.encrypt(uan.encode()).decode() if uan else None
             ),
         )
         employee.contact_details = EmployeeContactDetails(
@@ -1031,6 +1098,7 @@ def submit_onboarding(
         employee.onboarding_status = "PENDING_APPROVAL"
         invitation.invitation_status = "ACCEPTED"
         invitation.submitted_at = now
+        invitation.expires_at = now
         invitation.draft_form_data = None
         employee.rejection_reason = None
         employee.user.phone_number = mobile_number
@@ -1179,8 +1247,29 @@ def list_employees(
         .unique()
         .all()
     )
+    user_ids = [employee.user_id for employee in rows if employee.user_id]
+    dispatch_status_by_user: dict[UUID, str] = {}
+    if user_ids:
+        dispatch_rows = db.execute(
+            select(EmailDispatchOutbox.entity_id, EmailDispatchOutbox.status)
+            .where(
+                EmailDispatchOutbox.entity_type == "INVITATION",
+                EmailDispatchOutbox.entity_id.in_(user_ids),
+            )
+            .order_by(EmailDispatchOutbox.created_at.desc())
+        ).all()
+        for user_id, dispatch_status in dispatch_rows:
+            dispatch_status_by_user.setdefault(user_id, dispatch_status)
     return {
-        "items": [_employee_list_item(employee) for employee in rows],
+        "items": [
+            {
+                **_employee_list_item(employee),
+                "email_dispatch_status": dispatch_status_by_user.get(
+                    employee.user_id
+                ),
+            }
+            for employee in rows
+        ],
         "pagination": {
             "page": page,
             "page_size": page_size,

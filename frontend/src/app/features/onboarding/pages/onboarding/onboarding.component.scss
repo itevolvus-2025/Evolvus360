@@ -681,3 +681,12 @@
     }
   }
 }
+.field-invalid {
+  border-color: #dc2626 !important;
+}
+
+.validation-error {
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.4;
+}

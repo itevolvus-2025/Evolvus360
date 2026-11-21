@@ -109,8 +109,11 @@ def test_validation_error_uses_standard_error_contract() -> None:
     assert response.status_code == 422
     assert response.json() == {
         "statusCode": 422,
-        "message": "Request validation failed",
+        "message": "Validation failed. Please correct the highlighted fields.",
         "data": None,
+        "errors": {
+            "item_id": "Input should be a valid integer, unable to parse string as an integer"
+        },
     }
 
 

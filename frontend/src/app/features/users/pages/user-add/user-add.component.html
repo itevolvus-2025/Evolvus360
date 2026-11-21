@@ -30,41 +30,50 @@
       <div class="section-card-body">
         <div class="form-row-3col">
           <div class="form-group">
-            <label class="form-label" for="firstName">First name <span class="required">*</span></label>
+            <label class="form-label" for="first_name">First name <span class="required">*</span></label>
             <input
-              id="firstName"
+              id="first_name"
               type="text"
               class="form-input"
+              [class.field-invalid]="!!fieldErrors()['first_name']"
               placeholder="Enter first name"
               [value]="firstName()"
-              (input)="firstName.set($any($event.target).value)"
+              (input)="setField('first_name', $any($event.target).value)"
+              (blur)="validateField('first_name')"
               required
             />
+            @if (fieldErrors()['first_name']) { <small class="validation-error">{{ fieldErrors()['first_name'] }}</small> }
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="middleName">Middle name</label>
+            <label class="form-label" for="middle_name">Middle name</label>
             <input
-              id="middleName"
+              id="middle_name"
               type="text"
               class="form-input"
               placeholder="Optional middle name"
               [value]="middleName()"
-              (input)="middleName.set($any($event.target).value)"
+              [class.field-invalid]="!!fieldErrors()['middle_name']"
+              (input)="setField('middle_name', $any($event.target).value)"
+              (blur)="validateField('middle_name')"
             />
+            @if (fieldErrors()['middle_name']) { <small class="validation-error">{{ fieldErrors()['middle_name'] }}</small> }
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="lastName">Last name <span class="required">*</span></label>
+            <label class="form-label" for="last_name">Last name <span class="required">*</span></label>
             <input
-              id="lastName"
+              id="last_name"
               type="text"
               class="form-input"
               placeholder="Enter last name"
               [value]="lastName()"
-              (input)="lastName.set($any($event.target).value)"
+              [class.field-invalid]="!!fieldErrors()['last_name']"
+              (input)="setField('last_name', $any($event.target).value)"
+              (blur)="validateField('last_name')"
               required
             />
+            @if (fieldErrors()['last_name']) { <small class="validation-error">{{ fieldErrors()['last_name'] }}</small> }
           </div>
         </div>
       </div>
@@ -83,13 +92,15 @@
         <div class="form-row-2col">
           <!-- Row 1: Department & Role -->
           <div class="form-group">
-            <label class="form-label" for="department">Department <span class="required">*</span></label>
+            <label class="form-label" for="department_id">Department <span class="required">*</span></label>
             <div class="custom-select-wrap">
               <select
-                id="department"
+                id="department_id"
                 class="form-select"
+                [class.field-invalid]="!!fieldErrors()['department_id']"
                 [value]="department()"
                 (change)="selectOption($event, 'department')"
+                (blur)="validateSelection('department_id')"
               >
                 <option value="" disabled>Select department</option>
                 @for (option of departments(); track option.id) {
@@ -98,16 +109,19 @@
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>
+            @if (fieldErrors()['department_id']) { <small class="validation-error">{{ fieldErrors()['department_id'] }}</small> }
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="role">Role <span class="required">*</span></label>
+            <label class="form-label" for="role_id">Role <span class="required">*</span></label>
             <div class="custom-select-wrap">
               <select
-                id="role"
+                id="role_id"
                 class="form-select"
+                [class.field-invalid]="!!fieldErrors()['role_id']"
                 [value]="role()"
                 (change)="selectOption($event, 'role')"
+                (blur)="validateSelection('role_id')"
               >
                 <option value="" disabled>Select role</option>
                 @for (option of roles(); track option.id) {
@@ -116,6 +130,7 @@
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>
+            @if (fieldErrors()['role_id']) { <small class="validation-error">{{ fieldErrors()['role_id'] }}</small> }
           </div>
 
           <!-- Row 2: Designation & Location -->
@@ -127,19 +142,23 @@
               class="form-input"
               placeholder="e.g. HR Generalist / Operations Lead"
               [value]="designation()"
-              (input)="designation.set($any($event.target).value)"
+              [class.field-invalid]="!!fieldErrors()['designation']"
+              (input)="setField('designation', $any($event.target).value)"
+              (blur)="validateField('designation')"
               required
             />
+            @if (fieldErrors()['designation']) { <small class="validation-error">{{ fieldErrors()['designation'] }}</small> }
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="location">Location</label>
+            <label class="form-label" for="location">Location <span class="required">*</span></label>
             <div class="custom-select-wrap">
               <select
                 id="location"
                 class="form-select"
+                [class.field-invalid]="!!fieldErrors()['location']"
                 [value]="location()"
-                (change)="location.set($any($event.target).value)"
+                (change)="setField('location', $any($event.target).value); validateField('location')"
               >
                 <option value="" disabled>Select your location</option>
                 <option value="Bengaluru">Bengaluru</option>
@@ -150,17 +169,20 @@
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>
+            @if (fieldErrors()['location']) { <small class="validation-error">{{ fieldErrors()['location'] }}</small> }
           </div>
 
           <!-- Row 3: Entity & User/Employee Code -->
           <div class="form-group">
-            <label class="form-label" for="entity">Entity <span class="required">*</span></label>
+            <label class="form-label" for="entity_id">Entity <span class="required">*</span></label>
             <div class="custom-select-wrap">
               <select
-                id="entity"
+                id="entity_id"
                 class="form-select"
+                [class.field-invalid]="!!fieldErrors()['entity_id']"
                 [value]="entity()"
                 (change)="selectOption($event, 'entity')"
+                (blur)="validateSelection('entity_id')"
               >
                 <option value="" disabled>Select entity</option>
                 @for (option of entities(); track option.id) {
@@ -169,6 +191,7 @@
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
             </div>
+            @if (fieldErrors()['entity_id']) { <small class="validation-error">{{ fieldErrors()['entity_id'] }}</small> }
           </div>
 
           <div class="form-group"></div>
@@ -188,29 +211,35 @@
       <div class="section-card-body">
         <div class="form-row-2col">
           <div class="form-group">
-            <label class="form-label" for="companyEmail">Company email</label>
+            <label class="form-label" for="company_email">Company email</label>
             <input
-              id="companyEmail"
+              id="company_email"
               type="email"
               class="form-input"
+              [class.field-invalid]="!!fieldErrors()['company_email']"
               placeholder="username@evolvus360.com"
               [value]="companyEmail()"
-              (input)="companyEmail.set($any($event.target).value)"
+              (input)="setField('company_email', $any($event.target).value)"
+              (blur)="validateField('company_email')"
             />
+            @if (fieldErrors()['company_email']) { <small class="validation-error">{{ fieldErrors()['company_email'] }}</small> }
             <small>Login credentials are sent here after approval. Add it before approval.</small>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="personalEmail">Personal email <span class="required">*</span></label>
+            <label class="form-label" for="personal_email">Personal email <span class="required">*</span></label>
             <input
-              id="personalEmail"
+              id="personal_email"
               type="email"
               class="form-input"
+              [class.field-invalid]="!!fieldErrors()['personal_email']"
               placeholder="personaladdress@gmail.com"
               [value]="personalEmail()"
-              (input)="personalEmail.set($any($event.target).value)"
+              (input)="setField('personal_email', $any($event.target).value)"
+              (blur)="validateField('personal_email')"
               required
             />
+            @if (fieldErrors()['personal_email']) { <small class="validation-error">{{ fieldErrors()['personal_email'] }}</small> }
             <small>Used only for the profile submission link.</small>
           </div>
 
@@ -246,48 +275,57 @@
       <div class="section-card-body">
         <div class="form-row-3col">
           <div class="form-group">
-            <label class="form-label" for="joiningDate">Joining date <span class="required">*</span></label>
+            <label class="form-label" for="joining_date">Joining date <span class="required">*</span></label>
             <div class="date-input-wrap">
               <input
-                id="joiningDate"
+                id="joining_date"
                 type="text"
                 class="form-input date-input"
+                [class.field-invalid]="!!fieldErrors()['joining_date']"
                 placeholder="dd-mm-yyyy"
                 [value]="joiningDate()"
-                (input)="joiningDate.set($any($event.target).value)"
+                (input)="setField('joining_date', $any($event.target).value)"
+                (blur)="validateField('joining_date')"
                 required
               />
+              @if (fieldErrors()['joining_date']) { <small class="validation-error">{{ fieldErrors()['joining_date'] }}</small> }
               <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="startDate">Start date <span class="required">*</span></label>
+            <label class="form-label" for="start_date">Start date <span class="required">*</span></label>
             <div class="date-input-wrap">
               <input
-                id="startDate"
+                id="start_date"
                 type="text"
                 class="form-input date-input"
+                [class.field-invalid]="!!fieldErrors()['start_date']"
                 placeholder="dd-mm-yyyy"
                 [value]="startDate()"
-                (input)="startDate.set($any($event.target).value)"
+                (input)="setField('start_date', $any($event.target).value)"
+                (blur)="validateField('start_date')"
                 required
               />
+              @if (fieldErrors()['start_date']) { <small class="validation-error">{{ fieldErrors()['start_date'] }}</small> }
               <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="endDate">End date</label>
+            <label class="form-label" for="end_date">End date</label>
             <div class="date-input-wrap">
               <input
-                id="endDate"
+                id="end_date"
                 type="text"
                 class="form-input date-input"
+                [class.field-invalid]="!!fieldErrors()['end_date']"
                 placeholder="dd-mm-yyyy"
                 [value]="endDate()"
-                (input)="endDate.set($any($event.target).value)"
+                (input)="setField('end_date', $any($event.target).value)"
+                (blur)="validateField('end_date')"
               />
+              @if (fieldErrors()['end_date']) { <small class="validation-error">{{ fieldErrors()['end_date'] }}</small> }
               <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
             </div>
           </div>

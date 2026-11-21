@@ -140,9 +140,6 @@
                 [class.profile-approved]="user.profile === 'Approved'">
                 {{ user.profile }}
               </span>
-              @if (canRetryInvitation(user)) {
-              <span class="mail-failed-pill" title="Email dispatch failed. Click retry to resend.">Mail Failed</span>
-              }
             </td>
 
             <!-- Action: Edit Pencil Icon Button -->
@@ -185,7 +182,11 @@
           <tr class="empty-row">
             <td colspan="6" class="empty-cell">
               <app-icon name="search" [size]="28" color="#94A3B8" />
-              <p>No users found</p>
+              @if (userServiceRef.loadError(); as loadError) {
+                <p>Could not load users: {{ loadError }}</p>
+              } @else {
+                <p>No users found</p>
+              }
             </td>
           </tr>
           }

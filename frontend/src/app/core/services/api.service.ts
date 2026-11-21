@@ -3,6 +3,17 @@ import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular
 import { Observable, catchError, throwError } from 'rxjs';
 import { ApiResponse } from '../models/api.models';
 
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly fieldErrors: Record<string, string> = {},
+  ) {
+    super(message);
+    this.name = 'ApiRequestError';
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
@@ -79,6 +90,7 @@ export class ApiService {
 
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'An unexpected error occurred. Please try again.';
+    let fieldErrors: Record<string, string> = {};
 
     // Status 0 represents browser CORS rejection or connection refused
     if (error.status === 0) {
@@ -88,6 +100,11 @@ export class ApiService {
         errorMessage = error.error;
       } else if (error.error.message) {
         errorMessage = error.error.message;
+        if (error.error.errors && typeof error.error.errors === 'object') {
+          fieldErrors = Object.fromEntries(
+            Object.entries(error.error.errors).map(([key, value]) => [key, String(value)]),
+          );
+        }
       } else if (error.error.detail) {
         if (typeof error.error.detail === 'string') {
           errorMessage = error.error.detail;
@@ -99,6 +116,6 @@ export class ApiService {
       errorMessage = `${error.status}: ${error.statusText}`;
     }
 
-    return throwError(() => new Error(errorMessage));
+    return throwError(() => new ApiRequestError(errorMessage, error.status, fieldErrors));
   }
 }

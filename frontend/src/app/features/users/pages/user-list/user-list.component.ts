@@ -25,6 +25,7 @@ export class UserListComponent implements OnInit {
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
+  readonly userServiceRef = this.userService;
 
   ngOnInit(): void {
     this.userService.loadUsers();
@@ -172,7 +173,11 @@ export class UserListComponent implements OnInit {
   }
 
   canRetryInvitation(user: UserRow): boolean {
-    return user.emailDispatchStatus === 'FAILED' || this.userService.failedInvitationIds().has(String(user.id));
+    const invitationCanBeSent = user.profile === 'Pending' && user.status === 'Pending';
+    return invitationCanBeSent && (
+      user.emailDispatchStatus === 'FAILED' ||
+      this.userService.failedInvitationIds().has(String(user.id))
+    );
   }
 
   userIdKey(id: string | number): string {

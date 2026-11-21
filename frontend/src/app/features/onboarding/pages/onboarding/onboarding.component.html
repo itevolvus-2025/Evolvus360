@@ -1,4 +1,9 @@
 <div class="onboarding-page-root">
+  @if (isLoading()) {
+    <main class="onboarding-content"><section class="form-card"><div class="form-card-body">Validating your invitation…</div></section></main>
+  } @else if (invitationInvalid()) {
+    <main class="onboarding-content"><section class="form-card"><div class="form-card-body"><h1>Invitation link expired or invalid</h1><p>Ask HR to send you a new onboarding link.</p></div></section></main>
+  } @else {
   <!-- Top Navigation Bar -->
   <header class="onboarding-topbar">
     <div class="topbar-inner">
@@ -186,28 +191,32 @@
         <div class="grid-3col">
           <!-- Date of birth -->
           <div class="field-item">
-            <label class="field-label" for="onboardingDob">Date of birth <span class="req">*</span></label>
+            <label class="field-label" for="date_of_birth">Date of birth <span class="req">*</span></label>
             <div class="input-with-icon">
               <input
-                id="onboardingDob"
+                id="date_of_birth"
                 type="date"
                 class="field-input"
+                [class.field-invalid]="!!fieldErrors()['date_of_birth']"
                 [value]="dateOfBirth()"
-                (input)="dateOfBirth.set($any($event.target).value)"
+                (input)="updateField('date_of_birth', $any($event.target).value)"
+                (blur)="validateField('date_of_birth')"
                 required
               />
             </div>
+            @if (fieldErrors()['date_of_birth']) { <small class="validation-error">{{ fieldErrors()['date_of_birth'] }}</small> }
           </div>
 
           <!-- Gender -->
           <div class="field-item">
-            <label class="field-label" for="onboardingGender">Gender <span class="req">*</span></label>
+            <label class="field-label" for="gender">Gender <span class="req">*</span></label>
             <div class="custom-select-box">
               <select
-                id="onboardingGender"
+                id="gender"
                 class="field-select"
+                [class.field-invalid]="!!fieldErrors()['gender']"
                 [value]="gender()"
-                (change)="gender.set($any($event.target).value)"
+                (change)="updateField('gender', $any($event.target).value); validateField('gender')"
                 required
               >
                 <option value="" disabled selected>Select gender</option>
@@ -217,53 +226,68 @@
               </select>
               <app-icon name="chevron-down" [size]="12" color="#64748B" class="select-icon" />
             </div>
+            @if (fieldErrors()['gender']) { <small class="validation-error">{{ fieldErrors()['gender'] }}</small> }
           </div>
 
           <!-- Mobile (with country code) -->
           <div class="field-item">
-            <label class="field-label" for="onboardingMobile">Mobile (with country code) <span class="req">*</span></label>
+            <label class="field-label" for="mobile_number">Mobile number <span class="req">*</span></label>
             <div class="input-with-icon">
               <input
-                id="onboardingMobile"
-                type="tel"
+                id="mobile_number"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="10"
                 class="field-input"
-                placeholder="+91 9876543210"
+                [class.field-invalid]="!!fieldErrors()['mobile_number']"
+                placeholder="9876543210"
                 [value]="mobileNumber()"
-                (input)="mobileNumber.set($any($event.target).value)"
+                (input)="updateField('mobile_number', $any($event.target).value)"
+                (blur)="validateField('mobile_number')"
                 required
               />
               <app-icon name="phone" [size]="14" color="#94A3B8" class="right-adornment" />
             </div>
+            @if (fieldErrors()['mobile_number']) { <small class="validation-error">{{ fieldErrors()['mobile_number'] }}</small> }
           </div>
 
           <!-- Aadhaar (12 digits) -->
           <div class="field-item">
-            <label class="field-label" for="onboardingAadhaar">Aadhaar (12 digits) <span class="req">*</span></label>
+            <label class="field-label" for="aadhaar_number">Aadhaar (12 digits) <span class="req">*</span></label>
             <input
-              id="onboardingAadhaar"
+              id="aadhaar_number"
               type="text"
-              maxlength="14"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="12"
               class="field-input"
-              placeholder="e.g. 1234 5678 9012"
+              [class.field-invalid]="!!fieldErrors()['aadhaar_number']"
+              placeholder="12 digits"
               [value]="aadhaarNumber()"
-              (input)="aadhaarNumber.set($any($event.target).value)"
+              (input)="updateField('aadhaar_number', $any($event.target).value)"
+              (blur)="validateField('aadhaar_number')"
               required
             />
+            @if (fieldErrors()['aadhaar_number']) { <small class="validation-error">{{ fieldErrors()['aadhaar_number'] }}</small> }
           </div>
 
           <!-- PAN Card -->
           <div class="field-item">
-            <label class="field-label" for="onboardingPan">PAN Card <span class="req">*</span></label>
+            <label class="field-label" for="pan_number">PAN Card <span class="req">*</span></label>
             <input
-              id="onboardingPan"
+              id="pan_number"
               type="text"
               maxlength="10"
               class="field-input uppercase"
+              [class.field-invalid]="!!fieldErrors()['pan_number']"
               placeholder="E.G. ABCDE1234F"
               [value]="panNumber()"
-              (input)="panNumber.set($any($event.target).value.toUpperCase())"
+              (input)="updateField('pan_number', $any($event.target).value)"
+              (blur)="validateField('pan_number')"
               required
             />
+            @if (fieldErrors()['pan_number']) { <small class="validation-error">{{ fieldErrors()['pan_number'] }}</small> }
           </div>
 
           <!-- Passport number -->
@@ -301,44 +325,56 @@
         <div class="grid-3col">
           <!-- Contact Name -->
           <div class="field-item">
-            <label class="field-label" for="emergencyName">Contact Name <span class="req">*</span></label>
+            <label class="field-label" for="emergency_contact_name">Contact Name <span class="req">*</span></label>
             <input
-              id="emergencyName"
+              id="emergency_contact_name"
               type="text"
+              maxlength="150"
               class="field-input"
+              [class.field-invalid]="!!fieldErrors()['emergency_contact_name']"
               placeholder="Contact full name"
               [value]="emergencyContactName()"
-              (input)="emergencyContactName.set($any($event.target).value)"
+              (input)="updateField('emergency_contact_name', $any($event.target).value)"
+              (blur)="validateField('emergency_contact_name')"
               required
             />
+            @if (fieldErrors()['emergency_contact_name']) { <small class="validation-error">{{ fieldErrors()['emergency_contact_name'] }}</small> }
           </div>
 
           <!-- Phone Number -->
           <div class="field-item">
-            <label class="field-label" for="emergencyPhone">Phone Number <span class="req">*</span></label>
+            <label class="field-label" for="emergency_contact_phone">Phone Number <span class="req">*</span></label>
             <input
-              id="emergencyPhone"
+              id="emergency_contact_phone"
               type="tel"
+              maxlength="25"
               class="field-input"
+              [class.field-invalid]="!!fieldErrors()['emergency_contact_phone']"
               placeholder="e.g. +91 9876543210"
               [value]="emergencyContactPhone()"
-              (input)="emergencyContactPhone.set($any($event.target).value)"
+              (input)="updateField('emergency_contact_phone', $any($event.target).value)"
+              (blur)="validateField('emergency_contact_phone')"
               required
             />
+            @if (fieldErrors()['emergency_contact_phone']) { <small class="validation-error">{{ fieldErrors()['emergency_contact_phone'] }}</small> }
           </div>
 
           <!-- Relationship -->
           <div class="field-item">
-            <label class="field-label" for="emergencyRelation">Relationship <span class="req">*</span></label>
+            <label class="field-label" for="emergency_contact_relationship">Relationship <span class="req">*</span></label>
             <input
-              id="emergencyRelation"
+              id="emergency_contact_relationship"
               type="text"
+              maxlength="50"
               class="field-input"
+              [class.field-invalid]="!!fieldErrors()['emergency_contact_relationship']"
               placeholder="e.g. Spouse / Parent / Sibling"
               [value]="emergencyContactRelationship()"
-              (input)="emergencyContactRelationship.set($any($event.target).value)"
+              (input)="updateField('emergency_contact_relationship', $any($event.target).value)"
+              (blur)="validateField('emergency_contact_relationship')"
               required
             />
+            @if (fieldErrors()['emergency_contact_relationship']) { <small class="validation-error">{{ fieldErrors()['emergency_contact_relationship'] }}</small> }
           </div>
         </div>
       </div>
@@ -353,68 +389,83 @@
           </div>
           <h3 class="card-section-title">BANKING &amp; COMPLIANCE DOCUMENTS</h3>
         </div>
-        <div class="header-pill deposit-pill">
-          <span>Direct Deposit</span>
-        </div>
       </div>
 
       <div class="form-card-body">
         <div class="grid-3col">
           <!-- Bank Name -->
           <div class="field-item">
-            <label class="field-label" for="onboardingBank">Bank Name <span class="req">*</span></label>
+            <label class="field-label" for="bank_name">Bank Name <span class="req">*</span></label>
             <input
-              id="onboardingBank"
+              id="bank_name"
               type="text"
+              maxlength="150"
               class="field-input"
+              [class.field-invalid]="!!fieldErrors()['bank_name']"
               placeholder="e.g. HDFC Bank"
               [value]="bankName()"
-              (input)="bankName.set($any($event.target).value)"
+              (input)="updateField('bank_name', $any($event.target).value)"
+              (blur)="validateField('bank_name')"
               required
             />
+            @if (fieldErrors()['bank_name']) { <small class="validation-error">{{ fieldErrors()['bank_name'] }}</small> }
           </div>
 
           <!-- Account Number -->
           <div class="field-item">
-            <label class="field-label" for="onboardingAccount">Account Number <span class="req">*</span></label>
+            <label class="field-label" for="account_number">Account Number <span class="req">*</span></label>
             <input
-              id="onboardingAccount"
+              id="account_number"
               type="text"
+              maxlength="35"
               class="field-input"
+              [class.field-invalid]="!!fieldErrors()['account_number']"
               placeholder="e.g. 50100234567890"
               [value]="accountNumber()"
-              (input)="accountNumber.set($any($event.target).value)"
+              (input)="updateField('account_number', $any($event.target).value)"
+              (blur)="validateField('account_number')"
               required
             />
+            @if (fieldErrors()['account_number']) { <small class="validation-error">{{ fieldErrors()['account_number'] }}</small> }
           </div>
 
           <!-- IFSC Code -->
           <div class="field-item">
-            <label class="field-label" for="onboardingIfsc">IFSC Code <span class="req">*</span></label>
+            <label class="field-label" for="ifsc_code">IFSC Code <span class="req">*</span></label>
             <input
-              id="onboardingIfsc"
+              id="ifsc_code"
               type="text"
               maxlength="11"
               class="field-input uppercase"
+              [class.field-invalid]="!!fieldErrors()['ifsc_code']"
               placeholder="E.G. HDFC0000123"
               [value]="ifscCode()"
-              (input)="ifscCode.set($any($event.target).value.toUpperCase())"
+              (input)="updateField('ifsc_code', $any($event.target).value)"
+              (blur)="validateField('ifsc_code')"
               required
             />
+            @if (fieldErrors()['ifsc_code']) { <small class="validation-error">{{ fieldErrors()['ifsc_code'] }}</small> }
           </div>
 
           <!-- UAN (PF Application) -->
+          @if (candidate().pf_applicable === 'YES') {
           <div class="field-item">
             <label class="field-label" for="onboardingUan">UAN (PF Application) <span class="req">*</span></label>
             <input
               id="onboardingUan"
               type="text"
+              maxlength="12"
+              inputmode="numeric"
               class="field-input"
+              [class.field-invalid]="!!fieldErrors()['uan_number']"
               placeholder="e.g. 100912345678"
               [value]="uanNumber()"
-              (input)="uanNumber.set($any($event.target).value)"
+              (input)="updateField('uan_number', $any($event.target).value)"
+              (blur)="validateField('uan_number')"
             />
+            @if (fieldErrors()['uan_number']) { <small class="validation-error">{{ fieldErrors()['uan_number'] }}</small> }
           </div>
+          }
 
           <!-- Identity Proof -->
           <div class="field-item">
@@ -422,13 +473,14 @@
             <div class="file-picker-row">
               <label class="btn-choose-file">
                 Choose File
-                <input type="file" (change)="onIdentityProofChange($event)" accept=".pdf,.jpg,.jpeg,.png" hidden />
+                <input id="identity_proof" type="file" (change)="onIdentityProofChange($event)" accept=".pdf,.jpg,.jpeg,.png" hidden />
               </label>
               <div class="file-status-wrap">
                 <span class="file-name-text">{{ identityProofName() || 'No file chosen' }}</span>
                 <span class="file-help-text">PDF, JPG or PNG up to 5MB</span>
               </div>
             </div>
+            @if (fieldErrors()['identity_proof']) { <small class="validation-error">{{ fieldErrors()['identity_proof'] }}</small> }
           </div>
 
           <!-- Cancelled Cheque -->
@@ -437,13 +489,14 @@
             <div class="file-picker-row">
               <label class="btn-choose-file">
                 Choose File
-                <input type="file" (change)="onCancelledChequeChange($event)" accept=".pdf,.jpg,.jpeg,.png" hidden />
+                <input id="cancelled_cheque" type="file" (change)="onCancelledChequeChange($event)" accept=".pdf,.jpg,.jpeg,.png" hidden />
               </label>
               <div class="file-status-wrap">
                 <span class="file-name-text">{{ cancelledChequeName() || 'No file chosen' }}</span>
-                <span class="file-help-text">Bank verified copy (PDF / Image)</span>
+                <span class="file-help-text">PDF, JPG or PNG up to 5MB</span>
               </div>
             </div>
+            @if (fieldErrors()['cancelled_cheque']) { <small class="validation-error">{{ fieldErrors()['cancelled_cheque'] }}</small> }
           </div>
         </div>
       </div>
@@ -468,11 +521,15 @@
             <input
               id="onboardingQual"
               type="text"
+              maxlength="4000"
               class="field-input"
+              [class.field-invalid]="!!fieldErrors()['qualification']"
               placeholder="Enter your qualifications"
               [value]="qualification()"
-              (input)="qualification.set($any($event.target).value)"
+              (input)="updateField('qualification', $any($event.target).value)"
+              (blur)="validateField('qualification')"
             />
+            @if (fieldErrors()['qualification']) { <small class="validation-error">{{ fieldErrors()['qualification'] }}</small> }
           </div>
 
           <!-- Languages Multi-Select Chips -->
@@ -522,4 +579,5 @@
       </button>
     </div>
   </main>
+  }
 </div>

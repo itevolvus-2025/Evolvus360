@@ -53,6 +53,7 @@ export class UserService {
   readonly users = signal<UserRow[]>([]);
 
   readonly isLoading = signal(false);
+  readonly loadError = signal<string | null>(null);
   readonly departments = signal<MasterDataOption[]>([]);
   readonly roles = signal<MasterDataOption[]>([]);
   readonly entities = signal<MasterDataOption[]>([]);
@@ -68,6 +69,7 @@ export class UserService {
    */
   loadUsers(): void {
     this.isLoading.set(true);
+    this.loadError.set(null);
     this.apiService.get<{ items: EmployeeApiRecord[] }>(API_ENDPOINTS.users.list, { page: 1, page_size: 100 }).subscribe({
       next: (res) => {
         this.isLoading.set(false);
@@ -114,11 +116,13 @@ export class UserService {
           console.log(`[UserService] Loaded ${mapped.length} users from backend API.`);
         } else {
           this.users.set([]);
+          this.loadError.set('The users API returned an unexpected response.');
         }
       },
       error: (err) => {
         this.isLoading.set(false);
         this.users.set([]);
+        this.loadError.set(err.message || 'Could not load users.');
         console.warn('[UserService] Could not load users from backend API:', err.message);
       },
     });
@@ -145,7 +149,7 @@ export class UserService {
     return 'Inactive';
   }
 
-  createEmployee(payload: Record<string, unknown>, onSuccess: (result: EmployeeApiRecord) => void, onError: (message: string) => void): void {
+  createEmployee(payload: Record<string, unknown>, onSuccess: (result: EmployeeApiRecord) => void, onError: (message: string, fieldErrors?: Record<string, string>) => void): void {
     if (this.isSaving()) return;
     this.isSaving.set(true);
     this.apiService.post<EmployeeApiRecord>(API_ENDPOINTS.users.create, payload).subscribe({
@@ -161,7 +165,7 @@ export class UserService {
       },
       error: (err) => {
         this.isSaving.set(false);
-        onError(err.message || 'Could not create user.');
+        onError(err.message || 'Could not create user.', (err as { fieldErrors?: Record<string, string> }).fieldErrors);
       },
     });
   }
@@ -179,7 +183,11 @@ export class UserService {
         this.loadUsers();
         onDone(success, success ? 'Invitation email dispatched successfully.' : 'Email could not be dispatched immediately. You can retry.');
       },
-      error: (err) => onDone(false, err.message || 'Invitation email delivery failed.'),
+      error: (err) => {
+        this.failedInvitationIds.update((ids) => new Set(ids).add(String(id)));
+        this.loadUsers();
+        onDone(false, err.message || 'Invitation email delivery failed. Retry it after email service is available.');
+      },
     });
   }
 
