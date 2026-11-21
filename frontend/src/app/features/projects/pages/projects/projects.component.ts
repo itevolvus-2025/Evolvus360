@@ -39,7 +39,7 @@ export class ProjectsComponent {
       name: 'Evolvus HRMS Core Modernization',
       code: 'PRJ-101',
       client: 'Internal Enterprise',
-      lead: 'Asha Rao',
+      lead: 'Ananya Sharma',
       teamSize: 8,
       progress: 85,
       status: 'In Progress',

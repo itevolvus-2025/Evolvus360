@@ -20,6 +20,15 @@ export const routes: Routes = [
         .then((m) => m.ONBOARDING_ROUTES)
   },
   {
+    path: 'forgot-password',
+    redirectTo: 'auth/forgot-password',
+    pathMatch: 'full'
+  },
+  {
+    path: 'reset-password',
+    redirectTo: 'auth/reset-password'
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>

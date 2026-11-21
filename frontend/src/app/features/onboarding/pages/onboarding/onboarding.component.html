@@ -2,15 +2,18 @@
   <!-- Top Navigation Bar -->
   <header class="onboarding-topbar">
     <div class="topbar-inner">
-      <div class="topbar-left">
-        <!-- Evolvus Brand Logo -->
+      <!-- Top Row: Brand Logo -->
+      <div class="topbar-brand-row">
         <div class="brand-area">
           <img src="assets/images/EvolvusLogo.png" alt="Evolvus" class="brand-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
           <div class="brand-fallback-text" style="display: none;">
             <span class="brand-text-evol">ev<span class="brand-dot">•</span>lvus</span>
           </div>
         </div>
+      </div>
 
+      <!-- Second Row: Title + Stepper + Submit Button -->
+      <div class="topbar-main-row">
         <h1 class="page-title">Onboarding Details</h1>
 
         <!-- Stepper Indicator (Matching Screenshot) -->
@@ -36,17 +39,17 @@
             <span class="step-label">Qualifications &amp; Skills</span>
           </div>
         </nav>
-      </div>
 
-      <div class="topbar-right">
-        <button
-          type="button"
-          class="btn-submit-top"
-          (click)="submitOnboarding()"
-          [disabled]="isSubmitting()"
-        >
-          {{ isSubmitting() ? 'Submitting...' : 'Submit' }}
-        </button>
+        <div class="topbar-actions">
+          <button
+            type="button"
+            class="btn-submit-top"
+            (click)="submitOnboarding()"
+            [disabled]="isSubmitting()"
+          >
+            {{ isSubmitting() ? 'Submitting...' : 'Submit' }}
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -508,18 +511,5 @@
         </div>
       </div>
     </section>
-
-    <!-- Bottom Submit Bar -->
-    <div class="bottom-action-bar">
-      <button
-        type="button"
-        class="btn-bottom-submit"
-        (click)="submitOnboarding()"
-        [disabled]="isSubmitting()"
-      >
-        <app-icon name="check" [size]="16" color="#FFFFFF" />
-        <span>{{ isSubmitting() ? 'Submitting Application...' : 'Submit Onboarding Details' }}</span>
-      </button>
-    </div>
   </main>
 </div>

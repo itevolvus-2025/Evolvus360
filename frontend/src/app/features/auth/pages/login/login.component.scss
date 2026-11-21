@@ -72,12 +72,17 @@ form {
   display: flex;
   align-items: center;
 
-  .input-icon {
+ .input-icon {
     position: absolute;
-    left: 15px;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: #9ca3af;
-    font-size: 14px;
     pointer-events: none;
+    z-index: 2;
     transition: color 0.2s ease;
   }
 

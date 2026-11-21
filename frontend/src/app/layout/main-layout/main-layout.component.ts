@@ -75,17 +75,25 @@ export class MainLayoutComponent implements OnInit {
   /** Active child component mounted in <router-outlet> for action delegation */
   private readonly activeChildComponent = signal<any>(null);
 
-  /** User profile display (matching uploaded design with Asha Rao / Super Admin) */
-  readonly userName = computed(() => this.auth.user()?.name || 'Asha Rao');
-  readonly userRole = computed(() => this.auth.user()?.role || 'Super Admin');
+  /** Dynamic user profile display based on authenticated user session */
+  readonly userName = computed(() => {
+    const u = this.auth.user();
+    if (u?.name && u.name.trim().length > 0) return u.name;
+    if (u?.email) {
+      const prefix = u.email.split('@')[0];
+      return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+    return 'User';
+  });
+  readonly userRole = computed(() => this.auth.user()?.role || 'Employee');
   readonly userInitials = computed(() => {
     const name = this.userName().trim();
-    if (!name) return 'AR';
+    if (!name || name === 'User') return 'U';
     const parts = name.split(/\s+/);
-    if (parts.length >= 2) {
+    if (parts.length >= 2 && parts[0] && parts[1]) {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    return name.substring(0, Math.min(2, name.length)).toUpperCase();
   });
 
   /** Master list of navigation items mapped to role permissions */

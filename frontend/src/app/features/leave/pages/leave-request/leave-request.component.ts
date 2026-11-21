@@ -54,7 +54,7 @@ export class LeaveRequestComponent {
       reason: 'Family vacation and personal travel',
       status: 'Pending',
       appliedOn: '18 Nov 2026',
-      approver: 'Meera Iyer (HR Manager)',
+      approver: 'HR Manager',
     },
     {
       id: 'LR-1049',
@@ -65,7 +65,7 @@ export class LeaveRequestComponent {
       reason: 'Medical recovery & doctor consultation',
       status: 'Approved',
       appliedOn: '09 Oct 2026',
-      approver: 'Asha Rao (Super Admin)',
+      approver: 'Super Admin',
     },
     {
       id: 'LR-1011',
@@ -76,7 +76,7 @@ export class LeaveRequestComponent {
       reason: 'Personal urgent errand',
       status: 'Approved',
       appliedOn: '12 Aug 2026',
-      approver: 'Meera Iyer (HR Manager)',
+      approver: 'Reporting Manager',
     },
   ]);
 
