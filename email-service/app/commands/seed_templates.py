@@ -9,22 +9,22 @@ DEFAULT_TEMPLATES = (
     {
         "template_key": "EMPLOYEE_INVITATION",
         "name": "Employee invitation",
-        "subject": "Complete your Evolvus360 onboarding, $employee_name",
+        "subject": "Evolvus360 invited you to complete your profile",
         "body_text": (
-            "Hello $employee_name,\n\n$company_name invited you to complete your "
-            "employee onboarding. Open this secure link: $invitation_link\n\n"
+            "Hello $employee_name,\n\nEvolvus360 has invited you to complete "
+            "your profile. Please follow the link below to complete your profile:\n"
+            "$invitation_link\n\n"
             "This link expires in $expiry_hours hours."
         ),
         "body_html": (
-            "<p>Hello $employee_name,</p><p>$company_name invited you to complete "
-            'your employee onboarding.</p><p><a href="$invitation_link">'
-            "Complete onboarding</a></p>"
+            "<p>Hello $employee_name,</p><p>Evolvus360 has invited you to complete "
+            "your profile. Please follow the link below to complete your profile:</p>"
+            '<p><a href="$invitation_link">Complete your profile</a></p>'
             "<p>This link expires in $expiry_hours hours.</p>"
         ),
         "description": "Invitation link for employee onboarding.",
         "required_variables": [
             "employee_name",
-            "company_name",
             "invitation_link",
             "expiry_hours",
         ],
@@ -93,6 +93,9 @@ def main() -> int:
                 )
                 if existing is None:
                     db.add(EmailTemplate(**data))
+                elif data["template_key"] == "EMPLOYEE_INVITATION":
+                    for field, value in data.items():
+                        setattr(existing, field, value)
             db.commit()
         except BaseException:
             db.rollback()

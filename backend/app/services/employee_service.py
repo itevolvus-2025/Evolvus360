@@ -418,7 +418,6 @@ def send_invitation(db: Session, actor: User, user_id: UUID) -> dict:
             template_key="EMPLOYEE_INVITATION",
             variables={
                 "employee_name": f"{employee.first_name} {employee.last_name}".strip(),
-                "company_name": employee.entity_name or "Evolvus360",
                 "invitation_link": invitation_url,
                 "expiry_hours": get_settings().onboarding_invitation_expire_hours,
             },
