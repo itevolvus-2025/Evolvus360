@@ -58,6 +58,10 @@ export class UserEditComponent implements OnInit {
   readonly startDate = signal('');
   readonly endDate = signal('');
 
+  // 05 Profile & Employee Details
+  readonly employeeDetails = signal<any>(null);
+  readonly todayDate = new Date().toISOString().slice(0, 10);
+
   // Delete Confirmation Modal
   readonly showDeleteModal = signal(false);
 
@@ -68,8 +72,11 @@ export class UserEditComponent implements OnInit {
       const id: number | string = /^\d+$/.test(idParam) ? parseInt(idParam, 10) : idParam;
       this.userId.set(id);
 
-      this.userService.getEmployee(id, (existing) => {
+      this.userService.getEmployee(id, (existing, fullData) => {
         this.populateFields(existing);
+        if (fullData?.employee_details) {
+          this.employeeDetails.set(fullData.employee_details);
+        }
       });
     }
   }
@@ -78,11 +85,19 @@ export class UserEditComponent implements OnInit {
     this.firstName.set(existing.firstName || '');
     this.middleName.set(existing.middleName || '');
     this.lastName.set(existing.lastName || '');
-    this.department.set(existing.departmentId || existing.department || '');
-    this.role.set(existing.roleId || existing.role || '');
+
+    const deptId = existing.departmentId || this.resolveDepartmentId(existing.department);
+    this.department.set(deptId);
+
+    const roleId = existing.roleId || this.resolveRoleId(existing.role);
+    this.role.set(roleId);
+
     this.designation.set(existing.designation || '');
     this.location.set(existing.location || '');
-    this.entity.set(existing.entityId || existing.entity || '');
+
+    const entityId = existing.entityId || this.resolveEntityId(existing.entity);
+    this.entity.set(entityId);
+
     this.code.set(existing.code || '');
     this.companyEmail.set(existing.companyEmail || existing.email || '');
     this.personalEmail.set(existing.personalEmail || '');
@@ -92,9 +107,37 @@ export class UserEditComponent implements OnInit {
     if (existing.reasonForChange) {
       this.reasonForChange.set(existing.reasonForChange);
     }
-    this.joiningDate.set(existing.joiningDate || '');
-    this.startDate.set(existing.startDate || '');
-    this.endDate.set(existing.endDate || '');
+    this.joiningDate.set(this.formatToIso(existing.joiningDate || ''));
+    this.startDate.set(this.formatToIso(existing.startDate || ''));
+    this.endDate.set(this.formatToIso(existing.endDate || ''));
+    if (existing.employeeDetails) {
+      this.employeeDetails.set(existing.employeeDetails);
+    }
+  }
+
+  private resolveDepartmentId(val?: string): string {
+    if (!val) return '';
+    const match = this.departments().find((d) => d.id === val || d.name.toLowerCase() === val.toLowerCase());
+    return match ? match.id : val;
+  }
+
+  private resolveRoleId(val?: string): string {
+    if (!val) return '';
+    const match = this.roles().find((r) => r.id === val || r.name.toLowerCase() === val.toLowerCase());
+    return match ? match.id : val;
+  }
+
+  private resolveEntityId(val?: string): string {
+    if (!val) return '';
+    const match = this.entities().find((e) => e.id === val || e.name.toLowerCase() === val.toLowerCase());
+    return match ? match.id : val;
+  }
+
+  private formatToIso(val: string): string {
+    if (!val) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(val);
+    return match ? `${match[3]}-${match[2]}-${match[1]}` : val;
   }
 
   selectOption(event: Event, target: 'department' | 'role' | 'entity'): void {
@@ -102,6 +145,18 @@ export class UserEditComponent implements OnInit {
     if (target === 'department') this.department.set(value);
     else if (target === 'role') this.role.set(value);
     else this.entity.set(value);
+  }
+
+  openDatePicker(input: HTMLInputElement): void {
+    try {
+      if ('showPicker' in input && typeof input.showPicker === 'function') {
+        input.showPicker();
+      } else {
+        input.focus();
+      }
+    } catch {
+      input.focus();
+    }
   }
 
   saveUser(): void {
@@ -168,6 +223,8 @@ export class UserEditComponent implements OnInit {
     }
 
     const parseDate = (value: string): string => {
+      if (!value) return '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
       const match = value.match(/^(\d{2})-(\d{2})-(\d{4})$/);
       return match ? `${match[3]}-${match[2]}-${match[1]}` : value;
     };

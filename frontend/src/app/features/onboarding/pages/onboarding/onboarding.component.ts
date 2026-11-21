@@ -43,6 +43,7 @@ export class OnboardingComponent implements OnInit {
 
   // Personal & Contact Details
   readonly dateOfBirth = signal('');
+  readonly todayDate = new Date().toISOString().slice(0, 10);
   readonly gender = signal('');
   readonly mobileNumber = signal('');
   readonly aadhaarNumber = signal('');
@@ -278,7 +279,26 @@ export class OnboardingComponent implements OnInit {
     else if (field === 'uan_number' && this.candidate().pf_applicable === 'YES' && !/^\d{12}$/.test(value)) error = required[field];
     else if (field === 'qualification' && value && !/^[\p{L}\p{N}\s]*$/u.test(value)) error = required[field];
     else if (required[field] && !value && !['identity_proof', 'cancelled_cheque', 'uan_number', 'qualification'].includes(field)) error = required[field];
-    else if (field === 'date_of_birth' && value && value >= new Date().toISOString().slice(0, 10)) error = 'Date of birth must be in the past.';
+    else if (field === 'date_of_birth') {
+      if (!value) {
+        error = required[field];
+      } else {
+        const today = new Date();
+        const todayIso = today.toISOString().slice(0, 10);
+        const currentYear = today.getFullYear();
+        let birthYear: number | null = null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          birthYear = parseInt(value.slice(0, 4), 10);
+        } else if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
+          birthYear = parseInt(value.slice(6, 10), 10);
+        }
+        if (birthYear !== null && birthYear > currentYear) {
+          error = `Birth year (${birthYear}) cannot be greater than current year (${currentYear}).`;
+        } else if (value >= todayIso) {
+          error = 'Date of birth cannot be greater than or equal to current date.';
+        }
+      }
+    }
     else if (field === 'identity_proof' && !this.identityProofFile()) error = required[field];
     else if (field === 'cancelled_cheque' && !this.cancelledChequeFile()) error = required[field];
     this.fieldErrors.update((errors) => ({ ...errors, [field]: error ?? '' }));

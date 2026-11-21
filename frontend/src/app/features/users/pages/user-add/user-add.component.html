@@ -152,23 +152,17 @@
 
           <div class="form-group">
             <label class="form-label" for="location">Location <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="location"
-                class="form-select"
-                [class.field-invalid]="!!fieldErrors()['location']"
-                [value]="location()"
-                (change)="setField('location', $any($event.target).value); validateField('location')"
-              >
-                <option value="" disabled>Select your location</option>
-                <option value="Bengaluru">Bengaluru</option>
-                <option value="Hyderabad">Hyderabad</option>
-                <option value="Mumbai">Mumbai</option>
-                <option value="Noida">Noida</option>
-                <option value="Pune">Pune</option>
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <input
+              id="location"
+              type="text"
+              class="form-input"
+              [class.field-invalid]="!!fieldErrors()['location']"
+              placeholder="e.g. Mumbai, Bengaluru, Hyderabad"
+              [value]="location()"
+              (input)="setField('location', $any($event.target).value)"
+              (blur)="validateField('location')"
+              required
+            />
             @if (fieldErrors()['location']) { <small class="validation-error">{{ fieldErrors()['location'] }}</small> }
           </div>
 
@@ -278,56 +272,59 @@
             <label class="form-label" for="joining_date">Joining date <span class="required">*</span></label>
             <div class="date-input-wrap">
               <input
+                #joiningDateInput
                 id="joining_date"
-                type="text"
+                type="date"
                 class="form-input date-input"
                 [class.field-invalid]="!!fieldErrors()['joining_date']"
-                placeholder="dd-mm-yyyy"
                 [value]="joiningDate()"
                 (input)="setField('joining_date', $any($event.target).value)"
+                (change)="setField('joining_date', $any($event.target).value)"
                 (blur)="validateField('joining_date')"
                 required
               />
-              @if (fieldErrors()['joining_date']) { <small class="validation-error">{{ fieldErrors()['joining_date'] }}</small> }
-              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(joiningDateInput)" />
             </div>
+            @if (fieldErrors()['joining_date']) { <small class="validation-error">{{ fieldErrors()['joining_date'] }}</small> }
           </div>
 
           <div class="form-group">
             <label class="form-label" for="start_date">Start date <span class="required">*</span></label>
             <div class="date-input-wrap">
               <input
+                #startDateInput
                 id="start_date"
-                type="text"
+                type="date"
                 class="form-input date-input"
                 [class.field-invalid]="!!fieldErrors()['start_date']"
-                placeholder="dd-mm-yyyy"
                 [value]="startDate()"
                 (input)="setField('start_date', $any($event.target).value)"
+                (change)="setField('start_date', $any($event.target).value)"
                 (blur)="validateField('start_date')"
                 required
               />
-              @if (fieldErrors()['start_date']) { <small class="validation-error">{{ fieldErrors()['start_date'] }}</small> }
-              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(startDateInput)" />
             </div>
+            @if (fieldErrors()['start_date']) { <small class="validation-error">{{ fieldErrors()['start_date'] }}</small> }
           </div>
 
           <div class="form-group">
             <label class="form-label" for="end_date">End date</label>
             <div class="date-input-wrap">
               <input
+                #endDateInput
                 id="end_date"
-                type="text"
+                type="date"
                 class="form-input date-input"
                 [class.field-invalid]="!!fieldErrors()['end_date']"
-                placeholder="dd-mm-yyyy"
                 [value]="endDate()"
                 (input)="setField('end_date', $any($event.target).value)"
+                (change)="setField('end_date', $any($event.target).value)"
                 (blur)="validateField('end_date')"
               />
-              @if (fieldErrors()['end_date']) { <small class="validation-error">{{ fieldErrors()['end_date'] }}</small> }
-              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(endDateInput)" />
             </div>
+            @if (fieldErrors()['end_date']) { <small class="validation-error">{{ fieldErrors()['end_date'] }}</small> }
           </div>
         </div>
       </div>
