@@ -16,10 +16,17 @@
         </button>
       }
 
-      <button type="button" class="btn-delete" (click)="openDeleteConfirm()">
-        <app-icon name="trash" [size]="14" color="#DC2626" />
-        <span>Delete User</span>
-      </button>
+      @if (status() !== 'Inactive' && status() !== 'Deactive') {
+        <button type="button" class="btn-deactivate" (click)="openDeactivateConfirm()" title="Deactivate user account and revoke access">
+          <app-icon name="user-x" [size]="14" color="#DC2626" />
+          <span>Deactivate User</span>
+        </button>
+      } @else {
+        <div class="badge-deactivated" title="Account is inactive">
+          <app-icon name="alert-circle" [size]="14" color="#64748B" />
+          <span>User Inactive</span>
+        </div>
+      }
 
       <a routerLink="/users" class="btn-cancel">Cancel</a>
 
@@ -485,21 +492,23 @@
     }
   </form>
 
-  <!-- Delete User Confirmation Dialog Modal -->
-  @if (showDeleteModal()) {
-    <div class="delete-modal-backdrop" (click)="closeDeleteConfirm()">
+  <!-- Deactivate User Confirmation Dialog Modal -->
+  @if (showDeactivateModal()) {
+    <div class="delete-modal-backdrop" (click)="closeDeactivateConfirm()">
       <div class="delete-modal-dialog" (click)="$event.stopPropagation()">
         <div class="delete-dialog-icon">
-          <app-icon name="trash" [size]="24" color="#DC2626" />
+          <app-icon name="user-x" [size]="24" color="#DC2626" />
         </div>
-        <h3 class="delete-dialog-title">Delete User</h3>
+        <h3 class="delete-dialog-title">Deactivate User</h3>
         <p class="delete-dialog-message">
-          Are you sure you want to delete user <strong>"{{ firstName() }} {{ lastName() }}"</strong>?
-          This action will permanently revoke access and cannot be undone.
+          Are you sure you want to deactivate user <strong>"{{ firstName() }} {{ lastName() }}"</strong>?
+          This will immediately disable their account, revoke all active sessions, and prevent future logins.
         </p>
         <div class="delete-dialog-actions">
-          <button type="button" class="btn-cancel-modal" (click)="closeDeleteConfirm()">Cancel</button>
-          <button type="button" class="btn-confirm-delete" (click)="confirmDelete()">Delete User</button>
+          <button type="button" class="btn-cancel-modal" (click)="closeDeactivateConfirm()">Cancel</button>
+          <button type="button" class="btn-confirm-delete" (click)="confirmDeactivate()" [disabled]="isDeactivating()">
+            {{ isDeactivating() ? 'Deactivating...' : 'Deactivate User' }}
+          </button>
         </div>
       </div>
     </div>

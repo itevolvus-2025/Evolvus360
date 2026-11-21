@@ -62,8 +62,9 @@ export class UserEditComponent implements OnInit {
   readonly employeeDetails = signal<any>(null);
   readonly todayDate = new Date().toISOString().slice(0, 10);
 
-  // Delete Confirmation Modal
-  readonly showDeleteModal = signal(false);
+  // Deactivate Confirmation Modal
+  readonly showDeactivateModal = signal(false);
+  readonly isDeactivating = signal(false);
 
   ngOnInit(): void {
     this.userService.loadMasterData();
@@ -277,19 +278,31 @@ export class UserEditComponent implements OnInit {
     });
   }
 
-  openDeleteConfirm(): void {
-    this.showDeleteModal.set(true);
+  openDeactivateConfirm(): void {
+    this.showDeactivateModal.set(true);
   }
 
-  closeDeleteConfirm(): void {
-    this.showDeleteModal.set(false);
+  closeDeactivateConfirm(): void {
+    this.showDeactivateModal.set(false);
   }
 
-  confirmDelete(): void {
+  confirmDeactivate(): void {
+    const id = this.userId();
     const fullName = [this.firstName(), this.lastName()].filter(Boolean).join(' ') || this.code();
-    this.userService.deleteUser(this.userId());
-    this.showDeleteModal.set(false);
-    this.notification.show(`User "${fullName}" has been deleted.`, 'info');
-    void this.router.navigateByUrl('/users');
+    this.isDeactivating.set(true);
+    this.userService.deactivateEmployee(
+      id,
+      () => {
+        this.isDeactivating.set(false);
+        this.showDeactivateModal.set(false);
+        this.status.set('Inactive');
+        this.notification.show(`User "${fullName}" has been deactivated successfully.`, 'success');
+        void this.router.navigateByUrl('/users');
+      },
+      (errMsg) => {
+        this.isDeactivating.set(false);
+        this.notification.show(errMsg, 'error');
+      }
+    );
   }
 }

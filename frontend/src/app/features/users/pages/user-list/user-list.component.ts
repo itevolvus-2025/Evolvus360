@@ -47,7 +47,8 @@ export class UserListComponent implements OnInit {
   readonly pageSize = signal(10);
 
   // Delete State
-  readonly userToDelete = signal<UserRow | null>(null);
+  readonly userToDeactivate = signal<UserRow | null>(null);
+  readonly isDeactivating = signal(false);
   readonly retryingUserIds = signal<Set<string>>(new Set());
 
   /** Filtered users based on search input and role filter */
@@ -130,20 +131,30 @@ export class UserListComponent implements OnInit {
     this.currentPage.set(target);
   }
 
-  openDeleteModal(user: UserRow): void {
-    this.userToDelete.set(user);
+  openDeactivateModal(user: UserRow): void {
+    this.userToDeactivate.set(user);
   }
 
-  closeDeleteModal(): void {
-    this.userToDelete.set(null);
+  closeDeactivateModal(): void {
+    this.userToDeactivate.set(null);
   }
 
-  confirmDelete(): void {
-    const user = this.userToDelete();
+  confirmDeactivate(): void {
+    const user = this.userToDeactivate();
     if (user) {
-      this.userService.deleteUser(user.id);
-      this.notification.show(`User "${user.name}" has been deleted.`, 'info');
-      this.userToDelete.set(null);
+      this.isDeactivating.set(true);
+      this.userService.deactivateEmployee(
+        user.id,
+        () => {
+          this.isDeactivating.set(false);
+          this.notification.show(`User "${user.name}" has been deactivated successfully.`, 'success');
+          this.userToDeactivate.set(null);
+        },
+        (errMsg) => {
+          this.isDeactivating.set(false);
+          this.notification.show(errMsg, 'error');
+        }
+      );
     }
   }
 

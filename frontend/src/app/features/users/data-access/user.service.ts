@@ -341,6 +341,25 @@ export class UserService {
     );
   }
 
+  deactivateEmployee(id: string | number, onSuccess: () => void, onError: (msg: string) => void): void {
+    if (this.isSaving()) return;
+    this.isSaving.set(true);
+    this.apiService.post(API_ENDPOINTS.users.deactivate(id), {}).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.users.update((list) =>
+          list.map((u) => (String(u.id) === String(id) ? { ...u, status: 'Inactive' as UserStatus } : u))
+        );
+        this.loadUsers();
+        onSuccess();
+      },
+      error: (err) => {
+        this.isSaving.set(false);
+        onError(err.message || 'Could not deactivate user.');
+      },
+    });
+  }
+
   deleteUser(id: number | string): void {
     this.users.update((list) => list.filter((u) => String(u.id) !== String(id)));
   }
