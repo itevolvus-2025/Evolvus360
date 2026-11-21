@@ -267,15 +267,15 @@ export class AuthService {
    * Hardcoded demo user fallback ensuring application functionality when offline or on CORS
    */
   fallbackHardcodedLogin(email: string): { success: boolean } {
-    const isAdmin =
-      email.includes('admin') ||
-      email.includes('asha');
+    const isAdmin = email.toLowerCase().includes('admin');
+    const prefix = email.split('@')[0] || 'User';
+    const displayName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
 
     const hardcodedUser: User = {
       id: isAdmin ? 1 : 2,
-      name: isAdmin ? 'Asha Rao' : 'Meera Iyer',
+      name: displayName,
       email,
-      role: isAdmin ? 'Super Admin' : 'HR Manager',
+      role: isAdmin ? 'Super Admin' : 'Employee',
       token: 'demo-hardcoded-session-token',
       permissions: isAdmin
         ? [
@@ -361,6 +361,53 @@ export class AuthService {
    */
   hasAnyPermission(permissions: string[]): boolean {
     return permissions.some((p) => this.hasPermission(p));
+  }
+
+  /**
+   * Request password recovery link for registered user account (POST /api/v1/auth/forgot-password)
+   */
+  forgotPassword(email: string): Observable<{ success: boolean; message: string; data?: any }> {
+    const trimmedEmail = email.trim().toLowerCase();
+    return this.apiService
+      .post<any>(API_ENDPOINTS.auth.forgotPassword, { email: trimmedEmail })
+      .pipe(
+        map((res) => ({
+          success: true,
+          message: res?.message || 'Password reset instructions have been sent.',
+          data: res?.data,
+        })),
+        catchError((err: Error) => {
+          return of({
+            success: false,
+            message: err.message || 'Unable to process password recovery request. Please check your email.',
+          });
+        })
+      );
+  }
+
+  /**
+   * Submit new password using single-use reset token (POST /api/v1/auth/reset-password)
+   */
+  resetPassword(payload: {
+    token: string;
+    email?: string;
+    new_password: string;
+    confirm_password: string;
+  }): Observable<{ success: boolean; message: string }> {
+    return this.apiService
+      .post<void>(API_ENDPOINTS.auth.resetPassword, payload)
+      .pipe(
+        map((res) => ({
+          success: true,
+          message: res?.message || 'Password reset successful. You can now sign in with your new password.',
+        })),
+        catchError((err: Error) => {
+          return of({
+            success: false,
+            message: err.message || 'Password reset failed. The link may have expired or is invalid.',
+          });
+        })
+      );
   }
 
   getAccessToken(): string | null {

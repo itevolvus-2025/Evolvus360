@@ -18,18 +18,22 @@
   .topbar-inner {
     max-width: 1140px;
     margin: 0 auto;
-    padding: 12px 24px;
+    padding: 16px 24px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .topbar-brand-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .topbar-main-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-    flex-wrap: wrap;
-  }
-
-  .topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 24px;
     flex-wrap: wrap;
   }
 
@@ -56,7 +60,7 @@
   }
 
   .page-title {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     color: #0f172a;
     margin: 0;
@@ -116,6 +120,11 @@
         background: #ffffff;
       }
     }
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
   }
 
   .btn-submit-top {

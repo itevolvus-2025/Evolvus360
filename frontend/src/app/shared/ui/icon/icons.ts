@@ -148,10 +148,11 @@ export const APP_ICONS: Record<string, string> = {
 <polyline points="22,6 12,13 2,6"></polyline>
 </svg>`,
 
-  lock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-</svg>`,
+  lock: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.33333 7.33331H12.6667C13.4026 7.33331 14 7.93076 14 8.66665V13.3333C14 14.0692 13.4026 14.6666 12.6667 14.6666H3.33333C2.59745 14.6666 2 14.0692 2 13.3333V8.66665C2 7.93076 2.59745 7.33331 3.33333 7.33331V7.33331" stroke-width="1.33333" stroke="currentColor"/>
+<path d="M4.66675 7.33331V4.66665C4.66675 2.82693 6.16036 1.33331 8.00008 1.33331C9.8398 1.33331 11.3334 2.82693 11.3334 4.66665V7.33331" stroke-width="1.33333" stroke="currentColor"/>
+</svg>
+`,
 
   eye: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M10.0009 13.6083C8.00924 13.6083 6.39258 11.9916 6.39258 9.99993C6.39258 8.00827 8.00924 6.3916 10.0009 6.3916C11.9926 6.3916 13.6092 8.00827 13.6092 9.99993C13.6092 11.9916 11.9926 13.6083 10.0009 13.6083ZM10.0009 7.6416C8.70091 7.6416 7.64258 8.69993 7.64258 9.99993C7.64258 11.2999 8.70091 12.3583 10.0009 12.3583C11.3009 12.3583 12.3592 11.2999 12.3592 9.99993C12.3592 8.69993 11.3009 7.6416 10.0009 7.6416Z" fill="currentColor"/>
