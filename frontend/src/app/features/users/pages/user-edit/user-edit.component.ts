@@ -70,6 +70,8 @@ export class UserEditComponent implements OnInit {
 
       this.userService.getEmployee(id, (existing) => {
         this.populateFields(existing);
+      }, (message) => {
+        this.notification.show(message, 'error');
       });
     }
   }
@@ -110,12 +112,10 @@ export class UserEditComponent implements OnInit {
     const department = this.department().trim();
     const role = this.role().trim();
     const designation = this.designation().trim();
-    const code = this.code().trim();
     const companyEmail = this.companyEmail().trim();
     const personalEmail = this.personalEmail().trim();
     const joiningDate = this.joiningDate().trim();
     const startDate = this.startDate().trim();
-    const reasonForChange = this.reasonForChange().trim();
 
     if (!firstName) {
       this.notification.show('First name is mandatory', 'error');
@@ -142,17 +142,12 @@ export class UserEditComponent implements OnInit {
       return;
     }
 
-    if (!code) {
-      this.notification.show('User/Employee code is mandatory', 'error');
-      return;
-    }
-
     if (!personalEmail) {
       this.notification.show('Personal email is mandatory', 'error');
       return;
     }
 
-    if (!reasonForChange) {
+    if (!this.reasonForChange().trim()) {
       this.notification.show('Reason for change is mandatory', 'error');
       return;
     }
@@ -175,7 +170,7 @@ export class UserEditComponent implements OnInit {
     const id = this.userId();
     const fullName = [firstName, lastName].filter(Boolean).join(' ');
 
-    // Check if id is a backend UUID
+    // Every persisted user must be updated through the backend API.
     const isBackendUuid = typeof id === 'string' && id.includes('-') && id.length >= 32;
 
     if (isBackendUuid) {
@@ -187,6 +182,7 @@ export class UserEditComponent implements OnInit {
         first_name: firstName,
         middle_name: this.middleName().trim() || null,
         last_name: lastName,
+        reason_for_change: this.reasonForChange().trim(),
         department_id: deptOption?.id || (department.includes('-') ? department : undefined),
         role_id: roleOption?.id || (role.includes('-') ? role : undefined),
         entity_id: entityOption?.id || (this.entity().includes('-') ? this.entity() : undefined),
@@ -198,6 +194,11 @@ export class UserEditComponent implements OnInit {
         joining_date: parseDate(joiningDate),
         start_date: parseDate(startDate),
         end_date: this.endDate().trim() ? parseDate(this.endDate().trim()) : null,
+        account_status: this.status() === 'Active'
+          ? 'ACTIVE'
+          : this.status() === 'Pending'
+            ? 'INVITED'
+            : 'INACTIVE',
       }, () => {
         this.notification.show(`User "${fullName}" updated successfully!`, 'success');
         void this.router.navigateByUrl('/users');
@@ -207,31 +208,7 @@ export class UserEditComponent implements OnInit {
       return;
     }
 
-    // Local update fallback
-    this.userService.updateUser(this.userId(), {
-      firstName,
-      middleName: this.middleName().trim(),
-      lastName,
-      department,
-      role,
-      designation,
-      location: this.location(),
-      entity: this.entity(),
-      code,
-      companyEmail,
-      personalEmail,
-      email: companyEmail,
-      pfApplicable: this.pfApplicable(),
-      status: this.status(),
-      profile: this.profile(),
-      reasonForChange,
-      joiningDate,
-      startDate,
-      endDate: this.endDate().trim(),
-    });
-
-    this.notification.show(`User "${fullName}" updated successfully!`, 'success');
-    void this.router.navigateByUrl('/users');
+    this.notification.show('This user does not have a valid server ID and cannot be saved.', 'error');
   }
 
   sendInvitationEmail(): void {

@@ -32,6 +32,8 @@ from app.models.hrms import (
     EmployeeSkillsAndInterests,
     Entity,
     OnboardingInvitation,
+    PasswordResetToken,
+    RefreshTokenSession,
     Role,
     User,
     UserRole,
@@ -1327,6 +1329,7 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
             else None
         ),
         "employee_code": employee.employee_code,
+        "reason_for_change": employee.last_change_reason,
         "location": employee.work_location,
         "company_email": employee.company_email,
         "personal_email": employee.personal_email,
@@ -1427,6 +1430,7 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
             "pf_applicable",
             "joining_date",
             "start_date",
+            "account_status",
         }
         if any(name in values and values[name] is None for name in required_fields):
             raise HTTPException(
@@ -1508,6 +1512,12 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
                     model_name,
                     value.strip() if isinstance(value, str) else value,
                 )
+        if "reason_for_change" in values:
+            employee.last_change_reason = (
+                values["reason_for_change"].strip()
+                if values["reason_for_change"]
+                else None
+            )
         if "company_email" in values:
             email = (
                 normalize_email(str(values["company_email"]))
@@ -1566,6 +1576,36 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "Start date must be on or after joining date",
             )
+        if "account_status" in values:
+            next_status = values["account_status"]
+            if next_status == "ACTIVE" and employee.profile_status != "APPROVED":
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    "Employee profile must be approved before activating the account",
+                )
+            user.account_status = next_status
+            user.is_active = next_status != "INACTIVE"
+            if next_status != "ACTIVE":
+                now = datetime.now(UTC)
+                db.query(RefreshTokenSession).filter(
+                    RefreshTokenSession.user_id == user.id,
+                    RefreshTokenSession.revoked_at.is_(None),
+                ).update(
+                    {RefreshTokenSession.revoked_at: now},
+                    synchronize_session=False,
+                )
+                db.query(PasswordResetToken).filter(
+                    PasswordResetToken.user_id == user.id,
+                    PasswordResetToken.used_at.is_(None),
+                    PasswordResetToken.revoked_at.is_(None),
+                ).update(
+                    {PasswordResetToken.revoked_at: now},
+                    synchronize_session=False,
+                )
+                if user.employee and user.employee.invitation:
+                    invitation = user.employee.invitation
+                    if invitation.invitation_status in {"PENDING", "SENT"}:
+                        invitation.invitation_status = "REVOKED"
         if (
             employee.employment_end_date
             and employee.employment_end_date < employee.employment_start_date
@@ -1585,6 +1625,40 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
     except BaseException:
         db.rollback()
         raise
+
+
+def deactivate_user(db: Session, user_id: UUID) -> dict:
+    """Disable an account and revoke every outstanding authentication credential."""
+    user = db.scalar(
+        select(User)
+        .where(User.id == user_id, User.deleted_at.is_(None))
+        .with_for_update()
+    )
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
+    now = datetime.now(UTC)
+    user.is_active = False
+    user.account_status = "INACTIVE"
+    db.query(RefreshTokenSession).filter(
+        RefreshTokenSession.user_id == user.id,
+        RefreshTokenSession.revoked_at.is_(None),
+    ).update({RefreshTokenSession.revoked_at: now}, synchronize_session=False)
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.used_at.is_(None),
+        PasswordResetToken.revoked_at.is_(None),
+    ).update({PasswordResetToken.revoked_at: now}, synchronize_session=False)
+    if user.employee and user.employee.invitation:
+        invitation = user.employee.invitation
+        if invitation.invitation_status in {"PENDING", "SENT"}:
+            invitation.invitation_status = "REVOKED"
+    db.commit()
+    return {
+        "id": str(user.id),
+        "account_status": user.account_status,
+        "is_active": user.is_active,
+    }
 
 
 def approve_employee(db: Session, actor: User, user_id: UUID) -> dict:

@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 import re
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictBool, field_validator
@@ -109,7 +110,10 @@ class EmployeeUpdate(BaseModel):
     joining_date: date | None = None
     start_date: date | None = None
     end_date: date | None = None
-
+    account_status: Literal[
+        "ACTIVE", "INACTIVE", "INVITED", "PENDING_APPROVAL", "LOCKED"
+    ] | None = None
+    reason_for_change: str | None = Field(default=None, max_length=1000)
 
 class InvitationTokenRequest(BaseModel):
     token: str = Field(min_length=32, max_length=256)
