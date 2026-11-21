@@ -52,6 +52,7 @@ export class RoleManagementComponent implements OnInit {
 
   /** Live dataset from RoleService */
   readonly roles = this.roleService.roles;
+  readonly totalRoleCount = this.roleService.totalRoleCount;
 
   /** Filtered roles (ensuring roles always display for user browsing) */
   readonly filteredRoles = computed(() => {

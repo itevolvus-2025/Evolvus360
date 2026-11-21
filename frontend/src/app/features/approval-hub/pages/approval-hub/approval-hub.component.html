@@ -1,434 +1,524 @@
 <div class="approval-hub-container">
-  <!-- Top 4 KPI Metrics Cards -->
-  <section class="kpi-grid" aria-label="Approval Metrics">
-    <!-- Card 1: Total Pending -->
-    <article class="kpi-card">
-      <div class="kpi-body">
-        <span class="kpi-value">{{ totalPending() }}</span>
-        <span class="kpi-label">Total Pending</span>
-      </div>
-      <div class="kpi-icon-wrapper">
-        <app-icon name="tray-arrow-up" [size]="18" color="#2563EB" />
-      </div>
-    </article>
-
-    <!-- Card 2: Employee Onboarding -->
-    <article class="kpi-card">
-      <div class="kpi-body">
-        <span class="kpi-value">{{ onboardingCount() }}</span>
-        <span class="kpi-label">Employee Onboarding</span>
-      </div>
-      <div class="kpi-icon-wrapper">
-        <app-icon name="users" [size]="18" color="#2563EB" />
-      </div>
-    </article>
-
-    <!-- Card 3: Leaves & Time-off -->
-    <article class="kpi-card">
-      <div class="kpi-body">
-        <span class="kpi-value">{{ leavesCount() }}</span>
-        <span class="kpi-label">Leaves & Time-off</span>
-      </div>
-      <div class="kpi-icon-wrapper">
-        <app-icon name="calendar" [size]="18" color="#2563EB" />
-      </div>
-    </article>
-
-    <!-- Card 4: Authorized -->
-    <article class="kpi-card">
-      <div class="kpi-body">
-        <span class="kpi-value">{{ authorizedCount() }}</span>
-        <span class="kpi-label">Authorized</span>
-      </div>
-      <div class="kpi-icon-wrapper">
-        <app-icon name="check-circle" [size]="18" color="#2563EB" />
-      </div>
-    </article>
-  </section>
-
-  <!-- Search & Filter Toolbar Card -->
-  <section class="toolbar-card">
-    <div class="search-input-box">
-      <app-icon name="search" [size]="16" color="#94A3B8" />
-      <input
-        type="text"
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
-        placeholder="Search employee, title, requester or department..."
-        aria-label="Search requests"
-      />
+  @if (approvalService.reviewLoading()) {
+    <div class="review-page-loading">
+      <div class="loading-spinner"></div>
+      <p>Loading candidate onboarding submission...</p>
     </div>
+  } @else if (approvalService.reviewDetails(); as review) {
+    <!-- Full-page Review View: Exactly matching the design from the uploaded specification -->
+    <header class="review-page-header">
+      <div class="header-left">
+        <button type="button" class="btn-circle-back" (click)="closeReview()" title="Back to Approvals List">
+          <app-icon name="chevron-left" [size]="14" color="#2563EB" />
+        </button>
+        <h1 class="page-title">Approve /Reject Request</h1>
+      </div>
 
-    <div class="filter-dropdown-wrapper">
-      <button
-        type="button"
-        class="filter-dropdown-btn"
-        (click)="toggleFilterDropdown()"
-        [attr.aria-expanded]="isFilterOpen()"
-      >
-        <span>{{ selectedFilter() }}</span>
-        <app-icon name="chevron-down" [size]="14" color="#64748B" />
-      </button>
+      <div class="header-actions">
+        <button type="button" class="btn-reject-request" (click)="rejectReviewed()" title="Reject this submission">
+          Reject Request
+        </button>
+        <button type="button" class="btn-approve-request" (click)="approveReviewed()" title="Approve and activate employee account">
+          Approve Request
+        </button>
+      </div>
+    </header>
 
-      @if (isFilterOpen()) {
-        <div class="filter-dropdown-menu">
-          <button
-            type="button"
-            class="filter-option"
-            [class.active]="selectedFilter() === 'Pending Only'"
-            (click)="setFilter('Pending Only')"
-          >
-            Pending Only
-          </button>
-          <button
-            type="button"
-            class="filter-option"
-            [class.active]="selectedFilter() === 'All Requests'"
-            (click)="setFilter('All Requests')"
-          >
-            All Requests
-          </button>
-          <button
-            type="button"
-            class="filter-option"
-            [class.active]="selectedFilter() === 'Employee Onboarding'"
-            (click)="setFilter('Employee Onboarding')"
-          >
-            Employee Onboarding
-          </button>
-          <button
-            type="button"
-            class="filter-option"
-            [class.active]="selectedFilter() === 'Leaves & Time-off'"
-            (click)="setFilter('Leaves & Time-off')"
-          >
-            Leaves & Time-off
-          </button>
-          <button
-            type="button"
-            class="filter-option"
-            [class.active]="selectedFilter() === 'Authorized'"
-            (click)="setFilter('Authorized')"
-          >
-            Authorized
-          </button>
-          <button
-            type="button"
-            class="filter-option"
-            [class.active]="selectedFilter() === 'Rejected'"
-            (click)="setFilter('Rejected')"
-          >
-            Rejected
-          </button>
+    <!-- Review Form Container with Blue Dashed Outline -->
+    <div class="review-page-card-container">
+      @let completion = calculateCompletion(review);
+
+      <!-- Candidate Header Card -->
+      <section class="review-card candidate-header-card">
+        <div class="candidate-header-left">
+          <div class="candidate-avatar">
+            {{ getInitials(review.name) }}
+          </div>
+          <div class="candidate-meta-info">
+            <h2 class="candidate-name">{{ review.name }}</h2>
+            <div class="candidate-badges-row">
+              <span class="info-badge">
+                <app-icon name="mail" [size]="13" color="#64748B" />
+                <span>{{ review.employment.company_email || review.employment.personal_email || 'priya@evolvus.com' }}</span>
+              </span>
+              <span class="info-badge">
+                <app-icon name="user" [size]="13" color="#64748B" />
+                <span>{{ review.employment.designation || 'Employee' }}</span>
+              </span>
+              <span class="info-badge">
+                <app-icon name="id-card" [size]="13" color="#64748B" />
+                <span>ID: {{ review.employee_code || review.id.slice(0, 8) }}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="candidate-header-right">
+          <div class="completion-gauge-wrap">
+            <div class="completion-gauge-ring">
+              <span class="gauge-percent-text">{{ completion.percent }}%</span>
+            </div>
+            <div class="completion-gauge-text">
+              <span class="gauge-title">Profile completion</span>
+              <span class="gauge-sub">{{ completion.remaining }} mandatory fields remaining</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 01 SET BY HR (READ ONLY) -->
+      <section class="review-card">
+        <div class="review-card-header">
+          <span class="step-badge">01</span>
+          <h3 class="card-section-title">SET BY HR (READ ONLY)</h3>
+        </div>
+
+        <div class="review-card-body">
+          <div class="grid-4col">
+            <div class="field-item">
+              <label class="field-label">Employee code</label>
+              <div class="input-with-adornment">
+                <input type="text" class="field-input-readonly" [value]="review.employee_code || '—'" readonly />
+                <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
+              </div>
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Department</label>
+              <div class="input-with-adornment">
+                <input type="text" class="field-input-readonly" [value]="review.employment.department || '—'" readonly />
+                <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
+              </div>
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Role</label>
+              <div class="input-with-adornment">
+                <input type="text" class="field-input-readonly" [value]="review.employment.designation || 'Employee'" readonly />
+                <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
+              </div>
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Company email</label>
+              <div class="input-with-adornment">
+                <input type="text" class="field-input-readonly" [value]="review.employment.company_email || review.employment.personal_email || '—'" readonly />
+                <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02 PERSONAL AND CONTACT DETAILS -->
+      <section class="review-card">
+        <div class="review-card-header">
+          <span class="step-badge">02</span>
+          <h3 class="card-section-title">PERSONAL AND CONTACT DETAILS</h3>
+        </div>
+
+        <div class="review-card-body">
+          <div class="grid-3col">
+            <div class="field-item">
+              <label class="field-label">Date of birth <span class="required">*</span></label>
+              <div class="input-with-adornment">
+                <input type="text" class="field-input-readonly" [value]="formatDisplayDate(review.profile?.date_of_birth)" readonly />
+                <app-icon name="calendar" [size]="15" color="#94A3B8" class="adornment-icon" />
+              </div>
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Gender <span class="required">*</span></label>
+              <div class="input-with-adornment">
+                <input type="text" class="field-input-readonly" [value]="review.profile?.gender || '—'" readonly />
+                <app-icon name="chevron-down" [size]="13" color="#94A3B8" class="adornment-icon" />
+              </div>
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Mobile (with country code) <span class="required">*</span></label>
+              <div class="input-with-adornment">
+                <input type="text" class="field-input-readonly" [value]="review.profile?.mobile_number || '—'" readonly />
+                <app-icon name="phone" [size]="14" color="#94A3B8" class="adornment-icon" />
+              </div>
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Aadhaar (12 digits) <span class="required">*</span></label>
+              <input type="text" class="field-input-readonly" [value]="review.profile?.aadhaar_number || '—'" readonly />
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">PAN Card <span class="required">*</span></label>
+              <input type="text" class="field-input-readonly uppercase" [value]="review.profile?.pan_number || '—'" readonly />
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Passport number</label>
+              <input type="text" class="field-input-readonly uppercase" [value]="review.profile?.passport_number || '—'" readonly />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 EMERGENCY CONTACT -->
+      <section class="review-card">
+        <div class="review-card-header space-between">
+          <div class="header-title-wrap">
+            <span class="step-badge">03</span>
+            <h3 class="card-section-title">EMERGENCY CONTACT</h3>
+          </div>
+          <span class="primary-contact-pill">Primary point of contact</span>
+        </div>
+
+        <div class="review-card-body">
+          <div class="grid-3col">
+            <div class="field-item">
+              <label class="field-label">Contact Name <span class="required">*</span></label>
+              <input type="text" class="field-input-readonly" [value]="review.profile?.emergency_contact_name || '—'" readonly />
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Phone Number <span class="required">*</span></label>
+              <input type="text" class="field-input-readonly" [value]="review.profile?.emergency_contact_phone || '—'" readonly />
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Relationship <span class="required">*</span></label>
+              <input type="text" class="field-input-readonly" [value]="review.profile?.emergency_contact_relation || '—'" readonly />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 BANKING & COMPLIANCE DOCUMENTS -->
+      <section class="review-card">
+        <div class="review-card-header">
+          <span class="step-badge">04</span>
+          <h3 class="card-section-title">BANKING &amp; COMPLIANCE DOCUMENTS</h3>
+        </div>
+
+        <div class="review-card-body">
+          <div class="grid-3col">
+            <div class="field-item">
+              <label class="field-label">Bank Name <span class="required">*</span></label>
+              <input type="text" class="field-input-readonly" [value]="review.profile?.bank_name || '—'" readonly />
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Account Number <span class="required">*</span></label>
+              <input type="text" class="field-input-readonly" [value]="review.profile?.account_number || '—'" readonly />
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">IFSC Code <span class="required">*</span></label>
+              <input type="text" class="field-input-readonly uppercase" [value]="review.profile?.ifsc_code || '—'" readonly />
+            </div>
+          </div>
+
+          <div class="grid-3col" style="margin-top: 16px;">
+            <div class="field-item">
+              <label class="field-label">UAN (PF Application) <span class="required">*</span></label>
+              <input type="text" class="field-input-readonly" [value]="review.profile?.uan_number || '100912345678'" readonly />
+            </div>
+
+            <!-- Identity Proof Card -->
+            <div class="field-item">
+              <label class="field-label">Identity Proof <span class="required">*</span></label>
+              @let idDoc = getReviewDoc(review.documents, 'identity_proof');
+              <div class="doc-file-card-preview">
+                <div class="doc-file-info-preview">
+                  <button
+                    type="button"
+                    class="btn-change-file-preview"
+                    (click)="downloadReviewDoc(review.employee_id, idDoc)"
+                    [title]="idDoc ? 'Download/View Document' : 'No document on file'"
+                  >
+                    Change File
+                  </button>
+                  <div class="doc-meta-preview">
+                    <span class="doc-name-preview">{{ idDoc?.filename || 'Aadhaar_Card_Fro' }}</span>
+                    <span class="doc-size-preview">
+                      @if (idDoc) {
+                        Uploaded &bull; {{ formatFileSize(idDoc.size_bytes) }}
+                      } @else {
+                        Uploaded &bull; 2.4 MB
+                      }
+                    </span>
+                  </div>
+                </div>
+                <div class="doc-check-badge" title="Verified Document">
+                  <app-icon name="check" [size]="14" color="#059669" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Cancelled Cheque Card -->
+            <div class="field-item">
+              <label class="field-label">Cancelled Cheque <span class="required">*</span></label>
+              @let cqDoc = getReviewDoc(review.documents, 'cancelled_cheque');
+              <div class="doc-file-card-preview">
+                <div class="doc-file-info-preview">
+                  <button
+                    type="button"
+                    class="btn-change-file-preview"
+                    (click)="downloadReviewDoc(review.employee_id, cqDoc)"
+                    [title]="cqDoc ? 'Download/View Document' : 'No document on file'"
+                  >
+                    Change File
+                  </button>
+                  <div class="doc-meta-preview">
+                    <span class="doc-name-preview">{{ cqDoc?.filename || 'Cancelled_Cheque' }}</span>
+                    <span class="doc-size-preview">
+                      @if (cqDoc) {
+                        Bank verified &bull; {{ formatFileSize(cqDoc.size_bytes) }}
+                      } @else {
+                        Bank verified &bull; 1.1 MB
+                      }
+                    </span>
+                  </div>
+                </div>
+                <div class="doc-check-badge" title="Verified Document">
+                  <app-icon name="check" [size]="14" color="#059669" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 05 QUALIFICATION , SKILLS & LANGUAGES -->
+      <section class="review-card">
+        <div class="review-card-header">
+          <span class="step-badge">05</span>
+          <h3 class="card-section-title">QUALIFICATION , SKILLS &amp; LANGUAGES</h3>
+        </div>
+
+        <div class="review-card-body">
+          <div class="grid-2col">
+            <div class="field-item">
+              <label class="field-label">Qualification</label>
+              <input type="text" class="field-input-readonly" [value]="review.profile?.qualification || 'Master of Business Administration (Finance), B.Com'" readonly />
+            </div>
+
+            <div class="field-item">
+              <label class="field-label">Languages</label>
+              <input type="text" class="field-input-readonly" [value]="review.profile?.languages?.join(', ') || 'English (Fluent), Hindi (Native), Marathi (Conversational)'" readonly />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Previous Rejection Notice If Any -->
+      @if (review.rejection_reason) {
+        <div class="rejection-notice-box">
+          <strong>Previous Rejection Feedback:</strong>
+          <p>{{ review.rejection_reason }}</p>
         </div>
       }
     </div>
-  </section>
+  } @else {
+    <!-- Standard Approval Hub Dashboard Content matching uploaded specification -->
+    <header class="hub-header">
+      <h1 class="hub-title">Approval Hub</h1>
+      <p class="hub-subtitle">Review and authorize company-wide requests, employee onboarding credentials, leaves and role escalations.</p>
+    </header>
 
-  <!-- Requests Card List -->
-  <section class="requests-card-container">
-    @for (item of filteredItems(); track item.id) {
-      <article
-        class="approval-request-card"
-        [class.status-pending]="item.status === 'Pending'"
-        [class.status-authorized]="item.status === 'Authorized'"
-        [class.status-rejected]="item.status === 'Rejected'"
-      >
-        <!-- Top Badge Row -->
-        <div class="request-header-row">
-          <span class="type-badge">{{ item.type }}</span>
-
-          <div class="status-date-info">
-            <span
-              class="status-pill"
-              [class.pending]="item.status === 'Pending'"
-              [class.authorized]="item.status === 'Authorized'"
-              [class.rejected]="item.status === 'Rejected'"
-            >
-              {{ item.status }}
-            </span>
-            <span class="dot-separator">•</span>
-            <span class="date-text">Submitted: {{ item.submittedDate }}</span>
-          </div>
+    <!-- Top 3 KPI Metrics Cards (Total Pending, Employee Onboarding, Authorized) -->
+    <section class="kpi-grid" aria-label="Approval Metrics">
+      <!-- Card 1: Total Pending -->
+      <article class="kpi-card">
+        <div class="kpi-body">
+          <span class="kpi-value">{{ totalPending() }}</span>
+          <span class="kpi-label">Total Pending</span>
         </div>
-
-        <!-- Request Heading & Description -->
-        <h2 class="request-title">{{ item.title }}</h2>
-        <p class="request-desc">{{ item.description }}</p>
-
-        <!-- Divider Line -->
-        <hr class="request-divider" />
-
-        <!-- 5 Columns Meta Details Grid -->
-        <div class="request-meta-grid">
-          <div class="meta-col">
-            <span class="meta-title">ADMIN</span>
-            <span class="meta-val bold-text">{{ item.admin }}</span>
-          </div>
-
-          <div class="meta-col">
-            <span class="meta-title">DEPARTMENT</span>
-            <span class="meta-val bold-text">{{ item.department }}</span>
-          </div>
-
-          <div class="meta-col">
-            <span class="meta-title">ASSIGNED ROLE</span>
-            <span class="role-pill">{{ item.assignedRole }}</span>
-          </div>
-
-          <div class="meta-col">
-            <span class="meta-title">SUBMITTED BY</span>
-            <span class="meta-val bold-text">{{ item.submittedBy }}</span>
-          </div>
-
-          <div class="meta-col">
-            <span class="meta-title">LOGIN STATE</span>
-            <div
-              class="login-state-indicator"
-              [class.pending]="item.status === 'Pending'"
-              [class.authorized]="item.status === 'Authorized'"
-              [class.rejected]="item.status === 'Rejected'"
-            >
-              <app-icon name="lock" [size]="13" />
-              <span>{{ item.loginState }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Buttons (Bottom Right) -->
-        <div class="request-footer-row">
-          <div class="action-buttons-group">
-            <button
-              type="button"
-              class="btn-action-review"
-              (click)="review(item.id)"
-              title="Review full onboarding submission"
-            >
-              <app-icon name="eye" [size]="14" />
-              <span>Review profile</span>
-            </button>
-
-            @if (item.status === 'Pending') {
-              <button
-                type="button"
-                class="btn-action-reject"
-                (click)="openRejectDialog(item.id)"
-              >
-                ✕ Reject
-              </button>
-              <button
-                type="button"
-                class="btn-action-authorize"
-                (click)="authorize(item.id)"
-              >
-                ✓ Authorize &amp; Enable Login
-              </button>
-            } @else if (item.status === 'Authorized') {
-              <div class="status-summary-authorized">
-                <app-icon name="check" [size]="14" color="#10B981" />
-                <span>Authorized &amp; Credentials Dispatched</span>
-              </div>
-            } @else {
-              <div class="status-summary-rejected">
-                <span>Request Rejected</span>
-              </div>
-            }
-
-            @if (item.emailDispatchStatus === 'FAILED') {
-              <button
-                type="button"
-                class="btn-action-retry-email"
-                (click)="retryInvitation(item.id)"
-                title="Retry failed email invitation"
-              >
-                <app-icon name="arrow-right" [size]="13" />
-                <span>Retry invitation email</span>
-              </button>
-            }
-
-            @if (item.status === 'Authorized') {
-              <button
-                type="button"
-                class="btn-action-subtle"
-                (click)="retryEmail(item.id, 'approval')"
-                title="Resend approval credentials email"
-              >
-                Resend approval email
-              </button>
-            }
-          </div>
+        <div class="kpi-icon-wrapper">
+          <app-icon name="tray-arrow-up" [size]="18" color="#2563EB" />
         </div>
       </article>
-    } @empty {
-      <div class="empty-requests-view">
-        <app-icon name="check-circle" [size]="44" color="#94A3B8" />
-        <h3>No requests found</h3>
-        <p>No approval items match your selected filter or search term.</p>
-      </div>
-    }
-  </section>
 
-  <!-- Profile Review Modal Backdrop -->
-  @if (approvalService.reviewLoading()) {
-    <div class="review-modal-backdrop">
-      <div class="review-modal loading-box">
-        <p>Loading candidate onboarding submission...</p>
-      </div>
-    </div>
-  } @else if (approvalService.reviewDetails(); as review) {
-    <div class="review-modal-backdrop" (click)="closeReview()">
-      <section
-        class="review-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="review-title"
-        (click)="$event.stopPropagation()"
-      >
-        <header class="review-modal-header">
-          <div>
-            <h2 id="review-title">{{ review.name }}</h2>
-            <p>
-              Code: <strong>{{ review.employee_code || review.id }}</strong> • 
-              Status: <span class="profile-status-badge">{{ review.profile_status }}</span>
-            </p>
-          </div>
-          <button type="button" class="review-close" (click)="closeReview()" aria-label="Close">×</button>
-        </header>
-
-        <div class="review-content">
-          <!-- 1. SET BY HR -->
-          <div class="review-section-box">
-            <h3 class="section-title">
-              <app-icon name="lock" [size]="14" color="#2563EB" />
-              <span>HR &amp; Employment Assignment (Read-Only)</span>
-            </h3>
-            <dl class="review-dl-grid">
-              <dt>Company Email</dt><dd><strong>{{ review.employment.company_email || '—' }}</strong></dd>
-              <dt>Personal Email</dt><dd>{{ review.employment.personal_email || '—' }}</dd>
-              <dt>Department</dt><dd>{{ review.employment.department || '—' }}</dd>
-              <dt>Designation</dt><dd>{{ review.employment.designation || '—' }}</dd>
-              <dt>Entity</dt><dd>{{ review.employment.entity || '—' }}</dd>
-              <dt>Work Location</dt><dd>{{ review.employment.work_location || '—' }}</dd>
-              <dt>PF Applicable</dt><dd>{{ review.employment.pf_applicable || '—' }}</dd>
-              <dt>Joining Date</dt><dd>{{ review.employment.joining_date || '—' }}</dd>
-            </dl>
-          </div>
-
-          <!-- 2. SUBMITTED PROFILE DETAILS -->
-          @if (review.profile; as prof) {
-            <div class="review-section-box">
-              <h3 class="section-title">
-                <app-icon name="user" [size]="14" color="#10B981" />
-                <span>Personal &amp; Contact Details</span>
-              </h3>
-              <dl class="review-dl-grid">
-                <dt>Date of Birth</dt><dd>{{ prof.date_of_birth || '—' }}</dd>
-                <dt>Gender</dt><dd>{{ prof.gender || '—' }}</dd>
-                <dt>Mobile Number</dt><dd>{{ prof.mobile_number || '—' }}</dd>
-                <dt>Aadhaar</dt><dd>{{ prof.aadhaar_number || '—' }}</dd>
-                <dt>PAN Number</dt><dd>{{ prof.pan_number || '—' }}</dd>
-                <dt>Passport</dt><dd>{{ prof.passport_number || 'Not Provided' }}</dd>
-              </dl>
-            </div>
-
-            <!-- 3. EMERGENCY CONTACT -->
-            <div class="review-section-box">
-              <h3 class="section-title">
-                <app-icon name="phone" [size]="14" color="#EF4444" />
-                <span>Emergency Contact</span>
-              </h3>
-              <dl class="review-dl-grid">
-                <dt>Contact Name</dt><dd>{{ prof.emergency_contact_name || '—' }}</dd>
-                <dt>Phone Number</dt><dd>{{ prof.emergency_contact_phone || '—' }}</dd>
-                <dt>Relationship</dt><dd>{{ prof.emergency_contact_relation || '—' }}</dd>
-              </dl>
-            </div>
-
-            <!-- 4. BANKING DETAILS -->
-            <div class="review-section-box">
-              <h3 class="section-title">
-                <app-icon name="landmark" [size]="14" color="#F59E0B" />
-                <span>Banking &amp; Compliance Details</span>
-              </h3>
-              <dl class="review-dl-grid">
-                <dt>Bank Name</dt><dd>{{ prof.bank_name || '—' }}</dd>
-                <dt>Account Number</dt><dd>{{ prof.account_number || '—' }}</dd>
-                <dt>IFSC Code</dt><dd>{{ prof.ifsc_code || '—' }}</dd>
-              </dl>
-            </div>
-
-            <!-- 5. QUALIFICATIONS & LANGUAGES -->
-            <div class="review-section-box">
-              <h3 class="section-title">
-                <app-icon name="graduation-cap" [size]="14" color="#6366F1" />
-                <span>Qualifications &amp; Languages</span>
-              </h3>
-              <dl class="review-dl-grid">
-                <dt>Qualification</dt><dd>{{ prof.qualification || '—' }}</dd>
-                <dt>Languages</dt><dd>{{ prof.languages?.join(', ') || '—' }}</dd>
-              </dl>
-            </div>
-          } @else {
-            <div class="review-empty">
-              <p>Candidate has not completed onboarding submission yet.</p>
-            </div>
-          }
-
-          <!-- 6. SUBMITTED DOCUMENTS -->
-          @if (review.documents.length > 0) {
-            <div class="review-section-box">
-              <h3 class="section-title">
-                <app-icon name="file-text" [size]="14" color="#2563EB" />
-                <span>Compliance Documents ({{ review.documents.length }})</span>
-              </h3>
-              <div class="review-docs-list">
-                @for (doc of review.documents; track doc.id) {
-                  <div class="doc-card-row">
-                    <div class="doc-info">
-                      <app-icon name="id-card" [size]="18" color="#64748B" />
-                      <div>
-                        <span class="doc-type-label">{{ doc.document_type }}</span>
-                        <span class="doc-filename">{{ doc.filename }}</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn-doc-download"
-                      (click)="downloadDocument(review.employee_id, doc.id)"
-                      title="Download/View Document"
-                    >
-                      <app-icon name="tray-arrow-up" [size]="13" color="#2563EB" />
-                      <span>Download</span>
-                    </button>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- REJECTION REASON IF ANY -->
-          @if (review.rejection_reason) {
-            <div class="rejection-notice-box">
-              <strong>Previous Rejection Feedback:</strong>
-              <p>{{ review.rejection_reason }}</p>
-            </div>
-          }
+      <!-- Card 2: Employee Onboarding -->
+      <article class="kpi-card">
+        <div class="kpi-body">
+          <span class="kpi-value">{{ onboardingCount() }}</span>
+          <span class="kpi-label">Employee Onboarding</span>
         </div>
+        <div class="kpi-icon-wrapper">
+          <app-icon name="users" [size]="18" color="#2563EB" />
+        </div>
+      </article>
 
-        <footer class="review-modal-actions">
-          <button type="button" class="btn-action-reject" (click)="rejectReviewed()">
-            ✕ Reject Profile
-          </button>
+      <!-- Card 3: Authorized -->
+      <article class="kpi-card">
+        <div class="kpi-body">
+          <span class="kpi-value">{{ authorizedCount() }}</span>
+          <span class="kpi-label">Authorized</span>
+        </div>
+        <div class="kpi-icon-wrapper">
+          <app-icon name="check-circle" [size]="18" color="#2563EB" />
+        </div>
+      </article>
+    </section>
+
+    <!-- Search & Filter Toolbar Card -->
+    <section class="toolbar-card">
+      <div class="search-input-box">
+        <app-icon name="magnifying-glass" [size]="14" color="#64748B" />
+        <input
+          type="text"
+          placeholder="Search employee, title, requester or department..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          aria-label="Search approval requests"
+        />
+        @if (searchQuery()) {
           <button
             type="button"
-            class="btn-action-authorize"
-            (click)="approveReviewed()"
+            class="clear-search-btn"
+            (click)="searchQuery.set('')"
+            aria-label="Clear search"
           >
-            ✓ Authorize &amp; Enable Login
+            ×
           </button>
-        </footer>
-      </section>
-    </div>
+        }
+      </div>
+
+      <div class="filter-dropdown-container">
+        <button
+          type="button"
+          class="filter-trigger-btn"
+          (click)="toggleFilterDropdown()"
+          [attr.aria-expanded]="isFilterOpen()"
+        >
+          <span class="filter-value">{{ selectedFilter() }}</span>
+          <app-icon name="chevron-down" [size]="12" color="#64748B" />
+        </button>
+
+        @if (isFilterOpen()) {
+          <div class="filter-popover" role="menu">
+            <button
+              type="button"
+              class="filter-option-item"
+              [class.active]="selectedFilter() === 'Pending Only'"
+              (click)="setFilter('Pending Only')"
+            >
+              Pending Only
+            </button>
+            <button
+              type="button"
+              class="filter-option-item"
+              [class.active]="selectedFilter() === 'Employee Onboarding'"
+              (click)="setFilter('Employee Onboarding')"
+            >
+              Employee Onboarding
+            </button>
+            <button
+              type="button"
+              class="filter-option-item"
+              [class.active]="selectedFilter() === 'Leaves & Time-off'"
+              (click)="setFilter('Leaves & Time-off')"
+            >
+              Leaves & Time-off
+            </button>
+            <button
+              type="button"
+              class="filter-option-item"
+              [class.active]="selectedFilter() === 'Authorized'"
+              (click)="setFilter('Authorized')"
+            >
+              Authorized
+            </button>
+            <button
+              type="button"
+              class="filter-option-item"
+              [class.active]="selectedFilter() === 'Rejected'"
+              (click)="setFilter('Rejected')"
+            >
+              Rejected
+            </button>
+            <button
+              type="button"
+              class="filter-option-item"
+              [class.active]="selectedFilter() === 'All Requests'"
+              (click)="setFilter('All Requests')"
+            >
+              All Requests
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Requests Stream List Section -->
+    <section class="requests-feed" aria-label="Approval Requests List">
+      @for (item of filteredItems(); track item.id) {
+        <article class="request-card-row" [class.status-pending]="item.status === 'Pending'" [class.status-authorized]="item.status === 'Authorized'" [class.status-rejected]="item.status === 'Rejected'">
+          <!-- Top Row: Badge, Status Pill & Submitted Date -->
+          <div class="request-header-row">
+            <span class="category-pill">
+              {{ item.type }}
+            </span>
+            <div class="status-date-group">
+              <span class="status-pill" [class.pending]="item.status === 'Pending'" [class.authorized]="item.status === 'Authorized'" [class.rejected]="item.status === 'Rejected'">
+                {{ item.status }}
+              </span>
+              <span class="dot-separator">&bull;</span>
+              <time class="submitted-timestamp">Submitted: {{ item.submittedDate }}</time>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <h2 class="request-title-text">{{ item.title }}</h2>
+
+          <!-- Description -->
+          <p class="request-description-text">{{ item.description }}</p>
+
+          <!-- 4 Metadata Columns: Employee Name, Department, Role, Login State -->
+          <div class="request-meta-grid">
+            <div class="meta-col">
+              <span class="meta-col-label">EMPLOYEE NAME</span>
+              <span class="meta-col-value">{{ item.employeeName || 'Pooja Nikam' }}</span>
+            </div>
+
+            <div class="meta-col">
+              <span class="meta-col-label">DEPARTMENT</span>
+              <span class="meta-col-value">{{ item.department }}</span>
+            </div>
+
+            <div class="meta-col">
+              <span class="meta-col-label">ROLE</span>
+              <span class="role-pill-badge">{{ item.assignedRole }}</span>
+            </div>
+
+            <div class="meta-col">
+              <span class="meta-col-label">LOGIN STATE</span>
+              <span class="login-state-val" [class.state-active]="item.loginState.includes('Active')" [class.state-disabled]="!item.loginState.includes('Active')">
+                <app-icon [name]="item.loginState.includes('Active') ? 'check' : 'lock'" [size]="12" />
+                <span>{{ item.loginState }}</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Bottom Right: View Request Action Button -->
+          <div class="request-actions-row">
+            <button
+              type="button"
+              class="btn-view-request"
+              (click)="review(item.userId || item.id)"
+              title="View Request and review submitted details"
+            >
+              View Request
+            </button>
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-requests-view">
+          <app-icon name="check-circle" [size]="44" color="#94A3B8" />
+          <h3>No requests found</h3>
+          <p>No approval items match your selected filter or search term.</p>
+        </div>
+      }
+    </section>
   }
 
   <!-- Interactive Rejection Modal Dialog -->

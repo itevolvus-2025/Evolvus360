@@ -24,6 +24,7 @@ export class RoleService {
 
   /** Live dataset of roles backed by API and optimistic state */
   readonly roles = signal<RoleRow[]>([]);
+  readonly totalRoleCount = signal(0);
 
   /** Loading state indicator */
   readonly isLoading = signal(false);
@@ -37,7 +38,7 @@ export class RoleService {
    */
   loadRoles(): void {
     this.isLoading.set(true);
-    this.apiService.get<RoleListResponse>(API_ENDPOINTS.roles.list).subscribe({
+    this.apiService.get<RoleListResponse>(API_ENDPOINTS.roles.list, { page: 1, page_size: 100 }).subscribe({
       next: (res) => {
         this.isLoading.set(false);
         const items = res?.data?.items;
@@ -55,14 +56,17 @@ export class RoleService {
             role_code: r.role_code,
           }));
           this.roles.set(mapped);
+          this.totalRoleCount.set(res.data.pagination?.total ?? mapped.length);
           console.log(`[RoleService] Loaded ${mapped.length} roles from backend API.`);
         } else {
           this.roles.set([]);
+          this.totalRoleCount.set(0);
         }
       },
       error: (err) => {
         this.isLoading.set(false);
         this.roles.set([]);
+        this.totalRoleCount.set(0);
         console.warn(
           '[RoleService] Could not load roles from backend API:',
           err.message
@@ -154,6 +158,7 @@ export class RoleService {
             this.roles.update((list) =>
               list.map((r) => (r.id === tempId ? persisted : r))
             );
+            this.totalRoleCount.update((count) => count + 1);
             console.log(`[RoleService] Role persisted to backend with ID ${res.data.id}`);
             return persisted;
           }
@@ -247,7 +252,10 @@ export class RoleService {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id));
     if (isUuid) {
       return this.apiService.delete<void>(API_ENDPOINTS.roles.delete(id)).pipe(
-        map(() => true),
+        map(() => {
+          this.totalRoleCount.update((count) => Math.max(0, count - 1));
+          return true;
+        }),
         catchError((err) => {
           console.warn(`[RoleService] Backend delete failed for ${id}:`, err.message);
           return of(false);

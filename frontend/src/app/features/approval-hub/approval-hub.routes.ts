@@ -6,4 +6,8 @@ export const APPROVAL_HUB_ROUTES: Routes = [
     path: '',
     component: ApprovalHubComponent,
   },
+  {
+    path: ':id',
+    component: ApprovalHubComponent,
+  },
 ];

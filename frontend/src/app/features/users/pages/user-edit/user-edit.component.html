@@ -1,5 +1,5 @@
 <div class="user-page-container">
-  <!-- Top Bar: Back button, Title, Delete, Cancel, Save Changes -->
+  <!-- Top Bar: Back button, Title, Deactivate, Cancel, Save Changes -->
   <header class="user-page-header">
     <div class="header-left">
       <a routerLink="/users" class="btn-circle-back" title="Back to Users Management">
@@ -36,7 +36,7 @@
     </div>
   </header>
 
-  <!-- Form Body (Aligned with Add User Structure) -->
+  <!-- Form Body -->
   <form (ngSubmit)="saveUser()" class="user-form">
     <!-- 01 Personal Identity -->
     <section class="form-section-card">
@@ -56,8 +56,9 @@
               type="text"
               class="form-input"
               placeholder="Enter first name"
-              [value]="firstName()"
-              (input)="firstName.set($any($event.target).value)"
+              [ngModel]="firstName()"
+              (ngModelChange)="firstName.set($event)"
+              name="firstName"
               required
             />
           </div>
@@ -69,8 +70,9 @@
               type="text"
               class="form-input"
               placeholder="Optional middle name"
-              [value]="middleName()"
-              (input)="middleName.set($any($event.target).value)"
+              [ngModel]="middleName()"
+              (ngModelChange)="middleName.set($event)"
+              name="middleName"
             />
           </div>
 
@@ -81,8 +83,9 @@
               type="text"
               class="form-input"
               placeholder="Enter last name"
-              [value]="lastName()"
-              (input)="lastName.set($any($event.target).value)"
+              [ngModel]="lastName()"
+              (ngModelChange)="lastName.set($event)"
+              name="lastName"
               required
             />
           </div>
@@ -95,7 +98,7 @@
       <div class="section-card-header">
         <div class="section-title-wrap">
           <span class="step-badge">02</span>
-          <h2 class="section-title">Department & Role Assignment</h2>
+          <h2 class="section-title">Department &amp; Role Assignment</h2>
         </div>
       </div>
 
@@ -108,12 +111,14 @@
               <select
                 id="editDepartment"
                 class="form-select"
-                [value]="department()"
-                (change)="department.set($any($event.target).value)"
+                [ngModel]="department()"
+                (ngModelChange)="department.set($event)"
+                name="department"
+                required
               >
                 <option value="" disabled>Select department</option>
                 @for (d of departments(); track d.id) {
-                  <option [value]="d.id" [selected]="d.id === department() || d.name === department()">{{ d.name }}</option>
+                  <option [value]="d.id">{{ d.name }}</option>
                 }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
@@ -126,12 +131,14 @@
               <select
                 id="editRole"
                 class="form-select"
-                [value]="role()"
-                (change)="role.set($any($event.target).value)"
+                [ngModel]="role()"
+                (ngModelChange)="role.set($event)"
+                name="role"
+                required
               >
                 <option value="" disabled>Select role</option>
                 @for (r of roles(); track r.id) {
-                  <option [value]="r.id" [selected]="r.id === role() || r.name === role()">{{ r.name }}</option>
+                  <option [value]="r.id">{{ r.name }}</option>
                 }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
@@ -146,8 +153,9 @@
               type="text"
               class="form-input"
               placeholder="e.g. HR Generalist / Operations Lead"
-              [value]="designation()"
-              (input)="designation.set($any($event.target).value)"
+              [ngModel]="designation()"
+              (ngModelChange)="designation.set($event)"
+              name="designation"
               required
             />
           </div>
@@ -159,8 +167,9 @@
               type="text"
               class="form-input"
               placeholder="e.g. Mumbai, Bengaluru, Hyderabad"
-              [value]="location()"
-              (input)="location.set($any($event.target).value)"
+              [ngModel]="location()"
+              (ngModelChange)="location.set($event)"
+              name="location"
               required
             />
           </div>
@@ -172,12 +181,14 @@
               <select
                 id="editEntity"
                 class="form-select"
-                [value]="entity()"
-                (change)="entity.set($any($event.target).value)"
+                [ngModel]="entity()"
+                (ngModelChange)="entity.set($event)"
+                name="entity"
+                required
               >
                 <option value="" disabled>Select entity</option>
                 @for (e of entities(); track e.id) {
-                  <option [value]="e.id" [selected]="e.id === entity() || e.name === entity()">{{ e.name }}</option>
+                  <option [value]="e.id">{{ e.name }}</option>
                 }
               </select>
               <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
@@ -204,7 +215,7 @@
       <div class="section-card-header">
         <div class="section-title-wrap">
           <span class="step-badge">03</span>
-          <h2 class="section-title">Contact Information & Compliance</h2>
+          <h2 class="section-title">Contact Information &amp; Compliance</h2>
         </div>
       </div>
 
@@ -217,9 +228,9 @@
               type="email"
               class="form-input"
               placeholder="username@evolvus360.com"
-              [value]="companyEmail()"
-              (input)="companyEmail.set($any($event.target).value)"
-              required
+              [ngModel]="companyEmail()"
+              (ngModelChange)="companyEmail.set($event)"
+              name="companyEmail"
             />
           </div>
 
@@ -230,8 +241,9 @@
               type="email"
               class="form-input"
               placeholder="personaladdress@gmail.com"
-              [value]="personalEmail()"
-              (input)="personalEmail.set($any($event.target).value)"
+              [ngModel]="personalEmail()"
+              (ngModelChange)="personalEmail.set($event)"
+              name="personalEmail"
               required
             />
           </div>
@@ -243,8 +255,9 @@
               <select
                 id="editPfApplicable"
                 class="form-select"
-                [value]="pfApplicable()"
-                (change)="pfApplicable.set($any($event.target).value)"
+                [ngModel]="pfApplicable()"
+                (ngModelChange)="pfApplicable.set($event)"
+                name="pfApplicable"
               >
                 <option value="Yes">Yes</option>
                 <option value="No">No</option>
@@ -259,8 +272,9 @@
               <select
                 id="editStatus"
                 class="form-select"
-                [value]="status()"
-                (change)="status.set($any($event.target).value)"
+                [ngModel]="status()"
+                (ngModelChange)="status.set($event)"
+                name="status"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -273,15 +287,15 @@
 
           <!-- Reason for change (Full width) -->
           <div class="form-group full-width">
-            <label class="form-label" for="editReason">Reason for change <span class="required">*</span></label>
+            <label class="form-label" for="editReason">Reason for change</label>
             <input
               id="editReason"
               type="text"
               class="form-input"
               placeholder="e.g. Updated role and privileges following team reorganization"
-              [value]="reasonForChange()"
-              (input)="reasonForChange.set($any($event.target).value)"
-              required
+              [ngModel]="reasonForChange()"
+              (ngModelChange)="reasonForChange.set($event)"
+              name="reasonForChange"
             />
           </div>
         </div>
@@ -307,9 +321,9 @@
                 id="editJoiningDate"
                 type="date"
                 class="form-input date-input"
-                [value]="joiningDate()"
-                (input)="joiningDate.set($any($event.target).value)"
-                (change)="joiningDate.set($any($event.target).value)"
+                [ngModel]="joiningDate()"
+                (ngModelChange)="joiningDate.set($event)"
+                name="joiningDate"
                 required
               />
               <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editJoiningDateInput)" />
@@ -324,9 +338,9 @@
                 id="editStartDate"
                 type="date"
                 class="form-input date-input"
-                [value]="startDate()"
-                (input)="startDate.set($any($event.target).value)"
-                (change)="startDate.set($any($event.target).value)"
+                [ngModel]="startDate()"
+                (ngModelChange)="startDate.set($event)"
+                name="startDate"
                 required
               />
               <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editStartDateInput)" />
@@ -341,9 +355,9 @@
                 id="editEndDate"
                 type="date"
                 class="form-input date-input"
-                [value]="endDate()"
-                (input)="endDate.set($any($event.target).value)"
-                (change)="endDate.set($any($event.target).value)"
+                [ngModel]="endDate()"
+                (ngModelChange)="endDate.set($event)"
+                name="endDate"
               />
               <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editEndDateInput)" />
             </div>
@@ -352,14 +366,14 @@
       </div>
     </section>
 
-    <!-- 05 Employee Profile & Onboarding Details (When Available) -->
+    <!-- 05 Employee Profile & Verification Details (When Available) -->
     @if (employeeDetails(); as emp) {
       <section class="form-section-card">
         <div class="section-card-header">
           <div class="section-title-wrap">
             <span class="step-badge">05</span>
             <div>
-              <h2 class="section-title">Employee Profile & Verification Details</h2>
+              <h2 class="section-title">Employee Profile &amp; Verification Details</h2>
               <span class="section-subtitle">Candidate-submitted data and KYC documentation</span>
             </div>
           </div>
@@ -369,165 +383,318 @@
         </div>
 
         <div class="section-card-body">
-          <!-- Personal & KYC Information -->
-          <h4 class="sub-section-title">Personal & Identity Information</h4>
+          <!-- 1. Personal & Contact Details -->
+          <h4 class="sub-section-title">Personal &amp; Contact Details</h4>
           <div class="form-row-3col">
             <div class="form-group">
-              <label class="form-label">Date of birth</label>
-              <input type="date" class="form-input date-input" [value]="emp.date_of_birth" [max]="todayDate" (input)="updateEmployeeDetail('date_of_birth', $any($event.target).value)" />
+              <label class="form-label" for="editDob">Date of birth <span class="required">*</span></label>
+              <div class="date-input-wrap">
+                <input
+                  #editDobInput
+                  id="editDob"
+                  type="date"
+                  class="form-input date-input"
+                  [value]="formatToIso(emp.date_of_birth || '')"
+                  [max]="todayDate"
+                  (input)="updateEmployeeDetail('date_of_birth', $any($event.target).value)"
+                  (change)="updateEmployeeDetail('date_of_birth', $any($event.target).value)"
+                />
+                <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editDobInput)" />
+              </div>
             </div>
+
             <div class="form-group">
-              <label class="form-label">Gender</label>
-              <select class="form-select" [value]="emp.gender" (change)="updateEmployeeDetail('gender', $any($event.target).value)">
-                <option value="MALE">Male</option><option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option><option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
-              </select>
+              <label class="form-label" for="editGender">Gender <span class="required">*</span></label>
+              <div class="custom-select-wrap">
+                <select
+                  id="editGender"
+                  class="form-select"
+                  [value]="(emp.gender || '').toUpperCase()"
+                  (change)="updateEmployeeDetail('gender', $any($event.target).value)"
+                >
+                  <option value="" disabled>Select gender</option>
+                  <option value="MALE" [selected]="(emp.gender || '').toUpperCase() === 'MALE'">Male</option>
+                  <option value="FEMALE" [selected]="(emp.gender || '').toUpperCase() === 'FEMALE'">Female</option>
+                  <option value="OTHER" [selected]="(emp.gender || '').toUpperCase() === 'OTHER'">Other</option>
+                  <option value="PREFER_NOT_TO_SAY" [selected]="(emp.gender || '').toUpperCase() === 'PREFER_NOT_TO_SAY'">Prefer not to say</option>
+                </select>
+                <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
+              </div>
             </div>
+
             <div class="form-group">
-              <label class="form-label">Blood group</label>
-              <select class="form-select" [value]="emp.blood_group || ''" (change)="updateEmployeeDetail('blood_group', $any($event.target).value)">
-                <option value="">Select blood group</option>
-                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
-                <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
-              </select>
+              <label class="form-label" for="editMobile">Mobile (with country code) <span class="required">*</span></label>
+              <div class="input-with-icon-wrap">
+                <input
+                  id="editMobile"
+                  type="tel"
+                  class="form-input"
+                  placeholder="e.g. +91 98765 43210"
+                  [value]="emp.mobile_number || ''"
+                  (input)="updateEmployeeDetail('mobile_number', $any($event.target).value)"
+                />
+                <app-icon name="phone" [size]="16" color="#94A3B8" class="input-right-icon" />
+              </div>
             </div>
+
             <div class="form-group">
-              <label class="form-label">Mother tongue</label>
-              <input type="text" class="form-input" maxlength="50" [value]="emp.mother_tongue || ''" (input)="updateEmployeeDetail('mother_tongue', $any($event.target).value)" />
+              <label class="form-label" for="editAadhaar">Aadhaar (12 digits) <span class="required">*</span></label>
+              <input
+                id="editAadhaar"
+                type="text"
+                class="form-input"
+                maxlength="12"
+                placeholder="12-digit Aadhaar number"
+                [value]="sensitiveUpdates()['aadhaar_number'] !== undefined ? sensitiveUpdates()['aadhaar_number'] : (emp.aadhaar_number || '')"
+                (input)="updateSensitiveDetail('aadhaar_number', $any($event.target).value)"
+              />
             </div>
+
             <div class="form-group">
-              <label class="form-label">Marital status</label>
-              <select class="form-select" [value]="emp.marital_status || ''" (change)="updateEmployeeDetail('marital_status', $any($event.target).value)">
-                <option value="">Select marital status</option>
-                <option value="SINGLE">Single</option><option value="MARRIED">Married</option>
-                <option value="DIVORCED">Divorced</option><option value="WIDOWED">Widowed</option>
-              </select>
+              <label class="form-label" for="editPan">PAN Card <span class="required">*</span></label>
+              <input
+                id="editPan"
+                type="text"
+                class="form-input uppercase"
+                maxlength="10"
+                placeholder="e.g. ABCDE1234F"
+                [value]="sensitiveUpdates()['pan_number'] !== undefined ? sensitiveUpdates()['pan_number'] : (emp.pan_number || '')"
+                (input)="updateSensitiveDetail('pan_number', $any($event.target).value.toUpperCase())"
+              />
             </div>
+
             <div class="form-group">
-              <label class="form-label">Mobile number</label>
-              <input type="tel" class="form-input" [value]="emp.mobile_number || ''" (input)="updateEmployeeDetail('mobile_number', $any($event.target).value)" />
+              <label class="form-label" for="editPassport">Passport number</label>
+              <input
+                id="editPassport"
+                type="text"
+                class="form-input uppercase"
+                maxlength="30"
+                placeholder="e.g. Z8765432"
+                [value]="sensitiveUpdates()['passport_number'] !== undefined ? sensitiveUpdates()['passport_number'] : (emp.passport_number || '')"
+                (input)="updateSensitiveDetail('passport_number', $any($event.target).value.toUpperCase())"
+              />
             </div>
+          </div>
+
+          <!-- 2. Emergency Contact -->
+          <h4 class="sub-section-title" style="margin-top: 20px;">Emergency Contact</h4>
+          <div class="form-row-3col">
             <div class="form-group">
-              <label class="form-label">Aadhaar number</label>
-              <input type="text" class="form-input" maxlength="12" autocomplete="off" placeholder="Replace (current: {{ emp.aadhaar_number || 'not set' }})" [value]="sensitiveUpdates()['aadhaar_number'] || ''" (input)="updateSensitiveDetail('aadhaar_number', $any($event.target).value)" />
+              <label class="form-label" for="editEmergencyName">Contact Name <span class="required">*</span></label>
+              <input
+                id="editEmergencyName"
+                type="text"
+                class="form-input"
+                placeholder="Contact full name"
+                [value]="emp.emergency_contact?.name || ''"
+                (input)="updateNestedEmployeeDetail('emergency_contact', 'name', $any($event.target).value)"
+              />
             </div>
+
             <div class="form-group">
-              <label class="form-label">PAN number</label>
-              <input type="text" class="form-input" maxlength="10" autocomplete="off" placeholder="Replace (current: {{ emp.pan_number || 'not set' }})" [value]="sensitiveUpdates()['pan_number'] || ''" (input)="updateSensitiveDetail('pan_number', $any($event.target).value.toUpperCase())" />
+              <label class="form-label" for="editEmergencyPhone">Phone Number <span class="required">*</span></label>
+              <input
+                id="editEmergencyPhone"
+                type="tel"
+                class="form-input"
+                placeholder="e.g. +91 98765 43210"
+                [value]="emp.emergency_contact?.phone || ''"
+                (input)="updateNestedEmployeeDetail('emergency_contact', 'phone', $any($event.target).value)"
+              />
             </div>
+
             <div class="form-group">
-              <label class="form-label">Passport number</label>
-              <input type="text" class="form-input" maxlength="30" autocomplete="off" placeholder="Replace (current: {{ emp.passport_number || 'not set' }})" [value]="sensitiveUpdates()['passport_number'] || ''" (input)="updateSensitiveDetail('passport_number', $any($event.target).value.toUpperCase())" />
+              <label class="form-label" for="editEmergencyRel">Relationship <span class="required">*</span></label>
+              <input
+                id="editEmergencyRel"
+                type="text"
+                class="form-input"
+                placeholder="e.g. Spouse / Parent / Sibling"
+                [value]="emp.emergency_contact?.relationship || ''"
+                (input)="updateNestedEmployeeDetail('emergency_contact', 'relationship', $any($event.target).value)"
+              />
             </div>
+          </div>
+
+          <!-- 3. Banking & Compliance Documents -->
+          <h4 class="sub-section-title" style="margin-top: 20px;">Banking &amp; Compliance Documents</h4>
+          <div class="form-row-3col">
+            <div class="form-group">
+              <label class="form-label" for="editBankName">Bank Name <span class="required">*</span></label>
+              <input
+                id="editBankName"
+                type="text"
+                class="form-input"
+                placeholder="e.g. HDFC Bank"
+                [value]="emp.bank_details?.bank_name || ''"
+                (input)="updateNestedEmployeeDetail('bank_details', 'bank_name', $any($event.target).value)"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editAccountNumber">Account Number <span class="required">*</span></label>
+              <input
+                id="editAccountNumber"
+                type="text"
+                class="form-input"
+                placeholder="e.g. 50100234567890"
+                [value]="sensitiveUpdates()['account_number'] !== undefined ? sensitiveUpdates()['account_number'] : (emp.bank_details?.account_number || '')"
+                (input)="updateSensitiveDetail('account_number', $any($event.target).value)"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editIfsc">IFSC Code <span class="required">*</span></label>
+              <input
+                id="editIfsc"
+                type="text"
+                class="form-input uppercase"
+                maxlength="11"
+                placeholder="e.g. HDFC0000123"
+                [value]="emp.bank_details?.ifsc_code || ''"
+                (input)="updateNestedEmployeeDetail('bank_details', 'ifsc_code', $any($event.target).value.toUpperCase())"
+              />
+            </div>
+
             @if (pfApplicable() === 'Yes') {
               <div class="form-group">
-                <label class="form-label">UAN number</label>
-                <input type="text" class="form-input" maxlength="12" autocomplete="off" placeholder="Replace (current: {{ emp.uan_number || 'not set' }})" [value]="sensitiveUpdates()['uan_number'] || ''" (input)="updateSensitiveDetail('uan_number', $any($event.target).value)" />
+                <label class="form-label" for="editUan">UAN (PF Application)</label>
+                <input
+                  id="editUan"
+                  type="text"
+                  class="form-input"
+                  maxlength="12"
+                  placeholder="e.g. 100912345678"
+                  [value]="sensitiveUpdates()['uan_number'] !== undefined ? sensitiveUpdates()['uan_number'] : (emp.uan_number || '')"
+                  (input)="updateSensitiveDetail('uan_number', $any($event.target).value)"
+                />
               </div>
             }
           </div>
 
-          <h4 class="sub-section-title" style="margin-top: 18px;">Emergency Contact</h4>
-          <div class="form-row-3col">
+          <!-- Document Upload Cards -->
+          <div class="form-row-2col" style="margin-top: 14px;">
             <div class="form-group">
-              <label class="form-label">Contact Name</label>
-              <input type="text" class="form-input" [value]="emp.emergency_contact?.name || ''" (input)="updateNestedEmployeeDetail('emergency_contact', 'name', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Relationship</label>
-              <input type="text" class="form-input" [value]="emp.emergency_contact?.relationship || ''" (input)="updateNestedEmployeeDetail('emergency_contact', 'relationship', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Contact Phone</label>
-              <input type="tel" class="form-input" [value]="emp.emergency_contact?.phone || ''" (input)="updateNestedEmployeeDetail('emergency_contact', 'phone', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Landline</label>
-              <input type="tel" class="form-input" [value]="emp.landline_number || ''" (input)="updateEmployeeDetail('landline_number', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Alternate phone</label>
-              <input type="tel" class="form-input" [value]="emp.alternate_phone_number || ''" (input)="updateEmployeeDetail('alternate_phone_number', $any($event.target).value)" />
-            </div>
-          </div>
-
-          <h4 class="sub-section-title" style="margin-top: 18px;">Bank & Payroll Details</h4>
-          <div class="form-row-3col">
-            <div class="form-group">
-              <label class="form-label">Bank Name</label>
-              <input type="text" class="form-input" [value]="emp.bank_details?.bank_name || ''" (input)="updateNestedEmployeeDetail('bank_details', 'bank_name', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Account Holder Name</label>
-              <input type="text" class="form-input" [value]="emp.bank_details?.account_holder_name || ''" (input)="updateNestedEmployeeDetail('bank_details', 'account_holder_name', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Account Number</label>
-              <input type="text" class="form-input" autocomplete="off" placeholder="Replace account ending {{ emp.bank_details?.account_number || '—' }}" [value]="sensitiveUpdates()['account_number'] || ''" (input)="updateSensitiveDetail('account_number', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">IFSC Code</label>
-              <input type="text" class="form-input" maxlength="11" [value]="emp.bank_details?.ifsc_code || ''" (input)="updateNestedEmployeeDetail('bank_details', 'ifsc_code', $any($event.target).value.toUpperCase())" />
-            </div>
-          </div>
-
-          <h4 class="sub-section-title" style="margin-top: 18px;">Qualifications & Skills</h4>
-          <div class="form-row-3col">
-            <div class="form-group">
-              <label class="form-label">Highest Qualification</label>
-              <input type="text" class="form-input" maxlength="4000" [value]="emp.qualification || ''" (input)="updateEmployeeDetail('qualification', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Additional Skills</label>
-              <input type="text" class="form-input" maxlength="4000" [value]="emp.skills || ''" (input)="updateEmployeeDetail('skills', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Languages Known</label>
-              <input type="text" class="form-input" [value]="(emp.languages || []).join(', ')" (input)="updateLanguages($any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Languages read and written</label>
-              <input type="text" class="form-input" maxlength="1000" [value]="emp.languages_read_and_written || ''" (input)="updateEmployeeDetail('languages_read_and_written', $any($event.target).value)" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Hobbies</label>
-              <input type="text" class="form-input" maxlength="4000" [value]="emp.hobbies || ''" (input)="updateEmployeeDetail('hobbies', $any($event.target).value)" />
-            </div>
-          </div>
-          <!-- Documents -->
-          @if (emp.documents && emp.documents.length) {
-            <h4 class="sub-section-title" style="margin-top: 18px;">Uploaded Documents ({{ emp.documents.length }})</h4>
-            <div class="doc-cards-list">
-              @for (doc of emp.documents; track doc.id) {
-                <div class="doc-card-item">
-                  <div class="doc-icon">
+              <label class="form-label">Identity Proof <span class="required">*</span></label>
+              @let idDoc = getDocument('identity_proof');
+              <div class="doc-file-card">
+                <div class="doc-file-info">
+                  <div class="doc-icon-wrap">
                     <app-icon name="document-text" [size]="20" color="#2563EB" />
                   </div>
-                  <div class="doc-info">
-                    <span class="doc-title">{{ doc.document_type.replace('_', ' ') | uppercase }}</span>
-                    <span class="doc-filename">{{ doc.file_name }}</span>
-                    <span class="doc-meta">{{ (doc.file_size_bytes / 1024).toFixed(1) }} KB</span>
+                  <div class="doc-meta-wrap">
+                    <span class="doc-file-title">
+                      {{ selectedDocuments().identity_proof?.name || idDoc?.file_name || 'No file uploaded' }}
+                    </span>
+                    <span class="doc-file-sub">
+                      @if (selectedDocuments().identity_proof) {
+                        Ready to upload &bull; {{ formatFileSize(selectedDocuments().identity_proof?.size) }}
+                      } @else if (idDoc) {
+                        Uploaded &bull; {{ formatFileSize(idDoc.file_size_bytes) }}
+                      } @else {
+                        PDF, JPG or PNG up to 5MB
+                      }
+                    </span>
                   </div>
-                  <span class="doc-status-badge" [class.status-verified]="doc.verification_status === 'VERIFIED'">
-                    {{ doc.verification_status }}
-                  </span>
+                  @if (selectedDocuments().identity_proof) {
+                    <span class="doc-badge badge-staged">New File</span>
+                  } @else if (idDoc) {
+                    <span class="doc-badge" [class.badge-verified]="idDoc.verification_status === 'VERIFIED'">
+                      {{ idDoc.verification_status }}
+                    </span>
+                  }
                 </div>
-              }
+                <label class="btn-change-file">
+                  Change File
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                    (change)="selectDocument('identity_proof', $event)"
+                    hidden
+                  />
+                </label>
+              </div>
             </div>
-          }
-          <h4 class="sub-section-title" style="margin-top: 18px;">Replace documents</h4>
-          <div class="form-row-2col">
+
             <div class="form-group">
-              <label class="form-label" for="editIdentityProof">Identity proof</label>
-              <input id="editIdentityProof" type="file" class="form-input" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="selectDocument('identity_proof', $event)" />
-              <small class="field-hint">Optional replacement. PDF, JPG or PNG, up to 5 MB.</small>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="editCancelledCheque">Cancelled cheque</label>
-              <input id="editCancelledCheque" type="file" class="form-input" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="selectDocument('cancelled_cheque', $event)" />
-              <small class="field-hint">Optional replacement. PDF, JPG or PNG, up to 5 MB.</small>
+              <label class="form-label">Cancelled Cheque <span class="required">*</span></label>
+              @let cqDoc = getDocument('cancelled_cheque');
+              <div class="doc-file-card">
+                <div class="doc-file-info">
+                  <div class="doc-icon-wrap">
+                    <app-icon name="document-text" [size]="20" color="#2563EB" />
+                  </div>
+                  <div class="doc-meta-wrap">
+                    <span class="doc-file-title">
+                      {{ selectedDocuments().cancelled_cheque?.name || cqDoc?.file_name || 'No file uploaded' }}
+                    </span>
+                    <span class="doc-file-sub">
+                      @if (selectedDocuments().cancelled_cheque) {
+                        Ready to upload &bull; {{ formatFileSize(selectedDocuments().cancelled_cheque?.size) }}
+                      } @else if (cqDoc) {
+                        Uploaded &bull; {{ formatFileSize(cqDoc.file_size_bytes) }}
+                      } @else {
+                        PDF, JPG or PNG up to 5MB
+                      }
+                    </span>
+                  </div>
+                  @if (selectedDocuments().cancelled_cheque) {
+                    <span class="doc-badge badge-staged">New File</span>
+                  } @else if (cqDoc) {
+                    <span class="doc-badge" [class.badge-verified]="cqDoc.verification_status === 'VERIFIED'">
+                      {{ cqDoc.verification_status }}
+                    </span>
+                  }
+                </div>
+                <label class="btn-change-file">
+                  Change File
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                    (change)="selectDocument('cancelled_cheque', $event)"
+                    hidden
+                  />
+                </label>
+              </div>
             </div>
           </div>
+
+          <!-- 4. Qualification & Languages -->
+          <h4 class="sub-section-title" style="margin-top: 20px;">Qualification &amp; Languages</h4>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label class="form-label" for="editQual">Qualification</label>
+              <input
+                id="editQual"
+                type="text"
+                class="form-input"
+                placeholder="e.g. Master of Business Administration (Finance), B.Com"
+                [value]="emp.qualification || ''"
+                (input)="updateEmployeeDetail('qualification', $any($event.target).value)"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editLanguages">Languages</label>
+              <input
+                id="editLanguages"
+                type="text"
+                class="form-input"
+                placeholder="e.g. English, Hindi, Marathi"
+                [value]="(emp.languages || []).join(', ')"
+                (input)="updateLanguages($any($event.target).value)"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    } @else {
+      <section class="form-section-card no-profile-card">
+        <div class="section-card-body" style="text-align: center; padding: 36px 16px;">
+          <app-icon name="user" [size]="32" color="#94A3B8" />
+          <h3 style="margin: 12px 0 4px; font-size: 15px; font-weight: 600; color: #334155;">No Employee Profile Submitted Yet</h3>
+          <p style="margin: 0; font-size: 13px; color: #64748b;">The candidate has not yet completed onboarding or submitted personal &amp; KYC documentation.</p>
         </div>
       </section>
     }

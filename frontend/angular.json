@@ -34,6 +34,33 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
+              "optimization": {
+                "scripts": true,
+                "styles": true,
+                "fonts": false
+              },
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1.5MB",
+                  "maximumError": "3MB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "deployment": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.deployment.ts"
+                }
+              ],
               "optimization": {
                 "scripts": true,
                 "styles": true,
@@ -61,6 +88,9 @@
           "configurations": {
             "production": {
               "buildTarget": "angular-enterprise-hrms:build:production"
+            },
+            "deployment": {
+              "buildTarget": "angular-enterprise-hrms:build:deployment"
             },
             "development": {
               "buildTarget": "angular-enterprise-hrms:build:development"

@@ -42,7 +42,6 @@ interface PageState {
   parentPath?: string;
   currentLabel?: string;
   title?: string;
-  badge?: string;
   subtitle: string;
   actionType: SubpageActionType;
   actionLabel?: string;
@@ -207,7 +206,6 @@ export class MainLayoutComponent implements OnInit {
       return {
         isSubpage: false,
         title: 'Users Management',
-        badge: '3 Total',
         subtitle: 'Manage enterprise access privileges and identity profiles.',
         actionType: 'user-create',
         actionLabel: 'Create User',
@@ -220,7 +218,6 @@ export class MainLayoutComponent implements OnInit {
       return {
         isSubpage: false,
         title: 'Role Management',
-        badge: '3 Total',
         subtitle: 'Create and maintain roles',
         actionType: 'role-create',
         actionLabel: 'Add Role',
@@ -233,7 +230,6 @@ export class MainLayoutComponent implements OnInit {
       return {
         isSubpage: false,
         title: 'Dashboard',
-        badge: '',
         subtitle: 'Overview of enterprise workforce operations and analytics.',
         actionType: 'none',
       };
@@ -244,7 +240,6 @@ export class MainLayoutComponent implements OnInit {
       return {
         isSubpage: false,
         title: 'Approval Hub',
-        badge: '3 Total',
         subtitle:
           'Review and authorize company-wide requests, employee onboarding credentials, leaves and role escalations.',
         actionType: 'none',
@@ -256,7 +251,6 @@ export class MainLayoutComponent implements OnInit {
       return {
         isSubpage: false,
         title: 'Projects',
-        badge: '4 Total',
         subtitle: 'Manage organizational projects, delivery milestones, and team assignments.',
         actionType: 'none',
       };
@@ -267,7 +261,6 @@ export class MainLayoutComponent implements OnInit {
       return {
         isSubpage: false,
         title: 'Leave Request',
-        badge: '',
         subtitle: 'Apply for time off and track status of personal leave applications.',
         actionType: 'none',
       };
@@ -278,7 +271,6 @@ export class MainLayoutComponent implements OnInit {
       return {
         isSubpage: false,
         title: 'Leave Management',
-        badge: '',
         subtitle: 'Track balances, review leave requests, and manage approval workflows.',
         actionType: 'none',
       };
@@ -309,7 +301,6 @@ export class MainLayoutComponent implements OnInit {
       return {
         isSubpage: false,
         title: 'Role Management',
-        badge: '3 Total',
         subtitle: 'Create and maintain roles',
         actionType: 'role-create',
         actionLabel: 'Add Role',
@@ -321,7 +312,6 @@ export class MainLayoutComponent implements OnInit {
     return {
       isSubpage: false,
       title: 'Users Management',
-      badge: '3 Total',
       subtitle: 'Manage enterprise access privileges and identity profiles.',
       actionType: 'none',
     };
@@ -332,7 +322,26 @@ export class MainLayoutComponent implements OnInit {
   readonly breadcrumbParentPath = computed(() => this.pageState().parentPath ?? '');
   readonly breadcrumbCurrentLabel = computed(() => this.pageState().currentLabel ?? '');
   readonly activePageTitle = computed(() => this.pageState().title ?? '');
-  readonly activePageBadge = computed(() => this.pageState().badge ?? '');
+  readonly activePageBadge = computed(() => {
+    const url = this.currentUrl().split('?')[0].split('#')[0];
+    const component = this.activeChildComponent();
+
+    if (url === '/users' || url === '/employees') {
+      const count = component?.totalUserCount?.();
+      return count == null ? '' : `${count} Total`;
+    }
+    if (url === '/administration' || url === '/administration/roles') {
+      const count = component?.totalRoleCount?.();
+      return count == null ? '' : `${count} Total`;
+    }
+    if (url === '/approval-hub' || url.startsWith('/approval-hub/')) {
+      const count = component?.totalCount?.();
+      return count == null ? '' : `${count} Total`;
+    }
+
+    // Projects currently has no backend API, so do not show its sample-data count.
+    return '';
+  });
   readonly activePageSubtitle = computed(() => this.pageState().subtitle ?? '');
   readonly actionType = computed(() => this.pageState().actionType);
   readonly actionLabel = computed(() => this.pageState().actionLabel ?? '');

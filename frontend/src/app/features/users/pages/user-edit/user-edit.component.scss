@@ -1,6 +1,5 @@
 .user-page-container {
   width: 100%;
-  max-width: 1080px;
   margin: 0 auto;
   padding: 0 0 40px;
   font-family: 'Poppins', sans-serif;
@@ -346,6 +345,133 @@
     display: flex;
     align-items: center;
   }
+}
+
+/* ==========================================================================
+   Input With Icon Wrap & Uppercase Form Inputs
+   ========================================================================== */
+.input-with-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  .form-input {
+    padding-right: 38px;
+  }
+
+  .input-right-icon {
+    position: absolute;
+    right: 12px;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Document File Cards (Section 05)
+   ========================================================================== */
+.doc-file-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  min-height: 52px;
+
+  .doc-file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+
+    .doc-icon-wrap {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background-color: #eff6ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .doc-meta-wrap {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
+
+      .doc-file-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .doc-file-sub {
+        font-size: 11px;
+        color: #64748b;
+      }
+    }
+
+    .doc-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background-color: #fef3c7;
+      color: #b45309;
+      flex-shrink: 0;
+
+      &.badge-verified {
+        background-color: #ecfdf5;
+        color: #059669;
+      }
+
+      &.badge-staged {
+        background-color: #eff6ff;
+        color: #2563eb;
+      }
+    }
+  }
+
+  .btn-change-file {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background-color: #f1f5f9;
+      border-color: #94a3b8;
+    }
+  }
+}
+
+.no-profile-card {
+  border-style: dashed;
+  background-color: #fafbfc;
 }
 
 /* ==========================================================================

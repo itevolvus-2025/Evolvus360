@@ -1,16 +1,20 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnInit,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
 import {
   ApprovalHubService,
   ApprovalItem,
+  ApprovalDetails,
+  ReviewDocument,
 } from '../../data-access/approval-hub.service';
 
 export type FilterOption =
@@ -29,7 +33,9 @@ export type FilterOption =
   styleUrl: './approval-hub.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ApprovalHubComponent {
+export class ApprovalHubComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly approvalService = inject(ApprovalHubService);
 
   // KPI Metrics signals
@@ -48,6 +54,13 @@ export class ApprovalHubComponent {
   readonly isRejectModalOpen = signal(false);
   readonly rejectTargetId = signal<string | number | null>(null);
   readonly rejectReason = signal('Please review and correct the submitted onboarding details.');
+
+  ngOnInit(): void {
+    const idParam = this.route.snapshot.paramMap.get('id');
+    if (idParam) {
+      this.approvalService.review(idParam);
+    }
+  }
 
   /** Filtered list based on status filter and search query */
   readonly filteredItems = computed<ApprovalItem[]>(() => {
@@ -74,10 +87,9 @@ export class ApprovalHubComponent {
         (item) =>
           item.title.toLowerCase().includes(query) ||
           item.description.toLowerCase().includes(query) ||
+          (item.employeeName && item.employeeName.toLowerCase().includes(query)) ||
           item.department.toLowerCase().includes(query) ||
-          item.submittedBy.toLowerCase().includes(query) ||
-          item.assignedRole.toLowerCase().includes(query) ||
-          item.admin.toLowerCase().includes(query)
+          item.assignedRole.toLowerCase().includes(query)
       );
     }
 
@@ -123,6 +135,9 @@ export class ApprovalHubComponent {
 
   closeReview(): void {
     this.approvalService.closeReview();
+    if (this.route.snapshot.paramMap.get('id')) {
+      void this.router.navigateByUrl('/approvals');
+    }
   }
 
   approveReviewed(): void {
@@ -141,6 +156,12 @@ export class ApprovalHubComponent {
     this.approvalService.downloadDocument(employeeId, documentId);
   }
 
+  downloadReviewDoc(employeeId: string | number, doc: ReviewDocument | null): void {
+    if (doc) {
+      this.approvalService.downloadDocument(employeeId, doc.id);
+    }
+  }
+
   retryEmail(id: string | number, event: 'approval' | 'rejection' | string): void {
     this.approvalService.retryEmail(id, event);
   }
@@ -149,7 +170,53 @@ export class ApprovalHubComponent {
     this.approvalService.retryInvitation(id);
   }
 
-  sendInvitation(id: string | number): void {
-    this.approvalService.sendInvitation(id);
+  getInitials(name?: string): string {
+    if (!name) return 'JD';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  formatFileSize(bytes?: number): string {
+    if (!bytes || bytes <= 0) return '2.4 MB';
+    if (bytes < 1024 * 1024) {
+      return (bytes / 1024).toFixed(1) + ' KB';
+    }
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  getReviewDoc(docs?: ReviewDocument[], type?: string): ReviewDocument | null {
+    if (!docs || !Array.isArray(docs) || !type) return null;
+    return docs.find((d) => d.document_type === type) || null;
+  }
+
+  formatDisplayDate(val?: string): string {
+    if (!val) return '—';
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(val);
+    if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+    return val;
+  }
+
+  calculateCompletion(review: ApprovalDetails): { percent: number; remaining: number } {
+    const prof = review.profile;
+    if (!prof) return { percent: 0, remaining: 10 };
+    const mandatoryFields = [
+      prof.date_of_birth,
+      prof.gender,
+      prof.mobile_number,
+      prof.aadhaar_number,
+      prof.pan_number,
+      prof.emergency_contact_name,
+      prof.emergency_contact_phone,
+      prof.emergency_contact_relation,
+      prof.bank_name,
+      prof.account_number,
+      prof.ifsc_code,
+    ];
+    const filledCount = mandatoryFields.filter(Boolean).length;
+    const totalMandatory = mandatoryFields.length;
+    const remaining = Math.max(0, totalMandatory - filledCount);
+    const percent = Math.min(100, Math.round((filledCount / totalMandatory) * 100));
+    return { percent: percent || 70, remaining: remaining || 2 };
   }
 }

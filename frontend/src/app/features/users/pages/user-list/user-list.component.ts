@@ -30,6 +30,7 @@ export class UserListComponent implements OnInit {
 
   // KPI Metrics signals
   readonly activeCount = this.userService.activeUsersCount;
+  readonly totalUserCount = this.userService.totalUsersCount;
   readonly awaitingCount = this.userService.awaitingActivationCount;
   readonly pendingCount = this.userService.requestsPendingCount;
   readonly submittedCount = this.userService.profilesSubmittedCount;

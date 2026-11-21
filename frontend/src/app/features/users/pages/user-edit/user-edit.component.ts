@@ -78,11 +78,15 @@ export class UserEditComponent implements OnInit {
       const id: number | string = /^\d+$/.test(idParam) ? parseInt(idParam, 10) : idParam;
       this.userId.set(id);
 
-      this.userService.getEmployee(id, (existing, fullData) => {
-        this.populateFields(existing);
-      }, (message) => {
-        this.notification.show(message, 'error');
-      });
+      this.userService.getEmployee(
+        id,
+        (existing) => {
+          this.populateFields(existing);
+        },
+        (message) => {
+          this.notification.show(message, 'error');
+        }
+      );
     }
   }
 
@@ -120,36 +124,29 @@ export class UserEditComponent implements OnInit {
     }
   }
 
-  private resolveDepartmentId(val?: string): string {
+  resolveDepartmentId(val?: string): string {
     if (!val) return '';
     const match = this.departments().find((d) => d.id === val || d.name.toLowerCase() === val.toLowerCase());
     return match ? match.id : val;
   }
 
-  private resolveRoleId(val?: string): string {
+  resolveRoleId(val?: string): string {
     if (!val) return '';
     const match = this.roles().find((r) => r.id === val || r.name.toLowerCase() === val.toLowerCase());
     return match ? match.id : val;
   }
 
-  private resolveEntityId(val?: string): string {
+  resolveEntityId(val?: string): string {
     if (!val) return '';
     const match = this.entities().find((e) => e.id === val || e.name.toLowerCase() === val.toLowerCase());
     return match ? match.id : val;
   }
 
-  private formatToIso(val: string): string {
+  formatToIso(val: string): string {
     if (!val) return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
     const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(val);
     return match ? `${match[3]}-${match[2]}-${match[1]}` : val;
-  }
-
-  selectOption(event: Event, target: 'department' | 'role' | 'entity'): void {
-    const value = (event.target as HTMLSelectElement).value;
-    if (target === 'department') this.department.set(value);
-    else if (target === 'role') this.role.set(value);
-    else this.entity.set(value);
   }
 
   openDatePicker(input: HTMLInputElement): void {
@@ -164,19 +161,17 @@ export class UserEditComponent implements OnInit {
     }
   }
 
-  updateEmployeeDetail(field: string, value: string | string[]): void {
-    const current = this.employeeDetails();
-    if (current) this.employeeDetails.set({ ...current, [field]: value });
+  updateEmployeeDetail(field: string, value: any): void {
+    const current = this.employeeDetails() || {};
+    this.employeeDetails.set({ ...current, [field]: value });
   }
 
   updateNestedEmployeeDetail(group: 'emergency_contact' | 'bank_details', field: string, value: string): void {
-    const current = this.employeeDetails();
-    if (current) {
-      this.employeeDetails.set({
-        ...current,
-        [group]: { ...(current[group] || {}), [field]: value },
-      });
-    }
+    const current = this.employeeDetails() || {};
+    this.employeeDetails.set({
+      ...current,
+      [group]: { ...(current[group] || {}), [field]: value },
+    });
   }
 
   updateSensitiveDetail(field: string, value: string): void {
@@ -184,15 +179,30 @@ export class UserEditComponent implements OnInit {
   }
 
   updateLanguages(value: string): void {
-    this.updateEmployeeDetail(
-      'languages',
-      value.split(',').map((language) => language.trim()).filter(Boolean),
-    );
+    const langs = value
+      .split(',')
+      .map((language) => language.trim())
+      .filter(Boolean);
+    this.updateEmployeeDetail('languages', langs);
   }
 
   selectDocument(type: 'identity_proof' | 'cancelled_cheque', event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0] ?? null;
     this.selectedDocuments.update((current) => ({ ...current, [type]: file }));
+  }
+
+  getDocument(type: 'identity_proof' | 'cancelled_cheque'): any {
+    const docs = this.employeeDetails()?.documents;
+    if (!Array.isArray(docs)) return null;
+    return docs.find((d: any) => d.document_type === type) || null;
+  }
+
+  formatFileSize(bytes?: number): string {
+    if (!bytes || bytes <= 0) return '';
+    if (bytes < 1024 * 1024) {
+      return (bytes / 1024).toFixed(1) + ' KB';
+    }
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
   saveUser(): void {
@@ -237,11 +247,6 @@ export class UserEditComponent implements OnInit {
       return;
     }
 
-    if (!this.reasonForChange().trim()) {
-      this.notification.show('Reason for change is mandatory', 'error');
-      return;
-    }
-
     if (!joiningDate) {
       this.notification.show('Joining date is mandatory', 'error');
       return;
@@ -257,6 +262,15 @@ export class UserEditComponent implements OnInit {
       return;
     }
 
+    const employeeDetails = this.employeeDetails();
+    if (employeeDetails && employeeDetails.date_of_birth) {
+      const dob = this.formatToIso(employeeDetails.date_of_birth);
+      if (dob && dob >= this.todayDate) {
+        this.notification.show('Date of birth must be before today', 'error');
+        return;
+      }
+    }
+
     const parseDate = (value: string): string => {
       if (!value) return '';
       if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
@@ -267,7 +281,6 @@ export class UserEditComponent implements OnInit {
     const id = this.userId();
     const fullName = [firstName, lastName].filter(Boolean).join(' ');
 
-    // Every persisted user must be updated through the backend API.
     const isBackendUuid = typeof id === 'string' && id.includes('-') && id.length >= 32;
 
     if (isBackendUuid) {
@@ -279,7 +292,6 @@ export class UserEditComponent implements OnInit {
         first_name: firstName,
         middle_name: this.middleName().trim() || null,
         last_name: lastName,
-        reason_for_change: this.reasonForChange().trim(),
         department_id: deptOption?.id || (department.includes('-') ? department : undefined),
         role_id: roleOption?.id || (role.includes('-') ? role : undefined),
         entity_id: entityOption?.id || (this.entity().includes('-') ? this.entity() : undefined),
@@ -297,31 +309,66 @@ export class UserEditComponent implements OnInit {
             ? 'INVITED'
             : 'INACTIVE',
       };
-      const employeeDetails = this.employeeDetails();
+
+      if (this.reasonForChange().trim()) {
+        payload['reason_for_change'] = this.reasonForChange().trim();
+      }
+
       if (employeeDetails) {
-        Object.assign(payload, {
-          date_of_birth: employeeDetails.date_of_birth,
-          gender: employeeDetails.gender,
-          blood_group: employeeDetails.blood_group,
-          mother_tongue: employeeDetails.mother_tongue,
-          marital_status: employeeDetails.marital_status,
-          mobile_number: employeeDetails.mobile_number,
-          landline_number: employeeDetails.landline_number,
-          alternate_phone_number: employeeDetails.alternate_phone_number,
-          emergency_contact_name: employeeDetails.emergency_contact?.name,
-          emergency_contact_phone: employeeDetails.emergency_contact?.phone,
-          emergency_contact_relationship: employeeDetails.emergency_contact?.relationship,
-          bank_name: employeeDetails.bank_details?.bank_name,
-          account_holder_name: employeeDetails.bank_details?.account_holder_name,
-          ifsc_code: employeeDetails.bank_details?.ifsc_code,
-          qualification: employeeDetails.qualification,
-          skills: employeeDetails.skills,
-          hobbies: employeeDetails.hobbies,
-          languages: Array.isArray(employeeDetails.languages) ? employeeDetails.languages : [],
-          languages_read_and_written: employeeDetails.languages_read_and_written,
-        });
-        for (const [field, value] of Object.entries(this.sensitiveUpdates())) {
-          if (value.trim()) payload[field] = value.trim();
+        if (employeeDetails.date_of_birth) {
+          payload['date_of_birth'] = parseDate(employeeDetails.date_of_birth);
+        }
+        if (employeeDetails.gender) {
+          payload['gender'] = employeeDetails.gender.toUpperCase();
+        }
+        if (employeeDetails.mobile_number) {
+          payload['mobile_number'] = employeeDetails.mobile_number;
+        }
+        if (employeeDetails.emergency_contact) {
+          if (employeeDetails.emergency_contact.name) {
+            payload['emergency_contact_name'] = employeeDetails.emergency_contact.name;
+          }
+          if (employeeDetails.emergency_contact.phone) {
+            payload['emergency_contact_phone'] = employeeDetails.emergency_contact.phone;
+          }
+          if (employeeDetails.emergency_contact.relationship) {
+            payload['emergency_contact_relationship'] = employeeDetails.emergency_contact.relationship;
+          }
+        }
+        if (employeeDetails.bank_details) {
+          if (employeeDetails.bank_details.bank_name) {
+            payload['bank_name'] = employeeDetails.bank_details.bank_name;
+          }
+          if (employeeDetails.bank_details.ifsc_code) {
+            payload['ifsc_code'] = employeeDetails.bank_details.ifsc_code;
+          }
+          if (employeeDetails.bank_details.account_holder_name) {
+            payload['account_holder_name'] = employeeDetails.bank_details.account_holder_name;
+          }
+        }
+        if (employeeDetails.qualification !== undefined) {
+          payload['qualification'] = employeeDetails.qualification || null;
+        }
+        if (Array.isArray(employeeDetails.languages)) {
+          payload['languages'] = employeeDetails.languages;
+        }
+
+        // Only send sensitive fields if the user entered a new unmasked value
+        const sens = this.sensitiveUpdates();
+        if (sens['aadhaar_number'] && !sens['aadhaar_number'].includes('*')) {
+          payload['aadhaar_number'] = sens['aadhaar_number'].trim();
+        }
+        if (sens['pan_number'] && !sens['pan_number'].includes('*')) {
+          payload['pan_number'] = sens['pan_number'].trim().toUpperCase();
+        }
+        if (sens['passport_number'] && !sens['passport_number'].includes('*')) {
+          payload['passport_number'] = sens['passport_number'].trim().toUpperCase();
+        }
+        if (sens['uan_number'] && !sens['uan_number'].includes('*')) {
+          payload['uan_number'] = sens['uan_number'].trim();
+        }
+        if (sens['account_number'] && !sens['account_number'].includes('*')) {
+          payload['account_number'] = sens['account_number'].trim();
         }
       }
 

@@ -72,7 +72,7 @@ export class UserService {
   loadUsers(): void {
     this.isLoading.set(true);
     this.loadError.set(null);
-    this.apiService.get<{ items: EmployeeApiRecord[] }>(API_ENDPOINTS.users.list, { page: 1, page_size: 100 }).subscribe({
+    this.apiService.get<{ items: EmployeeApiRecord[]; pagination?: { total?: number } }>(API_ENDPOINTS.users.list, { page: 1, page_size: 100 }).subscribe({
       next: (res) => {
         this.isLoading.set(false);
         const items = res?.data?.items;
@@ -115,15 +115,18 @@ export class UserService {
             };
           });
           this.users.set(mapped);
+          this.totalUsersCount.set(res?.data?.pagination?.total ?? mapped.length);
           console.log(`[UserService] Loaded ${mapped.length} users from backend API.`);
         } else {
           this.users.set([]);
+          this.totalUsersCount.set(0);
           this.loadError.set('The users API returned an unexpected response.');
         }
       },
       error: (err) => {
         this.isLoading.set(false);
         this.users.set([]);
+        this.totalUsersCount.set(0);
         this.loadError.set(err.message || 'Could not load users.');
         console.warn('[UserService] Could not load users from backend API:', err.message);
       },
@@ -310,7 +313,7 @@ export class UserService {
   }
 
   /** KPI Metrics */
-  readonly totalUsersCount = computed(() => this.users().length);
+  readonly totalUsersCount = signal(0);
   readonly activeUsersCount = computed(
     () => this.users().filter((u) => u.status === 'Active').length
   );
