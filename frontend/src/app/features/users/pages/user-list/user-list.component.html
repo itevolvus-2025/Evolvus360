@@ -149,34 +149,6 @@
                   <app-icon name="edit" [size]="16" color="#2563EB" />
                 </a>
 
-                @if (canRetryInvitation(user)) {
-                <button type="button" class="table-action-icon-btn retry-btn" (click)="retryInvitation(user)"
-                  [disabled]="retryingUserIds().has(userIdKey(user.id))" title="Retry failed invitation email"
-                  aria-label="Retry failed invitation email">
-                  <app-icon name="arrow-right" [size]="15" color="#D97706" />
-                </button>
-                } @else if (user.status === 'Pending' || user.profile === 'Pending') {
-                <button type="button" class="table-action-icon-btn mail-btn" (click)="sendInvitation(user)"
-                  [disabled]="retryingUserIds().has(userIdKey(user.id))"
-                  title="Send onboarding invitation link via email"
-                  aria-label="Send onboarding invitation link via email">
-                  <app-icon name="tray-arrow-up" [size]="15" color="#2563EB" />
-                </button>
-                }
-
-                @if (user.profile === 'Submitted') {
-                <a routerLink="/approvals" class="table-action-icon-btn review-btn"
-                  title="Review submission in Approval Hub">
-                  <app-icon name="check-circle" [size]="15" color="#10B981" />
-                </a>
-                }
-
-                @if (user.status !== 'Inactive' && user.status !== 'Deactive') {
-                <button type="button" class="table-action-icon-btn deactivate-btn" (click)="openDeactivateModal(user)"
-                  title="Deactivate User" aria-label="Deactivate User">
-                  <app-icon name="user-x" [size]="15" color="#EF4444" />
-                </button>
-                }
               </div>
             </td>
           </tr>
@@ -222,25 +194,4 @@
     </div>
   </div>
 
-  <!-- Deactivate User Confirmation Dialog -->
-  @if (userToDeactivate()) {
-  <div class="delete-modal-backdrop" (click)="closeDeactivateModal()">
-    <div class="delete-modal-dialog" (click)="$event.stopPropagation()">
-      <div class="delete-dialog-icon">
-        <app-icon name="user-x" [size]="24" color="#DC2626" />
-      </div>
-      <h3 class="delete-dialog-title">Deactivate User</h3>
-      <p class="delete-dialog-message">
-        Are you sure you want to deactivate user <strong>"{{ userToDeactivate()?.name }}"</strong>?
-        This action will immediately disable their account, revoke all active sessions, and prevent future logins.
-      </p>
-      <div class="delete-dialog-actions">
-        <button type="button" class="btn-cancel" (click)="closeDeactivateModal()">Cancel</button>
-        <button type="button" class="btn-confirm-delete" (click)="confirmDeactivate()" [disabled]="isDeactivating()">
-          {{ isDeactivating() ? 'Deactivating...' : 'Deactivate User' }}
-        </button>
-      </div>
-    </div>
-  </div>
-  }
 </div>
