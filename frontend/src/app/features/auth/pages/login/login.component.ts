@@ -50,11 +50,11 @@ export class LoginComponent {
     this.isLoading.set(true);
     this.error.set('');
 
-    const { email, password } = this.form.getRawValue();
+    const { email, password, rememberMe } = this.form.getRawValue();
 
     console.log(`[Auth] Attempting login via API: ${this.loginApiUrl}`);
 
-    this.auth.login(email, password).subscribe({
+    this.auth.login(email, password, rememberMe).subscribe({
       next: (result) => {
         this.isLoading.set(false);
         if (result.success) {

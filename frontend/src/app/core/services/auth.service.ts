@@ -15,6 +15,9 @@ export class AuthService {
   private readonly tokenKey = 'access_token';
   private readonly refreshKey = 'refresh_token';
   private readonly expiryKey = 'token_expiry';
+  private readonly storageModeKey = 'auth_storage_mode';
+  private readonly sessionStorageKeys = [this.sessionKey, this.tokenKey, this.refreshKey, this.expiryKey];
+  private persistAcrossBrowserRestarts = this.resolvePersistenceMode();
 
   private readonly currentUser = signal<User | null>(this.restore());
   readonly user = this.currentUser.asReadonly();
@@ -34,9 +37,9 @@ export class AuthService {
    * Check stored session and schedule token refresh or refresh immediately if near expiry
    */
   private checkAndResumeSession(): void {
-    const refreshToken = localStorage.getItem(this.refreshKey);
-    const accessToken = localStorage.getItem(this.tokenKey);
-    const expiryStr = localStorage.getItem(this.expiryKey);
+    const refreshToken = this.getStoredItem(this.refreshKey);
+    const accessToken = this.getStoredItem(this.tokenKey);
+    const expiryStr = this.getStoredItem(this.expiryKey);
 
     if (!refreshToken || refreshToken === 'demo-hardcoded-session-token' || !accessToken) {
       return;
@@ -105,7 +108,7 @@ export class AuthService {
       return this.refreshInProgress$;
     }
 
-    const refreshToken = localStorage.getItem(this.refreshKey);
+    const refreshToken = this.getStoredItem(this.refreshKey);
     if (!refreshToken || refreshToken === 'demo-hardcoded-session-token') {
       return of(null);
     }
@@ -144,16 +147,19 @@ export class AuthService {
   /**
    * Process and store successful auth token bundle (from login or refresh).
    */
-  private handleAuthSuccess(data: TokenResponse): void {
+  private handleAuthSuccess(data: TokenResponse, rememberMe?: boolean): void {
+    if (rememberMe !== undefined) {
+      this.configurePersistenceMode(rememberMe);
+    }
     if (data.access_token) {
-      localStorage.setItem(this.tokenKey, data.access_token);
+      this.setStoredItem(this.tokenKey, data.access_token);
     }
     if (data.refresh_token) {
-      localStorage.setItem(this.refreshKey, data.refresh_token);
+      this.setStoredItem(this.refreshKey, data.refresh_token);
     }
     if (data.expires_in) {
       const expiryTimestamp = Date.now() + data.expires_in * 1000;
-      localStorage.setItem(this.expiryKey, String(expiryTimestamp));
+      this.setStoredItem(this.expiryKey, String(expiryTimestamp));
       this.scheduleTokenRefresh(data.expires_in);
     }
 
@@ -188,7 +194,8 @@ export class AuthService {
    */
   login(
     email: string,
-    password: string
+    password: string,
+    rememberMe = true
   ): Observable<{ success: boolean; message?: string }> {
     if (!email || password.length < 6) {
       return of({
@@ -208,12 +215,12 @@ export class AuthService {
       .pipe(
         map((response) => {
           if (response && response.data) {
-            this.handleAuthSuccess(response.data);
+            this.handleAuthSuccess(response.data, rememberMe);
             return { success: true };
           }
 
           // Fallback if response payload unexpected
-          return this.fallbackHardcodedLogin(trimmedEmail);
+          return this.fallbackHardcodedLogin(trimmedEmail, rememberMe);
         }),
         catchError((err: Error) => {
           // Check for CORS / connection refused / network error
@@ -229,7 +236,7 @@ export class AuthService {
               'Backend offline or CORS restricted. Falling back to local hardcoded user session:',
               err.message
             );
-            return of(this.fallbackHardcodedLogin(trimmedEmail));
+            return of(this.fallbackHardcodedLogin(trimmedEmail, rememberMe));
           }
 
           return of({
@@ -246,7 +253,7 @@ export class AuthService {
       this.refreshTimer = null;
     }
 
-    const refreshToken = localStorage.getItem(this.refreshKey);
+    const refreshToken = this.getStoredItem(this.refreshKey);
     if (refreshToken && refreshToken !== 'demo-hardcoded-session-token') {
       this.apiService
         .post(API_ENDPOINTS.auth.logout, { refresh_token: refreshToken })
@@ -255,10 +262,7 @@ export class AuthService {
         });
     }
 
-    localStorage.removeItem(this.sessionKey);
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.refreshKey);
-    localStorage.removeItem(this.expiryKey);
+    this.clearStoredSession();
     this.currentUser.set(null);
     void this.router.navigateByUrl('/auth/login');
   }
@@ -266,7 +270,10 @@ export class AuthService {
   /**
    * Hardcoded demo user fallback ensuring application functionality when offline or on CORS
    */
-  fallbackHardcodedLogin(email: string): { success: boolean } {
+  fallbackHardcodedLogin(
+    email: string,
+    rememberMe = this.persistAcrossBrowserRestarts
+  ): { success: boolean } {
     const isAdmin = email.toLowerCase().includes('admin');
     const prefix = email.split('@')[0] || 'User';
     const displayName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
@@ -290,7 +297,8 @@ export class AuthService {
         : ['Approval', 'Project', 'Leave Request'],
     };
 
-    localStorage.setItem(this.tokenKey, hardcodedUser.token!);
+    this.configurePersistenceMode(rememberMe);
+    this.setStoredItem(this.tokenKey, hardcodedUser.token!);
     this.persistSession(hardcodedUser);
     return { success: true };
   }
@@ -411,21 +419,21 @@ export class AuthService {
   }
 
   getAccessToken(): string | null {
-    const token = localStorage.getItem(this.tokenKey);
+    const token = this.getStoredItem(this.tokenKey);
     return token && token !== 'demo-hardcoded-session-token' ? token : null;
   }
 
   getRefreshToken(): string | null {
-    const token = localStorage.getItem(this.refreshKey);
+    const token = this.getStoredItem(this.refreshKey);
     return token && token !== 'demo-hardcoded-session-token' ? token : null;
   }
 
   isMockSession(): boolean {
-    return localStorage.getItem(this.tokenKey) === 'demo-hardcoded-session-token';
+    return this.getStoredItem(this.tokenKey) === 'demo-hardcoded-session-token';
   }
 
   getTokenExpiry(): number | null {
-    const val = localStorage.getItem(this.expiryKey);
+    const val = this.getStoredItem(this.expiryKey);
     return val ? parseInt(val, 10) : null;
   }
 
@@ -436,15 +444,56 @@ export class AuthService {
   }
 
   private persistSession(user: User): void {
-    localStorage.setItem(this.sessionKey, JSON.stringify(user));
+    this.setStoredItem(this.sessionKey, JSON.stringify(user));
     this.currentUser.set(user);
   }
 
   private restore(): User | null {
     try {
-      return JSON.parse(localStorage.getItem(this.sessionKey) ?? 'null') as User | null;
+      return JSON.parse(this.getStoredItem(this.sessionKey) ?? 'null') as User | null;
     } catch {
       return null;
     }
+  }
+
+  private resolvePersistenceMode(): boolean {
+    if (sessionStorage.getItem(this.storageModeKey) === 'session') return false;
+    if (localStorage.getItem(this.storageModeKey) === 'local') return true;
+    // Preserve sessions saved before Remember Me was connected to storage.
+    return true;
+  }
+
+  private configurePersistenceMode(rememberMe: boolean): void {
+    this.persistAcrossBrowserRestarts = rememberMe;
+    for (const key of this.sessionStorageKeys) {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    }
+    localStorage.removeItem(this.storageModeKey);
+    sessionStorage.removeItem(this.storageModeKey);
+    const destination = rememberMe ? localStorage : sessionStorage;
+    destination.setItem(this.storageModeKey, rememberMe ? 'local' : 'session');
+  }
+
+  private getStoredItem(key: string): string | null {
+    const destination = this.persistAcrossBrowserRestarts ? localStorage : sessionStorage;
+    const other = this.persistAcrossBrowserRestarts ? sessionStorage : localStorage;
+    return destination.getItem(key) ?? other.getItem(key);
+  }
+
+  private setStoredItem(key: string, value: string): void {
+    const destination = this.persistAcrossBrowserRestarts ? localStorage : sessionStorage;
+    const other = this.persistAcrossBrowserRestarts ? sessionStorage : localStorage;
+    other.removeItem(key);
+    destination.setItem(key, value);
+  }
+
+  private clearStoredSession(): void {
+    for (const key of this.sessionStorageKeys) {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    }
+    localStorage.removeItem(this.storageModeKey);
+    sessionStorage.removeItem(this.storageModeKey);
   }
 }
