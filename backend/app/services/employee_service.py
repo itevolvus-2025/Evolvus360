@@ -82,9 +82,9 @@ def _validate_onboarding_contact_and_compliance(fields: dict, pf_applicable: boo
     if len(qualification) > 4000 or any(not (char.isalnum() or char.isspace()) for char in qualification):
         raise _field_validation_error("qualification", "Qualification may contain letters, numbers and spaces only.")
     uan = (fields.get("uan_number") or "").strip()
-    if pf_applicable and not re.fullmatch(r"[0-9]{12}", uan):
-        raise _field_validation_error("uan_number", "UAN is required when PF applies and must contain exactly 12 digits.")
-    return account, uan if pf_applicable else None
+    if uan and not re.fullmatch(r"[0-9]{12}", uan):
+        raise _field_validation_error("uan_number", "UAN must contain exactly 12 digits.")
+    return account, uan or None
 
 
 def _role_codes(user: User) -> set[str]:
@@ -1360,6 +1360,9 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
         details = {
             "date_of_birth": personal.birth_date,
             "gender": personal.gender,
+            "blood_group": personal.blood_group,
+            "mother_tongue": personal.mother_tongue,
+            "marital_status": personal.marital_status,
             "aadhaar_number": (
                 f"********{personal.aadhaar_number_last_four}"
                 if personal.aadhaar_number_last_four
@@ -1369,7 +1372,12 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
             "passport_number": _mask(
                 _decrypt(encryptor, personal.passport_number_encrypted), 4
             ),
+            "uan_number": _mask(
+                _decrypt(encryptor, personal.uan_number_encrypted), 4
+            ),
             "mobile_number": contact.mobile_number,
+            "landline_number": contact.landline_number,
+            "alternate_phone_number": contact.alternate_phone_number,
             "emergency_contact": {
                 "name": contact.emergency_contact_name,
                 "phone": contact.emergency_contact_phone,
@@ -1377,6 +1385,7 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
             },
             "bank_details": {
                 "bank_name": bank.bank_name,
+                "account_holder_name": bank.account_holder_name,
                 "account_number": _mask(bank.bank_account_number_last_four, 4),
                 "ifsc_code": bank.ifsc_code,
             },
@@ -1393,6 +1402,21 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
             ],
             "qualification": (
                 employee.skills_and_interests.additional_qualifications
+                if employee.skills_and_interests
+                else None
+            ),
+            "skills": (
+                employee.skills_and_interests.additional_skills
+                if employee.skills_and_interests
+                else None
+            ),
+            "hobbies": (
+                employee.skills_and_interests.hobbies
+                if employee.skills_and_interests
+                else None
+            ),
+            "languages_read_and_written": (
+                employee.skills_and_interests.languages_read_and_written
                 if employee.skills_and_interests
                 else None
             ),
@@ -1570,6 +1594,178 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
                         status.HTTP_409_CONFLICT, "Personal email already exists"
                     )
                 user.email = email
+        profile_fields = {
+            "date_of_birth", "gender", "blood_group", "mother_tongue", "marital_status",
+            "aadhaar_number", "pan_number",
+            "passport_number", "uan_number", "mobile_number",
+            "emergency_contact_name", "emergency_contact_phone",
+            "emergency_contact_relationship", "bank_name", "account_holder_name",
+            "account_number", "ifsc_code", "qualification", "skills", "languages",
+        }
+        if profile_fields.intersection(values):
+            required_profile_values = {
+                "date_of_birth", "gender", "mobile_number", "emergency_contact_name",
+                "emergency_contact_phone", "emergency_contact_relationship",
+                "bank_name", "ifsc_code",
+            }
+            if any(name in values and values[name] is None for name in required_profile_values):
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "Required employee profile fields cannot be null",
+                )
+            encryptor = _encryptor()
+            personal = employee.personal_details
+            personal_fields = {
+            "date_of_birth", "gender", "blood_group", "mother_tongue", "marital_status",
+            "aadhaar_number", "pan_number",
+                "passport_number", "uan_number",
+            }
+            if personal_fields.intersection(values):
+                if personal is None:
+                    if not {"date_of_birth", "gender"}.issubset(values):
+                        raise HTTPException(
+                            status.HTTP_409_CONFLICT,
+                            "Date of birth and gender are required to create personal details",
+                        )
+                    personal = EmployeePersonalDetails(employee_id=employee.id)
+                    employee.personal_details = personal
+                if "date_of_birth" in values:
+                    if values["date_of_birth"] >= date.today():
+                        raise _field_validation_error(
+                            "date_of_birth", "Date of birth must be in the past."
+                        )
+                    personal.birth_date = values["date_of_birth"]
+                if "gender" in values:
+                    personal.gender = values["gender"]
+                if "blood_group" in values:
+                    personal.blood_group = values["blood_group"]
+                if "mother_tongue" in values:
+                    personal.mother_tongue = (values["mother_tongue"] or "").strip() or None
+                if "marital_status" in values:
+                    personal.marital_status = values["marital_status"]
+                if (values.get("aadhaar_number") or "").strip():
+                    try:
+                        aadhaar = validate_aadhaar(values["aadhaar_number"])
+                    except ValueError as error:
+                        raise _field_validation_error("aadhaar_number", str(error)) from None
+                    personal.aadhaar_number_encrypted = encryptor.encrypt(aadhaar.encode()).decode()
+                    personal.aadhaar_number_last_four = aadhaar[-4:]
+                if (values.get("pan_number") or "").strip():
+                    try:
+                        pan = validate_pan(values["pan_number"])
+                    except ValueError as error:
+                        raise _field_validation_error("pan_number", str(error)) from None
+                    personal.pan_number_encrypted = encryptor.encrypt(pan.encode()).decode()
+                if "passport_number" in values:
+                    passport = (values["passport_number"] or "").strip().upper()
+                    personal.passport_number_encrypted = (
+                        encryptor.encrypt(passport.encode()).decode() if passport else None
+                    )
+                if "uan_number" in values:
+                    uan = (values["uan_number"] or "").strip()
+                    if uan and not re.fullmatch(r"[0-9]{12}", uan):
+                        raise _field_validation_error(
+                            "uan_number", "UAN must contain exactly 12 digits."
+                        )
+                    personal.uan_number_encrypted = (
+                        encryptor.encrypt(uan.encode()).decode() if uan else None
+                    )
+
+            contact_fields = {
+                "mobile_number", "landline_number", "alternate_phone_number",
+                "emergency_contact_name", "emergency_contact_phone", "emergency_contact_relationship",
+            }
+            if contact_fields.intersection(values):
+                contact = employee.contact_details
+                if contact is None:
+                    required_contact = {"mobile_number", "emergency_contact_name", "emergency_contact_phone", "emergency_contact_relationship"}
+                    if not required_contact.issubset(values):
+                        raise HTTPException(
+                            status.HTTP_409_CONFLICT,
+                            "All contact fields are required to create employee contact details",
+                        )
+                    contact = EmployeeContactDetails(employee_id=employee.id)
+                    employee.contact_details = contact
+                if "mobile_number" in values:
+                    try:
+                        contact.mobile_number = validate_mobile(values["mobile_number"])
+                    except ValueError as error:
+                        raise _field_validation_error("mobile_number", str(error)) from None
+                    user.phone_number = contact.mobile_number
+                for phone_field in ("landline_number", "alternate_phone_number"):
+                    if phone_field in values:
+                        phone = re.sub(r"[\s()-]", "", values[phone_field] or "")
+                        if phone and not re.fullmatch(r"(?:\+[1-9][0-9]{7,14}|[0-9]{7,15})", phone):
+                            raise _field_validation_error(phone_field, "Enter a valid phone number.")
+                        setattr(contact, phone_field, phone or None)
+                if "emergency_contact_name" in values:
+                    name = (values["emergency_contact_name"] or "").strip()
+                    if not name or not all(char.isalpha() or char in " '-." for char in name):
+                        raise _field_validation_error("emergency_contact_name", "Enter a valid contact name.")
+                    contact.emergency_contact_name = name
+                if "emergency_contact_relationship" in values:
+                    relation = (values["emergency_contact_relationship"] or "").strip()
+                    if not relation or not all(char.isalpha() or char in " '-." for char in relation):
+                        raise _field_validation_error("emergency_contact_relationship", "Enter a valid relationship.")
+                    contact.emergency_contact_relation = relation
+                if "emergency_contact_phone" in values:
+                    phone = re.sub(r"[\s()-]", "", values["emergency_contact_phone"] or "")
+                    if not re.fullmatch(r"(?:\+[1-9][0-9]{7,14}|[6-9][0-9]{9})", phone):
+                        raise _field_validation_error("emergency_contact_phone", "Enter a valid 10-digit Indian mobile number or an international number in +country-code format.")
+                    contact.emergency_contact_phone = phone
+
+            bank_fields = {"bank_name", "account_holder_name", "account_number", "ifsc_code"}
+            if bank_fields.intersection(values):
+                bank = employee.bank_details
+                if bank is None:
+                    required_bank = {"bank_name", "account_number", "ifsc_code"}
+                    if not required_bank.issubset(values):
+                        raise HTTPException(
+                            status.HTTP_409_CONFLICT,
+                            "Bank name, account number, and IFSC are required to create bank details",
+                        )
+                    bank = EmployeeBankDetails(employee_id=employee.id)
+                    employee.bank_details = bank
+                if "bank_name" in values:
+                    bank_name = (values["bank_name"] or "").strip()
+                    if not bank_name or not all(char.isalnum() or char in " &().,'-/" for char in bank_name):
+                        raise _field_validation_error("bank_name", "Enter a valid bank name.")
+                    bank.bank_name = bank_name
+                if "account_holder_name" in values:
+                    holder = (values["account_holder_name"] or "").strip()
+                    if holder and not all(char.isalpha() or char in " '-." for char in holder):
+                        raise _field_validation_error("account_holder_name", "Enter a valid account holder name.")
+                    bank.account_holder_name = holder or None
+                if (values.get("account_number") or "").strip():
+                    account = re.sub(r"\s", "", values["account_number"])
+                    if not re.fullmatch(r"[A-Za-z0-9]{6,35}", account):
+                        raise _field_validation_error("account_number", "Account number must contain 6 to 35 letters or digits.")
+                    bank.bank_account_number_encrypted = encryptor.encrypt(account.encode()).decode()
+                    bank.bank_account_number_last_four = account[-4:]
+                if "ifsc_code" in values:
+                    ifsc = (values["ifsc_code"] or "").strip().upper()
+                    if not re.fullmatch(r"[A-Z]{4}0[A-Z0-9]{6}", ifsc):
+                        raise _field_validation_error("ifsc_code", "Enter a valid 11-character IFSC code.")
+                    bank.ifsc_code = ifsc
+                if {"bank_name", "account_holder_name", "account_number", "ifsc_code"}.intersection(values):
+                    bank.is_verified = False
+                    bank.verification_status = "PENDING"
+            skill_fields = {"qualification", "skills", "hobbies", "languages", "languages_read_and_written"}
+            if skill_fields.intersection(values):
+                skills = employee.skills_and_interests
+                if skills is None:
+                    skills = EmployeeSkillsAndInterests(employee_id=employee.id)
+                    employee.skills_and_interests = skills
+                if "qualification" in values:
+                    skills.additional_qualifications = values["qualification"] or None
+                if "skills" in values:
+                    skills.additional_skills = values["skills"] or None
+                if "hobbies" in values:
+                    skills.hobbies = values["hobbies"] or None
+                if "languages" in values:
+                    skills.languages_spoken = json.dumps(values["languages"], ensure_ascii=False)
+                if "languages_read_and_written" in values:
+                    skills.languages_read_and_written = values["languages_read_and_written"] or None
         if employee.employment_start_date < employee.joining_date:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -1623,6 +1819,64 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
         ) from None
     except BaseException:
         db.rollback()
+        raise
+
+
+def replace_employee_documents(
+    db: Session,
+    actor: User,
+    user_id: UUID,
+    files: dict[str, tuple[str, str | None, bytes]],
+) -> dict:
+    """Replace selected onboarding documents without removing untouched files."""
+    if not files:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Choose at least one document")
+    stored_paths: list[Path] = []
+    removed_paths: list[Path] = []
+    try:
+        employee = _get_employee(db, user_id, lock=True)
+        for document_type, (filename, content_type, contents) in files.items():
+            if document_type not in {"identity_proof", "cancelled_cheque"}:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid document type")
+            path, clean_name, media_type = _store_document(
+                document_type, filename, content_type, contents
+            )
+            stored_paths.append(Path(path))
+            for previous in list(employee.documents):
+                if previous.document_type == document_type:
+                    removed_paths.append(Path(previous.storage_path))
+                    db.delete(previous)
+            employee.documents.append(
+                EmployeeDocuments(
+                    document_type=document_type,
+                    original_filename=clean_name,
+                    storage_path=path,
+                    file_size_bytes=len(contents),
+                    mime_type=media_type,
+                    uploaded_by_user_id=actor.id,
+                )
+            )
+        db.commit()
+        for path in removed_paths:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+        return {
+            "documents": [
+                {
+                    "document_type": document.document_type,
+                    "file_name": document.original_filename,
+                    "file_size_bytes": document.file_size_bytes,
+                    "verification_status": document.verification_status,
+                }
+                for document in employee.documents
+            ]
+        }
+    except BaseException:
+        db.rollback()
+        for path in stored_paths:
+            path.unlink(missing_ok=True)
         raise
 
 

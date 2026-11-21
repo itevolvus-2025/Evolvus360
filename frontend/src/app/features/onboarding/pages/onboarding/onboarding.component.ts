@@ -250,7 +250,7 @@ export class OnboardingComponent implements OnInit {
       bank_name: 'Bank name is required.', account_number: 'Account number is required.',
       ifsc_code: 'IFSC code is required.', identity_proof: 'Identity proof is required.',
       cancelled_cheque: 'Cancelled cheque is required.',
-      uan_number: 'UAN is required when PF applies and must contain exactly 12 digits.',
+      uan_number: 'UAN must contain exactly 12 digits.',
       qualification: 'Qualification may contain letters, numbers and spaces only.',
     };
     const values: Record<string, string> = {
@@ -276,7 +276,7 @@ export class OnboardingComponent implements OnInit {
     else if (field === 'bank_name' && value && !/^[\p{L}\p{N} &().,'/-]+$/u.test(value)) error = 'Use letters, numbers, spaces or common punctuation only.';
     else if (field === 'account_number' && value && !/^[A-Za-z0-9]{6,35}$/.test(value.replace(/\s/g, ''))) error = 'Account number must contain 6 to 35 letters or digits.';
     else if (field === 'ifsc_code' && value && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value)) error = 'Enter a valid 11-character IFSC code.';
-    else if (field === 'uan_number' && this.candidate().pf_applicable === 'YES' && !/^\d{12}$/.test(value)) error = required[field];
+    else if (field === 'uan_number' && value && !/^\d{12}$/.test(value)) error = required[field];
     else if (field === 'qualification' && value && !/^[\p{L}\p{N}\s]*$/u.test(value)) error = required[field];
     else if (required[field] && !value && !['identity_proof', 'cancelled_cheque', 'uan_number', 'qualification'].includes(field)) error = required[field];
     else if (field === 'date_of_birth') {
@@ -311,7 +311,7 @@ export class OnboardingComponent implements OnInit {
       'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship',
       'bank_name', 'account_number', 'ifsc_code', 'identity_proof', 'cancelled_cheque',
     ];
-    if (this.candidate().pf_applicable === 'YES') fields.push('uan_number');
+    fields.push('uan_number');
     if (this.qualification()) fields.push('qualification');
     for (const field of fields) this.validateField(field);
     const first = fields.find((field) => this.fieldErrors()[field]);
@@ -343,7 +343,7 @@ export class OnboardingComponent implements OnInit {
     formData.append('bank_name', this.bankName());
     formData.append('account_number', this.accountNumber());
     formData.append('ifsc_code', this.ifscCode().toUpperCase());
-    if (this.candidate().pf_applicable === 'YES') formData.append('uan_number', this.uanNumber());
+    if (this.uanNumber().trim()) formData.append('uan_number', this.uanNumber().trim());
     formData.append('qualification', this.qualification() || '');
     formData.append('languages', JSON.stringify(this.languages()));
 

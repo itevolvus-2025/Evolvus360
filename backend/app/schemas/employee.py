@@ -1,7 +1,7 @@
 """Schemas for employee administration and invitation onboarding."""
 
-from datetime import date, datetime
 import re
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -114,6 +114,30 @@ class EmployeeUpdate(BaseModel):
         "ACTIVE", "INACTIVE", "INVITED", "PENDING_APPROVAL", "LOCKED"
     ] | None = None
     reason_for_change: str | None = Field(default=None, max_length=1000)
+    date_of_birth: date | None = None
+    gender: Literal["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"] | None = None
+    blood_group: Literal["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] | None = None
+    mother_tongue: str | None = Field(default=None, max_length=50)
+    marital_status: Literal["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"] | None = None
+    aadhaar_number: str | None = Field(default=None, max_length=12)
+    pan_number: str | None = Field(default=None, max_length=10)
+    passport_number: str | None = Field(default=None, max_length=30)
+    uan_number: str | None = Field(default=None, max_length=12)
+    mobile_number: str | None = Field(default=None, max_length=25)
+    landline_number: str | None = Field(default=None, max_length=25)
+    alternate_phone_number: str | None = Field(default=None, max_length=25)
+    emergency_contact_name: str | None = Field(default=None, max_length=150)
+    emergency_contact_phone: str | None = Field(default=None, max_length=25)
+    emergency_contact_relationship: str | None = Field(default=None, max_length=50)
+    bank_name: str | None = Field(default=None, max_length=150)
+    account_holder_name: str | None = Field(default=None, max_length=150)
+    account_number: str | None = Field(default=None, max_length=50)
+    ifsc_code: str | None = Field(default=None, max_length=11)
+    qualification: str | None = Field(default=None, max_length=4000)
+    skills: str | None = Field(default=None, max_length=4000)
+    hobbies: str | None = Field(default=None, max_length=4000)
+    languages: list[str] | None = Field(default=None, max_length=50)
+    languages_read_and_written: str | None = Field(default=None, max_length=1000)
 
 class InvitationTokenRequest(BaseModel):
     token: str = Field(min_length=32, max_length=256)

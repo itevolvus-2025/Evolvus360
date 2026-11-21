@@ -374,98 +374,126 @@
           <div class="form-row-3col">
             <div class="form-group">
               <label class="form-label">Date of birth</label>
-              <div class="date-input-wrap">
-                <input
-                  #empDobInput
-                  type="date"
-                  class="form-input date-input"
-                  [value]="emp.date_of_birth"
-                  [max]="todayDate"
-                  readonly
-                />
-                <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(empDobInput)" />
-              </div>
+              <input type="date" class="form-input date-input" [value]="emp.date_of_birth" [max]="todayDate" (input)="updateEmployeeDetail('date_of_birth', $any($event.target).value)" />
             </div>
-
             <div class="form-group">
               <label class="form-label">Gender</label>
-              <input type="text" class="form-input" [value]="emp.gender || '—'" readonly />
+              <select class="form-select" [value]="emp.gender" (change)="updateEmployeeDetail('gender', $any($event.target).value)">
+                <option value="MALE">Male</option><option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option><option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+              </select>
             </div>
-
+            <div class="form-group">
+              <label class="form-label">Blood group</label>
+              <select class="form-select" [value]="emp.blood_group || ''" (change)="updateEmployeeDetail('blood_group', $any($event.target).value)">
+                <option value="">Select blood group</option>
+                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mother tongue</label>
+              <input type="text" class="form-input" maxlength="50" [value]="emp.mother_tongue || ''" (input)="updateEmployeeDetail('mother_tongue', $any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Marital status</label>
+              <select class="form-select" [value]="emp.marital_status || ''" (change)="updateEmployeeDetail('marital_status', $any($event.target).value)">
+                <option value="">Select marital status</option>
+                <option value="SINGLE">Single</option><option value="MARRIED">Married</option>
+                <option value="DIVORCED">Divorced</option><option value="WIDOWED">Widowed</option>
+              </select>
+            </div>
             <div class="form-group">
               <label class="form-label">Mobile number</label>
-              <input type="text" class="form-input" [value]="emp.mobile_number || '—'" readonly />
+              <input type="tel" class="form-input" [value]="emp.mobile_number || ''" (input)="updateEmployeeDetail('mobile_number', $any($event.target).value)" />
             </div>
-
             <div class="form-group">
               <label class="form-label">Aadhaar number</label>
-              <input type="text" class="form-input" [value]="emp.aadhaar_number || '—'" readonly />
+              <input type="text" class="form-input" maxlength="12" autocomplete="off" placeholder="Replace (current: {{ emp.aadhaar_number || 'not set' }})" [value]="sensitiveUpdates()['aadhaar_number'] || ''" (input)="updateSensitiveDetail('aadhaar_number', $any($event.target).value)" />
             </div>
-
             <div class="form-group">
               <label class="form-label">PAN number</label>
-              <input type="text" class="form-input" [value]="emp.pan_number || '—'" readonly />
+              <input type="text" class="form-input" maxlength="10" autocomplete="off" placeholder="Replace (current: {{ emp.pan_number || 'not set' }})" [value]="sensitiveUpdates()['pan_number'] || ''" (input)="updateSensitiveDetail('pan_number', $any($event.target).value.toUpperCase())" />
             </div>
-
             <div class="form-group">
               <label class="form-label">Passport number</label>
-              <input type="text" class="form-input" [value]="emp.passport_number || '—'" readonly />
+              <input type="text" class="form-input" maxlength="30" autocomplete="off" placeholder="Replace (current: {{ emp.passport_number || 'not set' }})" [value]="sensitiveUpdates()['passport_number'] || ''" (input)="updateSensitiveDetail('passport_number', $any($event.target).value.toUpperCase())" />
+            </div>
+            @if (pfApplicable() === 'Yes') {
+              <div class="form-group">
+                <label class="form-label">UAN number</label>
+                <input type="text" class="form-input" maxlength="12" autocomplete="off" placeholder="Replace (current: {{ emp.uan_number || 'not set' }})" [value]="sensitiveUpdates()['uan_number'] || ''" (input)="updateSensitiveDetail('uan_number', $any($event.target).value)" />
+              </div>
+            }
+          </div>
+
+          <h4 class="sub-section-title" style="margin-top: 18px;">Emergency Contact</h4>
+          <div class="form-row-3col">
+            <div class="form-group">
+              <label class="form-label">Contact Name</label>
+              <input type="text" class="form-input" [value]="emp.emergency_contact?.name || ''" (input)="updateNestedEmployeeDetail('emergency_contact', 'name', $any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Relationship</label>
+              <input type="text" class="form-input" [value]="emp.emergency_contact?.relationship || ''" (input)="updateNestedEmployeeDetail('emergency_contact', 'relationship', $any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Phone</label>
+              <input type="tel" class="form-input" [value]="emp.emergency_contact?.phone || ''" (input)="updateNestedEmployeeDetail('emergency_contact', 'phone', $any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Landline</label>
+              <input type="tel" class="form-input" [value]="emp.landline_number || ''" (input)="updateEmployeeDetail('landline_number', $any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Alternate phone</label>
+              <input type="tel" class="form-input" [value]="emp.alternate_phone_number || ''" (input)="updateEmployeeDetail('alternate_phone_number', $any($event.target).value)" />
             </div>
           </div>
 
-          <!-- Emergency Contact -->
-          @if (emp.emergency_contact) {
-            <h4 class="sub-section-title" style="margin-top: 18px;">Emergency Contact</h4>
-            <div class="form-row-3col">
-              <div class="form-group">
-                <label class="form-label">Contact Name</label>
-                <input type="text" class="form-input" [value]="emp.emergency_contact.name || '—'" readonly />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Relationship</label>
-                <input type="text" class="form-input" [value]="emp.emergency_contact.relationship || '—'" readonly />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Contact Phone</label>
-                <input type="text" class="form-input" [value]="emp.emergency_contact.phone || '—'" readonly />
-              </div>
+          <h4 class="sub-section-title" style="margin-top: 18px;">Bank & Payroll Details</h4>
+          <div class="form-row-3col">
+            <div class="form-group">
+              <label class="form-label">Bank Name</label>
+              <input type="text" class="form-input" [value]="emp.bank_details?.bank_name || ''" (input)="updateNestedEmployeeDetail('bank_details', 'bank_name', $any($event.target).value)" />
             </div>
-          }
-
-          <!-- Bank Details -->
-          @if (emp.bank_details) {
-            <h4 class="sub-section-title" style="margin-top: 18px;">Bank & Payroll Details</h4>
-            <div class="form-row-3col">
-              <div class="form-group">
-                <label class="form-label">Bank Name</label>
-                <input type="text" class="form-input" [value]="emp.bank_details.bank_name || '—'" readonly />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Account Number</label>
-                <input type="text" class="form-input" [value]="emp.bank_details.account_number || '—'" readonly />
-              </div>
-              <div class="form-group">
-                <label class="form-label">IFSC Code</label>
-                <input type="text" class="form-input" [value]="emp.bank_details.ifsc_code || '—'" readonly />
-              </div>
+            <div class="form-group">
+              <label class="form-label">Account Holder Name</label>
+              <input type="text" class="form-input" [value]="emp.bank_details?.account_holder_name || ''" (input)="updateNestedEmployeeDetail('bank_details', 'account_holder_name', $any($event.target).value)" />
             </div>
-          }
-
-          <!-- Qualifications & Languages -->
-          @if (emp.qualification || (emp.languages && emp.languages.length)) {
-            <h4 class="sub-section-title" style="margin-top: 18px;">Qualifications & Languages</h4>
-            <div class="form-row-2col">
-              <div class="form-group">
-                <label class="form-label">Highest Qualification</label>
-                <input type="text" class="form-input" [value]="emp.qualification || '—'" readonly />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Languages Known</label>
-                <input type="text" class="form-input" [value]="(emp.languages || []).join(', ') || '—'" readonly />
-              </div>
+            <div class="form-group">
+              <label class="form-label">Account Number</label>
+              <input type="text" class="form-input" autocomplete="off" placeholder="Replace account ending {{ emp.bank_details?.account_number || '—' }}" [value]="sensitiveUpdates()['account_number'] || ''" (input)="updateSensitiveDetail('account_number', $any($event.target).value)" />
             </div>
-          }
+            <div class="form-group">
+              <label class="form-label">IFSC Code</label>
+              <input type="text" class="form-input" maxlength="11" [value]="emp.bank_details?.ifsc_code || ''" (input)="updateNestedEmployeeDetail('bank_details', 'ifsc_code', $any($event.target).value.toUpperCase())" />
+            </div>
+          </div>
 
+          <h4 class="sub-section-title" style="margin-top: 18px;">Qualifications & Skills</h4>
+          <div class="form-row-3col">
+            <div class="form-group">
+              <label class="form-label">Highest Qualification</label>
+              <input type="text" class="form-input" maxlength="4000" [value]="emp.qualification || ''" (input)="updateEmployeeDetail('qualification', $any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Additional Skills</label>
+              <input type="text" class="form-input" maxlength="4000" [value]="emp.skills || ''" (input)="updateEmployeeDetail('skills', $any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Languages Known</label>
+              <input type="text" class="form-input" [value]="(emp.languages || []).join(', ')" (input)="updateLanguages($any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Languages read and written</label>
+              <input type="text" class="form-input" maxlength="1000" [value]="emp.languages_read_and_written || ''" (input)="updateEmployeeDetail('languages_read_and_written', $any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hobbies</label>
+              <input type="text" class="form-input" maxlength="4000" [value]="emp.hobbies || ''" (input)="updateEmployeeDetail('hobbies', $any($event.target).value)" />
+            </div>
+          </div>
           <!-- Documents -->
           @if (emp.documents && emp.documents.length) {
             <h4 class="sub-section-title" style="margin-top: 18px;">Uploaded Documents ({{ emp.documents.length }})</h4>
@@ -487,6 +515,19 @@
               }
             </div>
           }
+          <h4 class="sub-section-title" style="margin-top: 18px;">Replace documents</h4>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label class="form-label" for="editIdentityProof">Identity proof</label>
+              <input id="editIdentityProof" type="file" class="form-input" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="selectDocument('identity_proof', $event)" />
+              <small class="field-hint">Optional replacement. PDF, JPG or PNG, up to 5 MB.</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editCancelledCheque">Cancelled cheque</label>
+              <input id="editCancelledCheque" type="file" class="form-input" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="selectDocument('cancelled_cheque', $event)" />
+              <small class="field-hint">Optional replacement. PDF, JPG or PNG, up to 5 MB.</small>
+            </div>
+          </div>
         </div>
       </section>
     }

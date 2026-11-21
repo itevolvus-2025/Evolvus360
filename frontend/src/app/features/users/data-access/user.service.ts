@@ -272,6 +272,29 @@ export class UserService {
     });
   }
 
+  updateEmployeeDocuments(
+    id: string | number,
+    documents: { identity_proof?: File | null; cancelled_cheque?: File | null },
+    onSuccess: () => void,
+    onError: (message: string) => void,
+  ): void {
+    if (this.isSaving()) return;
+    this.isSaving.set(true);
+    const form = new FormData();
+    if (documents.identity_proof) form.append('identity_proof', documents.identity_proof);
+    if (documents.cancelled_cheque) form.append('cancelled_cheque', documents.cancelled_cheque);
+    this.apiService.put(API_ENDPOINTS.users.documents(id), form).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        onSuccess();
+      },
+      error: (err) => {
+        this.isSaving.set(false);
+        onError(err.message || 'Could not update employee documents.');
+      },
+    });
+  }
+
   private rememberEmployee(result: EmployeeApiRecord): void {
     const existing = this.users().find((user) => String(user.id) === result.id);
     if (existing) return;

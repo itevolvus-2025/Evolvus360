@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
     create: `${BASE_URL}/users`,
     detail: (id: string | number) => `${BASE_URL}/users/${id}`,
     update: (id: string | number) => `${BASE_URL}/users/${id}`,
+    documents: (id: string | number) => `${BASE_URL}/users/${id}/documents`,
     deactivate: (id: string | number) => `${BASE_URL}/users/${id}/deactivate`,
     invite: (id: string | number) => `${BASE_URL}/users/${id}/invite`,
     inviteRetry: (id: string | number) => `${BASE_URL}/users/${id}/invite/retry`,

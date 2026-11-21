@@ -61,6 +61,11 @@ export class UserEditComponent implements OnInit {
   // 05 Profile & Employee Details
   readonly employeeDetails = signal<any>(null);
   readonly todayDate = new Date().toISOString().slice(0, 10);
+  readonly sensitiveUpdates = signal<Record<string, string>>({});
+  readonly selectedDocuments = signal<{ identity_proof: File | null; cancelled_cheque: File | null }>({
+    identity_proof: null,
+    cancelled_cheque: null,
+  });
 
   // Deactivate Confirmation Modal
   readonly showDeactivateModal = signal(false);
@@ -159,6 +164,37 @@ export class UserEditComponent implements OnInit {
     }
   }
 
+  updateEmployeeDetail(field: string, value: string | string[]): void {
+    const current = this.employeeDetails();
+    if (current) this.employeeDetails.set({ ...current, [field]: value });
+  }
+
+  updateNestedEmployeeDetail(group: 'emergency_contact' | 'bank_details', field: string, value: string): void {
+    const current = this.employeeDetails();
+    if (current) {
+      this.employeeDetails.set({
+        ...current,
+        [group]: { ...(current[group] || {}), [field]: value },
+      });
+    }
+  }
+
+  updateSensitiveDetail(field: string, value: string): void {
+    this.sensitiveUpdates.update((current) => ({ ...current, [field]: value }));
+  }
+
+  updateLanguages(value: string): void {
+    this.updateEmployeeDetail(
+      'languages',
+      value.split(',').map((language) => language.trim()).filter(Boolean),
+    );
+  }
+
+  selectDocument(type: 'identity_proof' | 'cancelled_cheque', event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    this.selectedDocuments.update((current) => ({ ...current, [type]: file }));
+  }
+
   saveUser(): void {
     const firstName = this.firstName().trim();
     const lastName = this.lastName().trim();
@@ -169,6 +205,7 @@ export class UserEditComponent implements OnInit {
     const personalEmail = this.personalEmail().trim();
     const joiningDate = this.joiningDate().trim();
     const startDate = this.startDate().trim();
+    const endDate = this.endDate().trim();
 
     if (!firstName) {
       this.notification.show('First name is mandatory', 'error');
@@ -215,6 +252,11 @@ export class UserEditComponent implements OnInit {
       return;
     }
 
+    if (endDate && startDate > endDate) {
+      this.notification.show('End date must be on or after start date', 'error');
+      return;
+    }
+
     const parseDate = (value: string): string => {
       if (!value) return '';
       if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
@@ -233,7 +275,7 @@ export class UserEditComponent implements OnInit {
       const roleOption = this.roles().find((r) => r.id === role || r.name === role);
       const entityOption = this.entities().find((e) => e.id === this.entity() || e.name === this.entity());
 
-      this.userService.updateEmployee(id, {
+      const payload: Record<string, unknown> = {
         first_name: firstName,
         middle_name: this.middleName().trim() || null,
         last_name: lastName,
@@ -248,15 +290,52 @@ export class UserEditComponent implements OnInit {
         pf_applicable: this.pfApplicable() === 'Yes',
         joining_date: parseDate(joiningDate),
         start_date: parseDate(startDate),
-        end_date: this.endDate().trim() ? parseDate(this.endDate().trim()) : null,
+        end_date: endDate ? parseDate(endDate) : null,
         account_status: this.status() === 'Active'
           ? 'ACTIVE'
           : this.status() === 'Pending'
             ? 'INVITED'
             : 'INACTIVE',
-      }, () => {
-        this.notification.show(`User "${fullName}" updated successfully!`, 'success');
-        void this.router.navigateByUrl('/users');
+      };
+      const employeeDetails = this.employeeDetails();
+      if (employeeDetails) {
+        Object.assign(payload, {
+          date_of_birth: employeeDetails.date_of_birth,
+          gender: employeeDetails.gender,
+          blood_group: employeeDetails.blood_group,
+          mother_tongue: employeeDetails.mother_tongue,
+          marital_status: employeeDetails.marital_status,
+          mobile_number: employeeDetails.mobile_number,
+          landline_number: employeeDetails.landline_number,
+          alternate_phone_number: employeeDetails.alternate_phone_number,
+          emergency_contact_name: employeeDetails.emergency_contact?.name,
+          emergency_contact_phone: employeeDetails.emergency_contact?.phone,
+          emergency_contact_relationship: employeeDetails.emergency_contact?.relationship,
+          bank_name: employeeDetails.bank_details?.bank_name,
+          account_holder_name: employeeDetails.bank_details?.account_holder_name,
+          ifsc_code: employeeDetails.bank_details?.ifsc_code,
+          qualification: employeeDetails.qualification,
+          skills: employeeDetails.skills,
+          hobbies: employeeDetails.hobbies,
+          languages: Array.isArray(employeeDetails.languages) ? employeeDetails.languages : [],
+          languages_read_and_written: employeeDetails.languages_read_and_written,
+        });
+        for (const [field, value] of Object.entries(this.sensitiveUpdates())) {
+          if (value.trim()) payload[field] = value.trim();
+        }
+      }
+
+      this.userService.updateEmployee(id, payload, () => {
+        const documents = this.selectedDocuments();
+        if (documents.identity_proof || documents.cancelled_cheque) {
+          this.userService.updateEmployeeDocuments(id, documents, () => {
+            this.finishSave(fullName);
+          }, (message) => {
+            this.notification.show(`Profile details were saved, but document update failed: ${message}`, 'error');
+          });
+          return;
+        }
+        this.finishSave(fullName);
       }, (errMsg) => {
         this.notification.show(errMsg, 'error');
       });
@@ -264,6 +343,11 @@ export class UserEditComponent implements OnInit {
     }
 
     this.notification.show('This user does not have a valid server ID and cannot be saved.', 'error');
+  }
+
+  private finishSave(fullName: string): void {
+    this.notification.show(`User "${fullName}" updated successfully!`, 'success');
+    void this.router.navigateByUrl('/users');
   }
 
   sendInvitationEmail(): void {
