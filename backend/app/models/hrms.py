@@ -404,6 +404,7 @@ class EmployeeEmploymentDetails(TimestampMixin, SoftDeleteMixin, Base):
     )
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     rejection_reason: Mapped[str | None] = mapped_column(Text)
+    last_change_reason: Mapped[str | None] = mapped_column(Text)
     employment_status: Mapped[str] = mapped_column(
         String(30), nullable=False, server_default="ACTIVE"
     )

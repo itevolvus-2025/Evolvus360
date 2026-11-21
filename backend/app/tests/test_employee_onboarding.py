@@ -198,9 +198,17 @@ def test_employee_create_rejects_invalid_field_values(
         EmployeeCreate.model_validate(payload)
 
 
-def test_employee_update_rejects_employee_code_and_employee_data_fields() -> None:
+def test_employee_update_rejects_generated_code_and_employee_data_fields() -> None:
     with pytest.raises(ValidationError):
         EmployeeUpdate.model_validate({"employee_code": "ET-002"})
+    update = EmployeeUpdate.model_validate(
+        {
+            "account_status": "INACTIVE",
+            "reason_for_change": "Role change",
+        }
+    )
+    assert update.account_status == "INACTIVE"
+    assert update.reason_for_change == "Role change"
     with pytest.raises(ValidationError):
         EmployeeUpdate.model_validate({"account_number": "123456"})
 

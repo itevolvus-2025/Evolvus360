@@ -94,6 +94,12 @@ def update_employee(
     return success_response("Employee updated successfully", result)
 
 
+@router.post("/{user_id}/deactivate", response_model=ApiResponse[dict])
+def deactivate_employee(user_id: UUID, db: DbSession, user: AdminUser):
+    result = employee_service.deactivate_user(db, user_id)
+    return success_response("User deactivated successfully", result)
+
+
 @router.post("/{user_id}/approve", response_model=ApiResponse[dict])
 def approve_employee(user_id: UUID, db: DbSession, user: AdminUser):
     result = approval_service.approve(db, user, user_id)

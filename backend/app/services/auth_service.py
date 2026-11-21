@@ -441,7 +441,11 @@ def reset_password(
     user = db.scalar(
         select(User).where(User.id == reset.user_id, User.deleted_at.is_(None))
     )
-    if user is None:
+    if (
+        user is None
+        or not user.is_active
+        or user.account_status != "ACTIVE"
+    ):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, "Invalid or expired reset token"
         )

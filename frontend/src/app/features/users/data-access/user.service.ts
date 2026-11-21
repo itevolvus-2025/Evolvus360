@@ -223,6 +223,7 @@ export class UserService {
             lastName: hr.last_name || '',
             name: [hr.first_name, hr.middle_name, hr.last_name].filter(Boolean).join(' ').trim() || hr.employee_code,
             code: hr.employee_code || '',
+            reasonForChange: hr.reason_for_change || '',
             companyEmail: hr.company_email || '',
             personalEmail: hr.personal_email || '',
             email: hr.company_email || '',
@@ -247,14 +248,10 @@ export class UserService {
           onSuccess(mapped, d);
           return;
         }
-        const local = this.getUserById(id);
-        if (local) onSuccess(local);
-        else if (onError) onError('User not found.');
+        if (onError) onError('The server returned incomplete user details.');
       },
       error: (err) => {
-        const local = this.getUserById(id);
-        if (local) onSuccess(local);
-        else if (onError) onError(err.message || 'User not found.');
+        if (onError) onError(err.message || 'User not found.');
       },
     });
   }
