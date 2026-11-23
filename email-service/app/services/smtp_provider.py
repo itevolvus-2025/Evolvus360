@@ -4,6 +4,7 @@ import base64
 import binascii
 import smtplib
 import ssl
+import certifi
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid
 from pathlib import PurePosixPath
@@ -102,7 +103,7 @@ def send_message(
         )
 
     recipients = to + cc + bcc
-    context = ssl.create_default_context()
+    context = ssl.create_default_context(cafile=certifi.where())
     if settings.smtp_use_ssl:
         with smtplib.SMTP_SSL(
             settings.smtp_host,
