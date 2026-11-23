@@ -18,12 +18,15 @@
             formControlName="email"
             placeholder="Enter your registered email (e.g. name@company.com)"
             autocomplete="email"
+            maxlength="254"
           />
         </div>
         @if (emailControl.touched && emailControl.invalid) {
           <small class="field-error">
             @if (emailControl.errors?.['required']) {
               Email address is required.
+            } @else if (emailControl.errors?.['maxlength']) {
+              Email address must be 254 characters or fewer.
             } @else if (emailControl.errors?.['pattern'] || emailControl.errors?.['email']) {
               Please enter a valid email address (e.g. name&#64;company.com).
             }
@@ -43,6 +46,7 @@
             formControlName="password"
             placeholder="Enter your password"
             autocomplete="current-password"
+            maxlength="128"
           />
           <button
             class="password-toggle"
@@ -59,7 +63,9 @@
             @if (passwordControl.errors?.['required']) {
               Password is required.
             } @else if (passwordControl.errors?.['minlength']) {
-              Password must be at least 6 characters.
+              Password must be at least 8 characters.
+            } @else if (passwordControl.errors?.['maxlength']) {
+              Password must be 128 characters or fewer.
             }
           </small>
         }

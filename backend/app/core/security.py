@@ -19,9 +19,9 @@ def normalize_email(email: str) -> str:
 
 
 def validate_password_strength(password: str) -> None:
-    """Require a long mixed password before any new credential is stored."""
+    """Require an 8-character mixed password before storing new credentials."""
     if (
-        len(password) < 12
+        len(password) < 8
         or len(password) > 128
         or not all(
             (
@@ -33,7 +33,7 @@ def validate_password_strength(password: str) -> None:
         )
     ):
         raise ValueError(
-            "Password must be 12-128 characters with upper, lower, number, "
+            "Password must be 8-128 characters with upper, lower, number, "
             "and symbol characters"
         )
 

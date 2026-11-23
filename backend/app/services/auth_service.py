@@ -29,7 +29,17 @@ from app.models.hrms import (
 from app.services import email_dispatch
 
 logger = logging.getLogger(__name__)
-GENERIC_CREDENTIAL_ERROR = "Invalid email or password"
+EMAIL_NOT_FOUND_ERROR = "The provided email address was not found in the system."
+PASSWORD_MISMATCH_ERROR = "The password is incorrect. Please check your password and try again."
+INACTIVE_ACCOUNT_ERROR = "Your account is inactive. Please contact HR."
+LOCKED_ACCOUNT_ERROR = "Your account is temporarily locked. Please contact HR."
+INVALID_TEMPORARY_PASSWORD_ERROR = (
+    "Your temporary password has expired or was already used. Please contact HR."
+)
+RESET_EMAIL_NOT_FOUND_ERROR = "Email is not found in the system."
+RESET_ACCOUNT_INACTIVE_ERROR = (
+    "The credentials you want to reset are inactive. Please contact HR."
+)
 SYSTEM_ROLES = (
     ("CONSULTANT", "Consultant"),
     ("EMPLOYEE", "Employee"),
@@ -197,24 +207,29 @@ def _issue_bundle(
 
 
 def login(db: Session, email: str, password: str) -> dict:
+    submitted_email = normalize_email(email)
     user = db.scalar(
         select(User)
         .options(
             selectinload(User.role_assignments).joinedload(UserRole.role),
         )
         .where(
-            func.lower(User.email) == normalize_email(email),
+            func.lower(User.email) == submitted_email,
             User.deleted_at.is_(None),
         )
         .with_for_update()
     )
-    # Keep unknown, incorrect, locked, and disabled account errors indistinguishable.
     now = datetime.now(UTC)
-    valid_password = verify_password(password, user.password_hash if user else None)
-    if user is not None and user.is_active and user.account_status == "ACTIVE":
-        if user.locked_until and user.locked_until > now:
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, GENERIC_CREDENTIAL_ERROR)
-        if not valid_password:
+    if user is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, EMAIL_NOT_FOUND_ERROR)
+
+    valid_password = verify_password(password, user.password_hash)
+    account_is_active = user.is_active and user.account_status == "ACTIVE"
+    if account_is_active and user.locked_until and user.locked_until > now:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, LOCKED_ACCOUNT_ERROR)
+
+    if not valid_password:
+        if account_is_active:
             if user.locked_until and user.locked_until <= now:
                 user.failed_login_attempts = 0
             user.failed_login_attempts += 1
@@ -223,21 +238,31 @@ def login(db: Session, email: str, password: str) -> dict:
                     minutes=get_settings().login_lockout_minutes
                 )
             db.commit()
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, GENERIC_CREDENTIAL_ERROR)
-    if (
-        user is None
-        or not valid_password
-        or not user.is_active
-        or user.account_status != "ACTIVE"
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, PASSWORD_MISMATCH_ERROR)
+
+    if not account_is_active:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, INACTIVE_ACCOUNT_ERROR)
+    # Employee accounts must sign in with the company address on their linked
+    # employment record. Company-independent accounts (such as Super Admins)
+    # continue to authenticate with their registered account email.
+    employee = user.employee
+    if employee is not None and (
+        not employee.company_email
+        or normalize_email(employee.company_email) != submitted_email
+        or employee.deleted_at is not None
     ):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, GENERIC_CREDENTIAL_ERROR)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, EMAIL_NOT_FOUND_ERROR)
+    if employee is not None and employee.employment_status in {"INACTIVE", "TERMINATED"}:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, INACTIVE_ACCOUNT_ERROR)
     if user.must_change_password:
         if (
             user.temporary_password_expires_at is None
             or user.temporary_password_expires_at <= now
             or user.temporary_password_used_at is not None
         ):
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, GENERIC_CREDENTIAL_ERROR)
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED, INVALID_TEMPORARY_PASSWORD_ERROR
+            )
         access_token, expires_in = create_access_token(
             str(user.id),
             purpose="temporary_password_change",
@@ -333,24 +358,36 @@ def logout(db: Session, raw_token: str) -> None:
 
 
 def forgot_password(db: Session, email: str) -> None:
-    user = db.scalar(
-        select(User)
-        .join(User.employee)
+    employee = db.scalar(
+        select(EmployeeEmploymentDetails)
+        .options(joinedload(EmployeeEmploymentDetails.user))
         .where(
-            func.lower(EmployeeEmploymentDetails.company_email) == normalize_email(email),
+            func.lower(EmployeeEmploymentDetails.company_email)
+            == normalize_email(email),
             EmployeeEmploymentDetails.deleted_at.is_(None),
-            EmployeeEmploymentDetails.profile_status == "APPROVED",
-            User.deleted_at.is_(None),
-            User.is_active.is_(True),
-            User.account_status == "ACTIVE",
         )
     )
-    if user is None:
+    if employee is None:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
-            "No active, approved account found for this company email",
+            RESET_EMAIL_NOT_FOUND_ERROR,
         )
-    recipient_email = user.employee.company_email
+    user = employee.user
+    if (
+        user is None
+        or user.deleted_at is not None
+        or not user.is_active
+        or user.account_status != "ACTIVE"
+        or user.email.casefold() != employee.company_email.casefold()
+        or employee.profile_status != "APPROVED"
+        or employee.employment_status in {"INACTIVE", "TERMINATED"}
+    ):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            RESET_ACCOUNT_INACTIVE_ERROR,
+        )
+
+    recipient_email = employee.company_email
     now = datetime.now(UTC)
     previous_tokens = db.scalars(
         select(PasswordResetToken).where(
@@ -447,7 +484,18 @@ def reset_password(
         or user.account_status != "ACTIVE"
     ):
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Invalid or expired reset token"
+            status.HTTP_403_FORBIDDEN, RESET_ACCOUNT_INACTIVE_ERROR
+        )
+    employee = user.employee
+    if employee is not None and (
+        employee.deleted_at is not None
+        or employee.profile_status != "APPROVED"
+        or employee.employment_status in {"INACTIVE", "TERMINATED"}
+        or not employee.company_email
+        or employee.company_email.casefold() != user.email.casefold()
+    ):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, RESET_ACCOUNT_INACTIVE_ERROR
         )
     user.password_hash = hash_password(new_password)
     user.must_change_password = False

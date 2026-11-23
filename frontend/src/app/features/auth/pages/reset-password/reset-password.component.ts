@@ -28,8 +28,8 @@ export class ResetPasswordComponent implements OnInit {
   readonly successMessage = signal('');
 
   readonly form = this.fb.nonNullable.group({
-    newPassword: ['', [Validators.required, Validators.minLength(12)]],
-    confirmPassword: ['', [Validators.required, Validators.minLength(12)]],
+    newPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
+    confirmPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
   });
 
   ngOnInit(): void {
@@ -53,7 +53,7 @@ export class ResetPasswordComponent implements OnInit {
 
   // Password Strength Indicators
   hasMinLength(): boolean {
-    return (this.form.controls.newPassword.value || '').length >= 12;
+    return (this.form.controls.newPassword.value || '').length >= 8;
   }
 
   hasUppercase(): boolean {

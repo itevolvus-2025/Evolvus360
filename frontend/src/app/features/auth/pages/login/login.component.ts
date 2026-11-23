@@ -40,9 +40,10 @@ export class LoginComponent {
       [
         Validators.required,
         Validators.pattern(EMAIL_REGEX),
+        Validators.maxLength(254),
       ],
     ],
-    password: ['', [Validators.required, Validators.minLength(6)]],
+    password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
     rememberMe: [true],
   });
 
@@ -79,7 +80,7 @@ export class LoginComponent {
           void this.router.navigateByUrl(targetRoute);
         } else {
           this.error.set(
-            result.message || 'Invalid email or password. Please verify your credentials.'
+            result.message || 'Sign in failed. Please check your details and try again.'
           );
         }
       },

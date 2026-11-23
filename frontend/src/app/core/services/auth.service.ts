@@ -196,10 +196,10 @@ export class AuthService {
     password: string,
     rememberMe = true
   ): Observable<{ success: boolean; message?: string }> {
-    if (!email || password.length < 6) {
+    if (!email || password.length < 8) {
       return of({
         success: false,
-        message: 'Valid email and password (min 6 chars) are required.',
+        message: 'Valid email and password (min 8 chars) are required.',
       });
     }
 
@@ -220,7 +220,7 @@ export class AuthService {
 
           return {
             success: false,
-            message: response?.message || 'Invalid email or password.',
+            message: response?.message || 'Sign in failed. Please check your details and try again.',
           };
         }),
         catchError((err: Error) => {

@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from app.core import security
 from app.services import approval_service, auth_service
@@ -18,6 +19,72 @@ def test_password_hashing_uses_one_way_argon2_hashes() -> None:
     assert encoded != "StrongPassword123!"
     assert security.verify_password("StrongPassword123!", encoded)
     assert not security.verify_password("WrongPassword123!", encoded)
+
+
+def test_eight_character_password_matches_policy_and_schemas() -> None:
+    from app.schemas.auth import ChangeTemporaryPasswordRequest, ResetPasswordRequest
+
+    password = "Aa1!bcde"
+    security.validate_password_strength(password)
+    assert ResetPasswordRequest(
+        token="reset-token", new_password=password, confirm_password=password
+    )
+    assert ChangeTemporaryPasswordRequest(
+        new_password=password, confirm_password=password
+    )
+    with pytest.raises(ValueError, match="8-128"):
+        security.validate_password_strength("Aa1!bcd")
+    with pytest.raises(ValidationError):
+        ResetPasswordRequest(
+            token="reset-token", new_password="Aa1!bcd", confirm_password="Aa1!bcd"
+        )
+
+
+def test_reset_password_persists_hash_that_login_can_reuse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services import auth_service
+
+    now = datetime.now(UTC)
+    user = SimpleNamespace(
+        id=uuid4(),
+        email="employee@example.test",
+        password_hash=None,
+        is_active=True,
+        account_status="ACTIVE",
+        locked_until=None,
+        failed_login_attempts=0,
+        must_change_password=True,
+        temporary_password_expires_at=now + timedelta(hours=1),
+        temporary_password_used_at=now,
+        last_login_at=None,
+    )
+    reset = SimpleNamespace(
+        user_id=user.id,
+        used_at=None,
+        revoked_at=None,
+        expires_at=now + timedelta(minutes=30),
+    )
+    scalar_results = [reset, user]
+    db = Mock()
+    db.scalar.side_effect = lambda *_args, **_kwargs: (
+        scalar_results.pop(0) if scalar_results else user
+    )
+    settings = SimpleNamespace(app_env="development", dev_password_reset_token=None)
+    monkeypatch.setattr(auth_service, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        auth_service, "_issue_bundle", lambda *_args: {"access_token": "test-token"}
+    )
+
+    auth_service.reset_password(db, "single-use-token", "Aa1!bcde")
+
+    assert security.verify_password("Aa1!bcde", user.password_hash)
+    assert reset.used_at is not None
+    assert user.must_change_password is False
+    first_login = auth_service.login(db, user.email, "Aa1!bcde")
+    second_login = auth_service.login(db, user.email, "Aa1!bcde")
+    assert first_login["access_token"] == "test-token"
+    assert second_login["access_token"] == "test-token"
 
 
 def test_temporary_passwords_are_strong_and_temporary_login_is_single_use(

@@ -2,7 +2,14 @@
 
 from typing import Generic, Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 T = TypeVar("T")
 
@@ -20,6 +27,8 @@ class AuthRole(BaseModel):
 
 
 class AuthUser(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     id: str
     email: EmailStr
     first_name: str | None
@@ -29,6 +38,8 @@ class AuthUser(BaseModel):
 
 
 class TokenResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     access_token: str
     refresh_token: str
     token_type: Literal["bearer"]
@@ -39,8 +50,8 @@ class TokenResponse(BaseModel):
 
 
 class ChangeTemporaryPasswordRequest(BaseModel):
-    new_password: str = Field(min_length=12, max_length=128)
-    confirm_password: str = Field(min_length=12, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+    confirm_password: str = Field(min_length=8, max_length=128)
 
     @model_validator(mode="after")
     def passwords_match(self):
@@ -51,6 +62,7 @@ class ChangeTemporaryPasswordRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     model_config = ConfigDict(
+        extra="forbid",
         json_schema_extra={
             "examples": [
                 {"email": "admin@example.com", "password": "StrongPassword123!"}
@@ -58,7 +70,14 @@ class LoginRequest(BaseModel):
         }
     )
     email: EmailStr
-    password: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_login_email(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
 
 
 class RefreshRequest(BaseModel):
@@ -90,8 +109,8 @@ class ResetPasswordRequest(BaseModel):
     )
     token: str = Field(min_length=1, max_length=256)
     email: EmailStr | None = None
-    new_password: str = Field(min_length=12, max_length=128)
-    confirm_password: str = Field(min_length=12, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+    confirm_password: str = Field(min_length=8, max_length=128)
 
     @model_validator(mode="after")
     def passwords_match(self):
