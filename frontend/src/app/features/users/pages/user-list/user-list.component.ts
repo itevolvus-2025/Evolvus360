@@ -22,7 +22,7 @@ import { UserService } from '../../data-access/user.service';
 })
 export class UserListComponent implements OnInit {
   private readonly userService = inject(UserService);
-  readonly userServiceRef = this.userService;
+  readonly userLoadError = this.userService.loadError;
 
   ngOnInit(): void {
     this.userService.loadUsers();

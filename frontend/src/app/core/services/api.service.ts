@@ -94,7 +94,7 @@ export class ApiService {
 
     // Status 0 represents browser CORS rejection or connection refused
     if (error.status === 0) {
-      errorMessage = 'CORS_OR_NETWORK_ERROR: Backend server connection was blocked or refused on port 8000.';
+      errorMessage = 'Unable to connect to the backend server. Please verify the backend service is running and accessible.';
     } else if (error.error) {
       if (typeof error.error === 'string') {
         errorMessage = error.error;

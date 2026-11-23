@@ -156,7 +156,7 @@
           <tr class="empty-row">
             <td colspan="6" class="empty-cell">
               <app-icon name="search" [size]="28" color="#94A3B8" />
-              @if (userServiceRef.loadError(); as loadError) {
+              @if (userLoadError(); as loadError) {
                 <p>Could not load users: {{ loadError }}</p>
               } @else {
                 <p>No users found</p>

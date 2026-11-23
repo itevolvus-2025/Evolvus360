@@ -189,8 +189,7 @@ export class AuthService {
 
   /**
    * Authenticate with backend API.
-   * On CORS / network error or offline backend, gracefully falls back to the hardcoded user
-   * as requested so local workflows are never interrupted.
+   * Credentials must be validated against the backend database.
    */
   login(
     email: string,
@@ -206,7 +205,7 @@ export class AuthService {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // 1. Try real Backend API
+    // Authenticate with real Backend API (/api/v1/auth/login)
     return this.apiService
       .post<TokenResponse>(API_ENDPOINTS.auth.login, {
         email: trimmedEmail,
@@ -219,26 +218,12 @@ export class AuthService {
             return { success: true };
           }
 
-          // Fallback if response payload unexpected
-          return this.fallbackHardcodedLogin(trimmedEmail, rememberMe);
+          return {
+            success: false,
+            message: response?.message || 'Invalid email or password.',
+          };
         }),
         catchError((err: Error) => {
-          // Check for CORS / connection refused / network error
-          const isCorsOrNetwork =
-            err.message.includes('CORS_OR_NETWORK_ERROR') ||
-            err.message.includes('Unable to connect') ||
-            err.message.includes('blocked') ||
-            err.message.includes('0:');
-
-          // If it's genuinely a CORS/network error while backend is offline, fall back to local session
-          if (isCorsOrNetwork && !err.message.includes('401') && !err.message.includes('422')) {
-            console.warn(
-              'Backend offline or CORS restricted. Falling back to local hardcoded user session:',
-              err.message
-            );
-            return of(this.fallbackHardcodedLogin(trimmedEmail, rememberMe));
-          }
-
           return of({
             success: false,
             message: err.message || 'Authentication failed. Please verify your credentials.',

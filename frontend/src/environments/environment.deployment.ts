@@ -1,13 +1,11 @@
 /**
  * Deployment environment configuration for Evolvus360 Frontend.
  * Used when building with: npm run build:deployment
- * 
- * In production deployment, relative API path '/api/v1' enables seamless reverse-proxying
- * through Nginx, Apache, or cloud load balancers without CORS or hardcoded hostnames.
  */
 export const environment = {
   production: true,
-  apiUrl: '/api/v1',
+  apiUrl: 'http://3.111.89.13:7006/api/v1',
+  deploymentUrl: 'http://3.111.89.13:7006/',
   appName: 'Evolvus360 HRMS',
   appVersion: '1.0.0',
   enableDebugLogging: false,

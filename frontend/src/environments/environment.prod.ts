@@ -4,7 +4,8 @@
  */
 export const environment = {
   production: true,
-  apiUrl: '/api/v1',
+  apiUrl: 'http://3.111.89.13:7006/api/v1',
+  deploymentUrl: 'http://3.111.89.13:7006/',
   appName: 'Evolvus360 HRMS',
   appVersion: '1.0.0',
   enableDebugLogging: false,

@@ -7,24 +7,25 @@
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="field-group">
-        <label for="login-email">Registered Email or User ID</label>
+        <label for="login-email">Registered Email Address</label>
         <div class="input-wrapper">
           <app-icon name="mail" [size]="18" class="input-icon" />
           <input
             id="login-email"
             class="form-control"
+            [class.is-invalid]="emailControl.invalid && (emailControl.touched || emailControl.dirty)"
             type="email"
             formControlName="email"
-            placeholder="Enter your Registered email or user ID"
+            placeholder="Enter your registered email (e.g. name@company.com)"
             autocomplete="email"
           />
         </div>
-        @if (form.controls.email.touched && form.controls.email.invalid) {
+        @if (emailControl.touched && emailControl.invalid) {
           <small class="field-error">
-            @if (form.controls.email.errors?.['required']) {
+            @if (emailControl.errors?.['required']) {
               Email address is required.
-            } @else if (form.controls.email.errors?.['email']) {
-              Please enter a valid email address.
+            } @else if (emailControl.errors?.['pattern'] || emailControl.errors?.['email']) {
+              Please enter a valid email address (e.g. name&#64;company.com).
             }
           </small>
         }
@@ -37,6 +38,7 @@
           <input
             id="login-password"
             class="form-control"
+            [class.is-invalid]="passwordControl.invalid && (passwordControl.touched || passwordControl.dirty)"
             [type]="passwordVisible() ? 'text' : 'password'"
             formControlName="password"
             placeholder="Enter your password"
@@ -52,11 +54,11 @@
             <app-icon [name]="passwordVisible() ? 'eye-slash' : 'eye'" [size]="18" />
           </button>
         </div>
-        @if (form.controls.password.touched && form.controls.password.invalid) {
+        @if (passwordControl.touched && passwordControl.invalid) {
           <small class="field-error">
-            @if (form.controls.password.errors?.['required']) {
+            @if (passwordControl.errors?.['required']) {
               Password is required.
-            } @else if (form.controls.password.errors?.['minlength']) {
+            } @else if (passwordControl.errors?.['minlength']) {
               Password must be at least 6 characters.
             }
           </small>

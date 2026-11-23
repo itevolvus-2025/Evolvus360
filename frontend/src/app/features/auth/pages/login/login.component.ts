@@ -6,6 +6,9 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { API_ENDPOINTS } from '../../../../core/constants/api-endpoints';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
 
+/** Standard comprehensive email validation pattern */
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -19,7 +22,7 @@ export class LoginComponent {
   private readonly router = inject(Router);
 
   /** Centralized API Endpoint for login */
-  readonly loginApiUrl = API_ENDPOINTS.auth.login; // http://localhost:8000/api/v1/auth/login
+  readonly loginApiUrl = API_ENDPOINTS.auth.login;
 
   /** Form submission & UI state signals */
   readonly isLoading = signal(false);
@@ -30,16 +33,29 @@ export class LoginComponent {
     this.passwordVisible.update((visible) => !visible);
   }
 
-  /** Reactive login form with field validation */
+  /** Reactive login form with strict email validation pattern */
   readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    email: [
+      '',
+      [
+        Validators.required,
+        Validators.pattern(EMAIL_REGEX),
+      ],
+    ],
     password: ['', [Validators.required, Validators.minLength(6)]],
     rememberMe: [true],
   });
 
+  get emailControl() {
+    return this.form.controls.email;
+  }
+
+  get passwordControl() {
+    return this.form.controls.password;
+  }
+
   /**
    * Submit login credentials to backend API (/api/v1/auth/login)
-   * with automatic hardcoded session fallback if backend server is offline.
    */
   submit(): void {
     if (this.form.invalid) {
@@ -50,26 +66,25 @@ export class LoginComponent {
     this.isLoading.set(true);
     this.error.set('');
 
-    const { email, password, rememberMe } = this.form.getRawValue();
-
-    console.log(`[Auth] Attempting login via API: ${this.loginApiUrl}`);
+    const raw = this.form.getRawValue();
+    const email = raw.email.trim();
+    const password = raw.password;
+    const rememberMe = raw.rememberMe;
 
     this.auth.login(email, password, rememberMe).subscribe({
       next: (result) => {
         this.isLoading.set(false);
         if (result.success) {
           const targetRoute = this.auth.getDefaultRoute();
-          console.log(`[Auth] Login successful. Redirecting to ${targetRoute}...`);
           void this.router.navigateByUrl(targetRoute);
         } else {
           this.error.set(
-            result.message || 'Authentication failed. Please check your email and password.'
+            result.message || 'Invalid email or password. Please verify your credentials.'
           );
         }
       },
       error: (err: Error) => {
         this.isLoading.set(false);
-        console.warn('[Auth] API request encountered error:', err);
         this.error.set(err.message || 'Authentication failed. Please verify your credentials.');
       },
     });

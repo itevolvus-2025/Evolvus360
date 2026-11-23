@@ -109,6 +109,16 @@ form {
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       outline: none;
     }
+
+    &.is-invalid {
+      border-color: #ef4444;
+      background-color: #fffbfa;
+
+      &:focus {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+      }
+    }
   }
 
   .password-toggle {
