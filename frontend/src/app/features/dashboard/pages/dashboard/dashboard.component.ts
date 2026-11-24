@@ -21,7 +21,7 @@ export interface PendingAction {
 export interface BirthdayItem {
   name: string;
   role: string;
-  avatar: string;
+  initials: string;
 }
 
 @Component({
@@ -66,12 +66,12 @@ export class DashboardComponent {
     {
       name: 'Linda Martinez',
       role: 'Senior Designer',
-      avatar: 'assets/images/avatar-linda.svg'
+      initials: 'LM'
     },
     {
       name: 'Linda Martinez',
       role: 'Senior Designer',
-      avatar: 'assets/images/avatar-linda.svg'
+      initials: 'LM'
     }
   ]);
 

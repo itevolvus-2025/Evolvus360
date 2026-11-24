@@ -2,43 +2,43 @@
   <!-- Top 4 KPI Metrics -->
   <section class="kpi-grid" aria-label="Workforce metrics">
     <article class="kpi-card">
-      <div class="kpi-top">
+      <div class="kpi-info">
         <span class="kpi-value">{{ totalUsers() }}</span>
-        <div class="kpi-icon-box">
-          <app-icon name="users" [size]="18" color="#2563EB" />
-        </div>
+        <span class="kpi-label">Total User</span>
       </div>
-      <div class="kpi-label">Total User</div>
+      <div class="kpi-icon-box">
+        <app-icon name="users" [size]="20" color="#2563EB" />
+      </div>
     </article>
 
     <article class="kpi-card">
-      <div class="kpi-top">
+      <div class="kpi-info">
         <span class="kpi-value">{{ activeUsers() }}</span>
-        <div class="kpi-icon-box">
-          <app-icon name="check-circle" [size]="18" color="#2563EB" />
-        </div>
+        <span class="kpi-label">Active User</span>
       </div>
-      <div class="kpi-label">Active User</div>
+      <div class="kpi-icon-box">
+        <app-icon name="check-circle" [size]="20" color="#2563EB" />
+      </div>
     </article>
 
     <article class="kpi-card">
-      <div class="kpi-top">
+      <div class="kpi-info">
         <span class="kpi-value">{{ requestsPending() }}</span>
-        <div class="kpi-icon-box">
-          <app-icon name="clock" [size]="18" color="#2563EB" />
-        </div>
+        <span class="kpi-label">Requests Pending</span>
       </div>
-      <div class="kpi-label">Requests Pending</div>
+      <div class="kpi-icon-box">
+        <app-icon name="clock" [size]="20" color="#2563EB" />
+      </div>
     </article>
 
     <article class="kpi-card">
-      <div class="kpi-top">
+      <div class="kpi-info">
         <span class="kpi-value">{{ profilesSubmitted() }}</span>
-        <div class="kpi-icon-box">
-          <app-icon name="file-text" [size]="18" color="#2563EB" />
-        </div>
+        <span class="kpi-label">Profiles Submitted</span>
       </div>
-      <div class="kpi-label">Profiles Submitted</div>
+      <div class="kpi-icon-box">
+        <app-icon name="file-text" [size]="20" color="#2563EB" />
+      </div>
     </article>
   </section>
 
@@ -48,16 +48,16 @@
     <div class="entities-list">
       @for (entity of entities(); track entity.code) {
         <div class="entity-item">
-          <div class="entity-name">{{ entity.code }}</div>
-          <div class="entity-track-row">
-            <div class="entity-track">
-              <div
-                class="entity-bar"
-                [style.width.%]="entity.percentage"
-                [style.background-color]="entity.color"
-              ></div>
-            </div>
+          <div class="entity-header">
+            <span class="entity-name">{{ entity.code }}</span>
             <span class="entity-users-count">({{ entity.users }} users)</span>
+          </div>
+          <div class="entity-track">
+            <div
+              class="entity-bar"
+              [style.width.%]="entity.percentage"
+              [style.background-color]="entity.color"
+            ></div>
           </div>
         </div>
       }
@@ -129,11 +129,7 @@
           <div class="birthday-row">
             <div class="birthday-profile">
               <div class="birthday-avatar-wrap">
-                <img
-                  [src]="bday.avatar"
-                  [alt]="bday.name"
-                  class="birthday-avatar"
-                />
+                <span class="birthday-avatar-initials">{{ bday.initials }}</span>
                 <span class="birthday-cake-badge" aria-label="Birthday cake">🎂</span>
               </div>
               <div class="birthday-info">

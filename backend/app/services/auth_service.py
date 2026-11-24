@@ -47,6 +47,36 @@ SYSTEM_ROLES = (
     ("HR", "HR"),
 )
 
+SUPER_ADMIN_PERMISSIONS: list[str] = [
+    "*",
+    "all",
+    "Dashboard",
+    "Role Management",
+    "User Management",
+    "Approval",
+    "Project",
+    "Leave Request",
+    "Leave Management",
+]
+
+SYSTEM_ROLE_PERMISSIONS: dict[str, list[str]] = {
+    "SUPER_ADMIN": SUPER_ADMIN_PERMISSIONS,
+    "HR": [
+        "Dashboard",
+        "User Management",
+        "Approval",
+        "Leave Management",
+    ],
+    "EMPLOYEE": [
+        "Dashboard",
+        "Leave Request",
+    ],
+    "CONSULTANT": [
+        "Dashboard",
+        "Project",
+    ],
+}
+
 
 def _new_password_reset_token() -> str:
     settings = get_settings()
@@ -72,18 +102,29 @@ def _reset_token_hash(raw_token: str, user_id: UUID) -> str:
 
 
 def seed_master_roles(db: Session) -> list[tuple[str, str, UUID, bool]]:
-    """Insert only missing role codes and commit the master-data transaction once."""
+    """Insert or update master roles with standard module permissions."""
     results = []
     try:
         for code, name in SYSTEM_ROLES:
             role = db.scalar(select(Role).where(Role.role_code == code))
             created = role is None
+            expected_perms = SYSTEM_ROLE_PERMISSIONS.get(code, [])
             if created:
                 role = Role(
-                    role_code=code, role_name=name, is_system_role=True, is_active=True
+                    role_code=code,
+                    role_name=name,
+                    is_system_role=True,
+                    is_active=True,
+                    permissions=list(expected_perms),
                 )
                 db.add(role)
                 db.flush()
+            else:
+                if code == "SUPER_ADMIN":
+                    role.permissions = list(SUPER_ADMIN_PERMISSIONS)
+                    role.is_active = True
+                    role.is_deleted = False
+                    db.flush()
             results.append((code, name, role.id, created))
         db.commit()
         return results
@@ -95,29 +136,55 @@ def seed_master_roles(db: Session) -> list[tuple[str, str, UUID, bool]]:
 def create_super_admin(
     db: Session, email: str, first_name: str, last_name: str, password: str
 ) -> User:
-    """Create a company-independent administrator and role assignment atomically."""
+    """Create or update a company-independent Super Admin with all module permissions."""
     normalized = normalize_email(email)
     encoded = hash_password(password)
     try:
-        if db.scalar(
-            select(User.id).where(
-                func.lower(User.email) == normalized,
-                User.deleted_at.is_(None),
-            )
-        ):
-            raise ValueError("An account already exists for that email.")
         role = db.scalar(
             select(Role).where(
                 Role.role_code == "SUPER_ADMIN",
-                Role.is_active.is_(True),
                 Role.is_deleted.is_(False),
             )
         )
         if role is None:
-            raise LookupError(
-                "Super Admin role not found. Please run the master data "
-                "seed command first."
+            seed_master_roles(db)
+            role = db.scalar(
+                select(Role).where(
+                    Role.role_code == "SUPER_ADMIN",
+                    Role.is_deleted.is_(False),
+                )
             )
+            if role is None:
+                raise LookupError("Super Admin role could not be initialized.")
+
+        role.permissions = list(SUPER_ADMIN_PERMISSIONS)
+        role.is_active = True
+        db.flush()
+
+        existing_user = db.scalar(
+            select(User).where(
+                func.lower(User.email) == normalized,
+                User.deleted_at.is_(None),
+            )
+        )
+        if existing_user:
+            existing_user.first_name = first_name.strip()
+            existing_user.last_name = last_name.strip()
+            existing_user.password_hash = encoded
+            existing_user.account_status = "ACTIVE"
+            existing_user.is_active = True
+
+            has_role = db.scalar(
+                select(UserRole.id).where(
+                    UserRole.user_id == existing_user.id,
+                    UserRole.role_id == role.id,
+                )
+            )
+            if not has_role:
+                db.add(UserRole(user_id=existing_user.id, role_id=role.id))
+            db.commit()
+            return existing_user
+
         user = User(
             email=normalized,
             password_hash=encoded,
@@ -168,6 +235,14 @@ def _permissions_for_roles(roles: list[Role]) -> list[str]:
     """Combine role JSON permission arrays without changing values or order."""
     permissions: list[str] = []
     seen: set[str] = set()
+
+    # Guarantee Super Admin role always receives all module permissions
+    if any(getattr(r, "role_code", "") in {"SUPER_ADMIN", "ADMIN"} for r in roles):
+        for p in SUPER_ADMIN_PERMISSIONS:
+            if p not in seen:
+                seen.add(p)
+                permissions.append(p)
+
     for role in roles:
         for permission in role.permissions or []:
             if isinstance(permission, str) and permission not in seen:

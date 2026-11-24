@@ -150,7 +150,7 @@ export class MainLayoutComponent implements OnInit {
         isSubpage: true,
         parentLabel: 'User Management',
         parentPath: '/users',
-        currentLabel: 'Add user',
+        currentLabel: 'Create User',
         subtitle: 'Manage enterprise access privileges and identity profiles.',
         actionType: 'user-add',
       };

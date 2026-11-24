@@ -296,6 +296,12 @@ export class AuthService {
     const user = this.currentUser();
     if (!user) return false;
 
+    // Super Admin role automatically has access to all modules
+    const roleNorm = (user.role || '').trim().toLowerCase();
+    if (roleNorm === 'super admin' || roleNorm === 'super_admin' || roleNorm === 'admin') {
+      return true;
+    }
+
     // Wildcard permissions grant access to everything
     if (
       user.permissions?.includes('all') ||
