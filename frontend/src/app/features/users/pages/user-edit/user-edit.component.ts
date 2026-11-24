@@ -91,6 +91,7 @@ export class UserEditComponent implements OnInit {
   readonly employeeDetails = signal<any>(null);
   readonly todayDate = new Date().toISOString().slice(0, 10);
   readonly sensitiveUpdates = signal<Record<string, string>>({});
+  readonly contactFieldErrors = signal<Record<string, string>>({});
   readonly selectedDocuments = signal<{ identity_proof: File | null; cancelled_cheque: File | null }>({
     identity_proof: null,
     cancelled_cheque: null,
@@ -191,11 +192,31 @@ export class UserEditComponent implements OnInit {
   }
 
   updateEmployeeDetail(field: string, value: any): void {
+    if (field === 'mobile_number') {
+      value = this.normalizeMobileInput(String(value ?? '')).slice(0, 10);
+      this.contactFieldErrors.update((errors) => ({ ...errors, mobile_number: '' }));
+    }
     const current = this.employeeDetails() || {};
     this.employeeDetails.set({ ...current, [field]: value });
   }
 
+  private normalizeMobileInput(value: string): string {
+    return value.trim().replace(/^\+\s*91[\s()-]*/, '').replace(/\D/g, '');
+  }
+
+  mobileInputValue(): string {
+    return this.normalizeMobileInput(String(this.employeeDetails()?.mobile_number ?? '')).slice(0, 10);
+  }
+
+  emergencyMobileInputValue(): string {
+    return this.normalizeMobileInput(String(this.employeeDetails()?.emergency_contact?.phone ?? '')).slice(0, 10);
+  }
+
   updateNestedEmployeeDetail(group: 'emergency_contact' | 'bank_details', field: string, value: string): void {
+    if (group === 'emergency_contact' && field === 'phone') {
+      value = this.normalizeMobileInput(value).slice(0, 10);
+      this.contactFieldErrors.update((errors) => ({ ...errors, emergency_contact_phone: '' }));
+    }
     const current = this.employeeDetails() || {};
     this.employeeDetails.set({
       ...current,
@@ -204,7 +225,29 @@ export class UserEditComponent implements OnInit {
   }
 
   updateSensitiveDetail(field: string, value: string): void {
+    if (field === 'uan_number') {
+      value = value.replace(/\D/g, '').slice(0, 12);
+      this.contactFieldErrors.update((errors) => ({ ...errors, uan_number: '' }));
+    }
     this.sensitiveUpdates.update((current) => ({ ...current, [field]: value }));
+  }
+
+  validateContactField(field: 'mobile_number' | 'emergency_contact_phone' | 'uan_number'): void {
+    const employeeDetails = this.employeeDetails();
+    const sensitiveValues = this.sensitiveUpdates();
+    let error = '';
+    if (field === 'mobile_number' && employeeDetails && Object.prototype.hasOwnProperty.call(employeeDetails, field)) {
+      const mobile = this.normalizeMobileInput(String(employeeDetails.mobile_number ?? ''));
+      if (!/^[6-9]\d{9}$/.test(mobile)) error = 'Mobile number must be exactly 10 digits.';
+    }
+    if (field === 'emergency_contact_phone' && employeeDetails?.emergency_contact && Object.prototype.hasOwnProperty.call(employeeDetails.emergency_contact, 'phone')) {
+      const mobile = this.normalizeMobileInput(String(employeeDetails.emergency_contact.phone ?? ''));
+      if (!/^[6-9]\d{9}$/.test(mobile)) error = 'Mobile number must be exactly 10 digits.';
+    }
+    if (field === 'uan_number' && Object.prototype.hasOwnProperty.call(sensitiveValues, field)) {
+      if (!/^[0-9]{12}$/.test(sensitiveValues[field])) error = 'UAN must be exactly 12 digits.';
+    }
+    this.contactFieldErrors.update((errors) => ({ ...errors, [field]: error }));
   }
 
   updateLanguages(value: string): void {
@@ -224,6 +267,13 @@ export class UserEditComponent implements OnInit {
     const docs = this.employeeDetails()?.documents;
     if (!Array.isArray(docs)) return null;
     return docs.find((d: any) => d.document_type === type) || null;
+  }
+
+  viewDocument(document: any): void {
+    if (!document?.id) return;
+    this.userService.viewEmployeeDocument(this.userId(), document.id, (message) => {
+      this.notification.show(message, 'error');
+    });
   }
 
   formatFileSize(bytes?: number): string {
@@ -292,6 +342,26 @@ export class UserEditComponent implements OnInit {
     }
 
     const employeeDetails = this.employeeDetails();
+    const mobileValue = this.normalizeMobileInput(String(employeeDetails?.mobile_number ?? ''));
+    const emergencyMobile = this.normalizeMobileInput(String(employeeDetails?.emergency_contact?.phone ?? ''));
+    const sensitiveValues = this.sensitiveUpdates();
+    const uanWasEdited = Object.prototype.hasOwnProperty.call(sensitiveValues, 'uan_number');
+    const uanValue = sensitiveValues['uan_number'] ?? '';
+    const errors: Record<string, string> = {};
+    if (employeeDetails && Object.prototype.hasOwnProperty.call(employeeDetails, 'mobile_number') && !/^[6-9]\d{9}$/.test(mobileValue)) {
+      errors['mobile_number'] = 'Mobile number must be exactly 10 digits.';
+    }
+    if (employeeDetails?.emergency_contact && Object.prototype.hasOwnProperty.call(employeeDetails.emergency_contact, 'phone') && !/^[6-9]\d{9}$/.test(emergencyMobile)) {
+      errors['emergency_contact_phone'] = 'Mobile number must be exactly 10 digits.';
+    }
+    if (uanWasEdited && !/^[0-9]{12}$/.test(uanValue)) {
+      errors['uan_number'] = 'UAN must be exactly 12 digits.';
+    }
+    this.contactFieldErrors.set(errors);
+    if (Object.keys(errors).length) {
+      this.notification.show(Object.values(errors)[0], 'error');
+      return;
+    }
     if (employeeDetails && employeeDetails.date_of_birth) {
       const dob = this.formatToIso(employeeDetails.date_of_birth);
       if (dob && dob >= this.todayDate) {
@@ -351,14 +421,14 @@ export class UserEditComponent implements OnInit {
           payload['gender'] = employeeDetails.gender.toUpperCase();
         }
         if (employeeDetails.mobile_number) {
-          payload['mobile_number'] = employeeDetails.mobile_number;
+          payload['mobile_number'] = mobileValue;
         }
         if (employeeDetails.emergency_contact) {
           if (employeeDetails.emergency_contact.name) {
             payload['emergency_contact_name'] = employeeDetails.emergency_contact.name;
           }
           if (employeeDetails.emergency_contact.phone) {
-            payload['emergency_contact_phone'] = employeeDetails.emergency_contact.phone;
+            payload['emergency_contact_phone'] = emergencyMobile;
           }
           if (employeeDetails.emergency_contact.relationship) {
             payload['emergency_contact_relationship'] = employeeDetails.emergency_contact.relationship;
@@ -393,7 +463,7 @@ export class UserEditComponent implements OnInit {
         if (sens['passport_number'] && !sens['passport_number'].includes('*')) {
           payload['passport_number'] = sens['passport_number'].trim().toUpperCase();
         }
-        if (sens['uan_number'] && !sens['uan_number'].includes('*')) {
+        if (Object.prototype.hasOwnProperty.call(sens, 'uan_number') && !sens['uan_number'].includes('*')) {
           payload['uan_number'] = sens['uan_number'].trim();
         }
         if (sens['account_number'] && !sens['account_number'].includes('*')) {

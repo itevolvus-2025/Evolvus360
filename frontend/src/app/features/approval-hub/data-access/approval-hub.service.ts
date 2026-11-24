@@ -424,7 +424,7 @@ export class ApprovalHubService {
           size_bytes: doc.size_bytes || doc.file_size_bytes || 2516582,
           verification_status: doc.verification_status || 'VERIFIED',
           download_url: doc.download_url || API_ENDPOINTS.approvals.document(id, doc.id),
-        })) : DEFAULT_REVIEW_JHON_DOE.documents,
+        })) : [],
         rejection_reason: data.rejection_reason,
       };
     }
@@ -479,7 +479,7 @@ export class ApprovalHubService {
         size_bytes: doc.file_size_bytes || doc.size_bytes || 2516582,
         verification_status: doc.verification_status || 'VERIFIED',
         download_url: API_ENDPOINTS.approvals.document(id, doc.id),
-      })) : DEFAULT_REVIEW_JHON_DOE.documents,
+      })) : [],
     };
   }
 
@@ -492,8 +492,22 @@ export class ApprovalHubService {
       this.notification.show('Demo document: file preview not available in mock mode.', 'info');
       return;
     }
-    const url = API_ENDPOINTS.approvals.document(employeeId, documentId);
-    window.open(url, '_blank');
+    const preview = window.open('', '_blank');
+    if (!preview) {
+      this.notification.show('Allow pop-ups to preview this document.', 'error');
+      return;
+    }
+    this.apiService.getBlob(API_ENDPOINTS.approvals.document(employeeId, documentId)).subscribe({
+      next: (file) => {
+        const url = URL.createObjectURL(file);
+        preview.location.href = url;
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: (error: Error) => {
+        preview.close();
+        this.notification.show(error.message || 'Could not load the document.', 'error');
+      },
+    });
   }
 
   retryInvitation(id: string | number): void {

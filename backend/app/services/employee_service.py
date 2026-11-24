@@ -42,6 +42,7 @@ from app.schemas.validators import (
     validate_aadhaar,
     validate_mobile,
     validate_pan,
+    validate_uan,
 )
 from app.services import email_dispatch
 
@@ -66,10 +67,13 @@ def _validate_onboarding_contact_and_compliance(fields: dict, pf_applicable: boo
     relation = (fields.get("emergency_contact_relationship") or "").strip()
     if not relation or not all(char.isalpha() or char in " '-." for char in relation):
         raise _field_validation_error("emergency_contact_relationship", "Enter a relationship using letters, spaces, apostrophes, hyphens or periods only.")
-    phone = re.sub(r"[\s()-]", "", fields.get("emergency_contact_phone") or "")
-    phone_match = re.fullmatch(r"(?:\+[1-9][0-9]{7,14}|[6-9][0-9]{9})", phone)
-    if not phone_match:
-        raise _field_validation_error("emergency_contact_phone", "Enter a valid 10-digit Indian mobile number or an international number in +country-code format.")
+    phone = fields.get("emergency_contact_phone") or ""
+    try:
+        validate_mobile(phone)
+    except ValueError:
+        raise _field_validation_error(
+            "emergency_contact_phone", "Mobile number must be exactly 10 digits."
+        ) from None
     bank_name = (fields.get("bank_name") or "").strip()
     if not bank_name or not all(char.isalnum() or char in " &().,'-/" for char in bank_name):
         raise _field_validation_error("bank_name", "Enter a valid bank name using letters, numbers, spaces or common punctuation.")
@@ -82,9 +86,11 @@ def _validate_onboarding_contact_and_compliance(fields: dict, pf_applicable: boo
     if len(qualification) > 4000 or any(not (char.isalnum() or char.isspace()) for char in qualification):
         raise _field_validation_error("qualification", "Qualification may contain letters, numbers and spaces only.")
     uan = (fields.get("uan_number") or "").strip()
-    if uan and not re.fullmatch(r"[0-9]{12}", uan):
-        raise _field_validation_error("uan_number", "UAN must contain exactly 12 digits.")
-    return account, uan or None
+    try:
+        validate_uan(uan)
+    except ValueError as error:
+        raise _field_validation_error("uan_number", str(error)) from None
+    return account, uan
 
 
 def _role_codes(user: User) -> set[str]:
@@ -1663,12 +1669,12 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
                     )
                 if "uan_number" in values:
                     uan = (values["uan_number"] or "").strip()
-                    if uan and not re.fullmatch(r"[0-9]{12}", uan):
-                        raise _field_validation_error(
-                            "uan_number", "UAN must contain exactly 12 digits."
-                        )
+                    try:
+                        validate_uan(uan)
+                    except ValueError as error:
+                        raise _field_validation_error("uan_number", str(error)) from None
                     personal.uan_number_encrypted = (
-                        encryptor.encrypt(uan.encode()).decode() if uan else None
+                        encryptor.encrypt(uan.encode()).decode()
                     )
 
             contact_fields = {
@@ -1709,9 +1715,13 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
                         raise _field_validation_error("emergency_contact_relationship", "Enter a valid relationship.")
                     contact.emergency_contact_relation = relation
                 if "emergency_contact_phone" in values:
-                    phone = re.sub(r"[\s()-]", "", values["emergency_contact_phone"] or "")
-                    if not re.fullmatch(r"(?:\+[1-9][0-9]{7,14}|[6-9][0-9]{9})", phone):
-                        raise _field_validation_error("emergency_contact_phone", "Enter a valid 10-digit Indian mobile number or an international number in +country-code format.")
+                    phone = values["emergency_contact_phone"] or ""
+                    try:
+                        validate_mobile(phone)
+                    except ValueError:
+                        raise _field_validation_error(
+                            "emergency_contact_phone", "Mobile number must be exactly 10 digits."
+                        ) from None
                     contact.emergency_contact_phone = phone
 
             bank_fields = {"bank_name", "account_holder_name", "account_number", "ifsc_code"}

@@ -18,9 +18,8 @@ DESIGNATION_ERROR = (
 LOCATION_ERROR = (
     "Location must contain only letters and spaces."
 )
-MOBILE_ERROR = (
-    "Mobile number must be exactly 10 digits and start with a digit between 6 and 9."
-)
+MOBILE_ERROR = "Mobile number must be exactly 10 digits."
+UAN_ERROR = "UAN must be exactly 12 digits."
 AADHAAR_LENGTH_ERROR = "Aadhaar number must contain exactly 12 digits."
 AADHAAR_CHECKSUM_ERROR = (
     "Invalid Aadhaar number. Please check the entered number."
@@ -75,6 +74,12 @@ def validate_name(value: str, error: str, *, required: bool = True) -> str:
 def validate_mobile(value: str) -> str:
     if not re.fullmatch(r"[6-9][0-9]{9}", value):
         raise ValueError(MOBILE_ERROR)
+    return value
+
+
+def validate_uan(value: str) -> str:
+    if not re.fullmatch(r"[0-9]{12}", value):
+        raise ValueError(UAN_ERROR)
     return value
 
 

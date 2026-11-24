@@ -202,6 +202,11 @@ export class ApprovalHubComponent implements OnInit {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
+  formatMobileNumber(value?: string): string {
+    if (!value) return '—';
+    return value.trim().replace(/^\+\s*91[\s()-]*/, '').replace(/\D/g, '') || '—';
+  }
+
   getReviewDoc(docs?: ReviewDocument[], type?: string): ReviewDocument | null {
     if (!docs || !Array.isArray(docs) || !type) return null;
     return docs.find((d) => d.document_type === type) || null;

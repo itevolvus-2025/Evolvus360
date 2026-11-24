@@ -298,6 +298,25 @@ export class UserService {
     });
   }
 
+  viewEmployeeDocument(id: string | number, documentId: string | number, onError: (message: string) => void): void {
+    const preview = window.open('', '_blank');
+    if (!preview) {
+      onError('Allow pop-ups to preview this document.');
+      return;
+    }
+    this.apiService.getBlob(API_ENDPOINTS.approvals.document(id, documentId)).subscribe({
+      next: (file) => {
+        const url = URL.createObjectURL(file);
+        preview.location.href = url;
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: (err) => {
+        preview.close();
+        onError(err.message || 'Could not load the document.');
+      },
+    });
+  }
+
   private rememberEmployee(result: EmployeeApiRecord): void {
     const existing = this.users().find((user) => String(user.id) === result.id);
     if (existing) return;

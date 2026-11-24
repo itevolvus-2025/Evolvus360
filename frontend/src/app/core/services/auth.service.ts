@@ -22,6 +22,7 @@ export class AuthService {
   private readonly currentUser = signal<User | null>(this.restore());
   readonly user = this.currentUser.asReadonly();
   readonly isAuthenticated = computed(() => this.currentUser() !== null);
+  readonly showLogoutModal = signal<boolean>(false);
 
   /** Active timeout handle for proactive background token refresh */
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -230,6 +231,19 @@ export class AuthService {
           });
         })
       );
+  }
+
+  openLogoutModal(): void {
+    this.showLogoutModal.set(true);
+  }
+
+  closeLogoutModal(): void {
+    this.showLogoutModal.set(false);
+  }
+
+  confirmLogout(): void {
+    this.showLogoutModal.set(false);
+    this.logout();
   }
 
   logout(): void {

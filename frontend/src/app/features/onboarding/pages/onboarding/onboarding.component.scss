@@ -500,34 +500,6 @@
     }
   }
 
-  .custom-select-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-
-    .field-select {
-      width: 100%;
-      appearance: none;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 9px 32px 9px 12px;
-      font-size: 13px;
-      color: #0f172a;
-      outline: none;
-      cursor: pointer;
-      transition: border-color 0.15s;
-
-      &:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-      }
-    }
-
-    .select-icon {
-      display: none !important;
-    }
-  }
 
   // File Picker Row
   .file-picker-row {
@@ -629,27 +601,8 @@
       position: relative;
       display: inline-flex;
       align-items: center;
-
-      .select-add-lang {
-        appearance: none;
-        background: #f8fafc;
-        border: 1px dashed #cbd5e1;
-        border-radius: 6px;
-        padding: 4px 22px 4px 8px;
-        font-size: 11px;
-        font-weight: 600;
-        color: #64748b;
-        cursor: pointer;
-        outline: none;
-
-        &:focus {
-          border-color: #2563eb;
-        }
-      }
-
-      .lang-chevron {
-        display: none !important;
-      }
+      width: 130px;
+      flex-shrink: 0;
     }
   }
 }

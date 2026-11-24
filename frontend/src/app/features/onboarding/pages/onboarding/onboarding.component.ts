@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
+import { DropdownComponent, DropdownOption } from '../../../../shared/ui/dropdown';
 import { NotificationService } from '../../../../core/services/notification.service';
 import {
   OnboardingService,
@@ -21,7 +22,7 @@ import { isValidAadhaar, isValidIndianMobile, isValidPan } from '../../../../sha
 @Component({
   selector: 'app-onboarding',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, DropdownComponent],
   templateUrl: './onboarding.component.html',
   styleUrl: './onboarding.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,6 +46,12 @@ export class OnboardingComponent implements OnInit {
   readonly dateOfBirth = signal('');
   readonly todayDate = new Date().toISOString().slice(0, 10);
   readonly gender = signal('');
+  readonly genderOptions: DropdownOption[] = [
+    { label: 'Male', value: 'MALE' },
+    { label: 'Female', value: 'FEMALE' },
+    { label: 'Other', value: 'OTHER' },
+    { label: 'Prefer not to say', value: 'PREFER_NOT_TO_SAY' },
+  ];
   readonly mobileNumber = signal('');
   readonly aadhaarNumber = signal('');
   readonly panNumber = signal('');
@@ -81,6 +88,13 @@ export class OnboardingComponent implements OnInit {
     'KANNADA',
     'MARATHI',
   ];
+
+  readonly availableLanguageOptions = computed<DropdownOption[]>(() => {
+    const current = this.languages();
+    return this.availableLanguages
+      .filter((l) => !current.includes(l))
+      .map((l) => ({ label: l, value: l }));
+  });
 
   // Steps for Stepper Header
   readonly steps = [
@@ -229,7 +243,14 @@ export class OnboardingComponent implements OnInit {
       uan_number: this.uanNumber.set, qualification: this.qualification.set,
     };
     const hadError = !!this.fieldErrors()[field];
-    setters[field]?.(field === 'pan_number' || field === 'ifsc_code' ? value.toUpperCase() : value);
+    let normalizedValue = value;
+    if (field === 'mobile_number' || field === 'emergency_contact_phone') {
+      // Accept pasted +91 numbers by removing the country code, then keep digits only.
+      normalizedValue = value.trim().replace(/^\+\s*91[\s()-]*/, '').replace(/\D/g, '').slice(0, 10);
+    } else if (field === 'uan_number') {
+      normalizedValue = value.replace(/\D/g, '').slice(0, 12);
+    }
+    setters[field]?.(field === 'pan_number' || field === 'ifsc_code' ? normalizedValue.toUpperCase() : normalizedValue);
     this.fieldErrors.update((errors) => {
       const next = { ...errors };
       delete next[field];
@@ -240,17 +261,17 @@ export class OnboardingComponent implements OnInit {
 
   validateField(field: string): string | null {
     const required: Record<string, string> = {
-      mobile_number: 'Mobile number must be exactly 10 digits and start with a digit between 6 and 9.',
+      mobile_number: 'Mobile number must be exactly 10 digits.',
+      emergency_contact_phone: 'Mobile number must be exactly 10 digits.',
       aadhaar_number: 'Aadhaar number must contain exactly 12 digits.',
       pan_number: 'Invalid PAN. Expected format: 5 letters, 4 digits and 1 letter (AAAAA9999A).',
       date_of_birth: 'Date of birth is required.', gender: 'Please select a gender.',
       emergency_contact_name: 'Emergency contact name is required.',
-      emergency_contact_phone: 'Emergency contact phone is required.',
       emergency_contact_relationship: 'Emergency contact relationship is required.',
       bank_name: 'Bank name is required.', account_number: 'Account number is required.',
       ifsc_code: 'IFSC code is required.', identity_proof: 'Identity proof is required.',
       cancelled_cheque: 'Cancelled cheque is required.',
-      uan_number: 'UAN must contain exactly 12 digits.',
+      uan_number: 'UAN must be exactly 12 digits.',
       qualification: 'Qualification may contain letters, numbers and spaces only.',
     };
     const values: Record<string, string> = {
@@ -272,13 +293,13 @@ export class OnboardingComponent implements OnInit {
     else if (field === 'pan_number' && !isValidPan(value)) error = required[field];
     else if (field === 'emergency_contact_name' && value && !/^[\p{L} .'-]+$/u.test(value)) error = 'Use letters, spaces, apostrophes, hyphens or periods only.';
     else if (field === 'emergency_contact_relationship' && value && !/^[\p{L} .'-]+$/u.test(value)) error = 'Use letters, spaces, apostrophes, hyphens or periods only.';
-    else if (field === 'emergency_contact_phone' && value && !/^(?:\+[1-9]\d{7,14}|[6-9]\d{9})$/.test(value.replace(/[\s()-]/g, ''))) error = 'Enter a valid 10-digit Indian mobile number or an international number in +country-code format.';
+    else if (field === 'emergency_contact_phone' && !isValidIndianMobile(value)) error = required[field];
     else if (field === 'bank_name' && value && !/^[\p{L}\p{N} &().,'/-]+$/u.test(value)) error = 'Use letters, numbers, spaces or common punctuation only.';
     else if (field === 'account_number' && value && !/^[A-Za-z0-9]{6,35}$/.test(value.replace(/\s/g, ''))) error = 'Account number must contain 6 to 35 letters or digits.';
     else if (field === 'ifsc_code' && value && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value)) error = 'Enter a valid 11-character IFSC code.';
-    else if (field === 'uan_number' && value && !/^\d{12}$/.test(value)) error = required[field];
+    else if (field === 'uan_number' && !/^\d{12}$/.test(value)) error = required[field];
     else if (field === 'qualification' && value && !/^[\p{L}\p{N}\s]*$/u.test(value)) error = required[field];
-    else if (required[field] && !value && !['identity_proof', 'cancelled_cheque', 'uan_number', 'qualification'].includes(field)) error = required[field];
+    else if (required[field] && !value && !['identity_proof', 'cancelled_cheque', 'qualification'].includes(field)) error = required[field];
     else if (field === 'date_of_birth') {
       if (!value) {
         error = required[field];

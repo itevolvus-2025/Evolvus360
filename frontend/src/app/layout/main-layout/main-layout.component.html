@@ -56,6 +56,7 @@
           <a
             [routerLink]="item.path"
             routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
             class="nav-item"
             [title]="collapsed() ? item.label : ''"
           >
@@ -82,7 +83,7 @@
       <button
         type="button"
         class="logout-card-btn"
-        (click)="auth.logout()"
+        (click)="auth.openLogoutModal()"
         title="Logout"
       >
         <app-icon name="logout" [size]="18" color="#EF4444" />
@@ -234,4 +235,11 @@
       />
     </main>
   </section>
+
+  <!-- Logout Confirmation Modal Dialog -->
+  <app-logout-modal
+    [isOpen]="auth.showLogoutModal()"
+    (closeModal)="auth.closeLogoutModal()"
+    (confirmLogout)="auth.confirmLogout()"
+  />
 </div>

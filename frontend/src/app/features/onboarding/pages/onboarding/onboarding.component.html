@@ -1,8 +1,19 @@
 <div class="onboarding-page-root">
   @if (isLoading()) {
-    <main class="onboarding-content"><section class="form-card"><div class="form-card-body">Validating your invitation…</div></section></main>
+  <main class="onboarding-content">
+    <section class="form-card">
+      <div class="form-card-body">Validating your invitation…</div>
+    </section>
+  </main>
   } @else if (invitationInvalid()) {
-    <main class="onboarding-content"><section class="form-card"><div class="form-card-body"><h1>Invitation link expired or invalid</h1><p>Ask HR to send you a new onboarding link.</p></div></section></main>
+  <main class="onboarding-content">
+    <section class="form-card">
+      <div class="form-card-body">
+        <h1>Invitation link expired or invalid</h1>
+        <p>Ask HR to send you a new onboarding link.</p>
+      </div>
+    </section>
+  </main>
   } @else {
   <!-- Top Navigation Bar -->
   <header class="onboarding-topbar">
@@ -10,7 +21,8 @@
       <!-- Top Row: Brand Logo -->
       <div class="topbar-brand-row">
         <div class="brand-area">
-          <img src="assets/images/EvolvusLogo.png" alt="Evolvus" class="brand-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+          <img src="assets/images/EvolvusLogo.png" alt="Evolvus" class="brand-logo"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
           <div class="brand-fallback-text" style="display: none;">
             <span class="brand-text-evol">ev<span class="brand-dot">•</span>lvus</span>
           </div>
@@ -21,37 +33,10 @@
       <div class="topbar-main-row">
         <h1 class="page-title">Onboarding Details</h1>
 
-        <!-- Stepper Indicator (Matching Screenshot)
-        <nav class="stepper-nav">
-          <div class="step-item step-completed">
-            <span class="step-num-circle filled">1</span>
-            <span class="step-label">Employee Code</span>
-          </div>
-          <div class="step-item step-active">
-            <span class="step-num-circle outline-blue">2</span>
-            <span class="step-label">Personal Details</span>
-          </div>
-          <div class="step-item">
-            <span class="step-num-circle outline-gray">3</span>
-            <span class="step-label">Emergency Contact</span>
-          </div>
-          <div class="step-item">
-            <span class="step-num-circle outline-gray">4</span>
-            <span class="step-label">Banking Document</span>
-          </div>
-          <div class="step-item">
-            <span class="step-num-circle outline-gray">5</span>
-            <span class="step-label">Qualifications &amp; Skills</span>
-          </div>
-        </nav> -->
+
 
         <div class="topbar-actions">
-          <button
-            type="button"
-            class="btn-submit-top"
-            (click)="submitOnboarding()"
-            [disabled]="isSubmitting()"
-          >
+          <button type="button" class="btn-submit-top" (click)="submitOnboarding()" [disabled]="isSubmitting()">
             {{ isSubmitting() ? 'Submitting...' : 'Submit' }}
           </button>
         </div>
@@ -79,29 +64,7 @@
         </div>
       </div>
 
-      <!-- Radial Progress Widget -->
-      <div class="profile-progress-widget">
-        <div class="circular-chart-wrap">
-          <svg viewBox="0 0 36 36" class="circular-chart">
-            <path
-              class="circle-bg"
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-            />
-            <path
-              class="circle-fill"
-              [attr.stroke-dasharray]="profileCompletion() + ', 100'"
-              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-            />
-          </svg>
-          <span class="percent-text">{{ profileCompletion() }}%</span>
-        </div>
-        <div class="progress-details">
-          <span class="progress-title">Profile completion</span>
-          <span class="progress-remaining-note">
-            {{ remainingMandatoryCount() }} mandatory fields remaining
-          </span>
-        </div>
-      </div>
+     
     </section>
 
     <!-- SECTION 1: SET BY HR (READ ONLY) -->
@@ -196,115 +159,66 @@
           <div class="field-item">
             <label class="field-label" for="date_of_birth">Date of birth <span class="req">*</span></label>
             <div class="input-with-icon">
-              <input
-                id="date_of_birth"
-                type="date"
-                class="field-input"
-                [class.field-invalid]="!!fieldErrors()['date_of_birth']"
-                [value]="dateOfBirth()"
-                [max]="todayDate"
+              <input id="date_of_birth" type="date" class="field-input"
+                [class.field-invalid]="!!fieldErrors()['date_of_birth']" [value]="dateOfBirth()" [max]="todayDate"
                 (input)="updateField('date_of_birth', $any($event.target).value)"
-                (blur)="validateField('date_of_birth')"
-                required
-              />
+                (blur)="validateField('date_of_birth')" required />
             </div>
-            @if (fieldErrors()['date_of_birth']) { <small class="validation-error">{{ fieldErrors()['date_of_birth'] }}</small> }
+            @if (fieldErrors()['date_of_birth']) { <small class="validation-error">{{ fieldErrors()['date_of_birth']
+              }}</small> }
           </div>
 
           <!-- Gender -->
           <div class="field-item">
             <label class="field-label" for="gender">Gender <span class="req">*</span></label>
-            <div class="custom-select-box">
-              <select
-                id="gender"
-                class="field-select"
-                [class.field-invalid]="!!fieldErrors()['gender']"
-                [value]="gender()"
-                (change)="updateField('gender', $any($event.target).value); validateField('gender')"
-                required
-              >
-                <option value="" disabled selected>Select gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+            <app-dropdown id="gender" [options]="genderOptions" [value]="gender() ? gender().toUpperCase() : ''"
+              (valueChange)="updateField('gender', $event); validateField('gender')" placeholder="Select gender"
+              [status]="fieldErrors()['gender'] ? 'error' : ''" width="100%" />
             @if (fieldErrors()['gender']) { <small class="validation-error">{{ fieldErrors()['gender'] }}</small> }
           </div>
 
-          <!-- Mobile (with country code) -->
+          <!-- Mobile number -->
           <div class="field-item">
             <label class="field-label" for="mobile_number">Mobile number <span class="req">*</span></label>
             <div class="input-with-icon">
-              <input
-                id="mobile_number"
-                type="text"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                maxlength="10"
-                class="field-input"
-                [class.field-invalid]="!!fieldErrors()['mobile_number']"
-                placeholder="9876543210"
-                [value]="mobileNumber()"
-                (input)="updateField('mobile_number', $any($event.target).value)"
-                (blur)="validateField('mobile_number')"
-                required
-              />
+              <input id="mobile_number" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10"
+                class="field-input" [class.field-invalid]="!!fieldErrors()['mobile_number']" placeholder="9876543210"
+                [value]="mobileNumber()" (input)="updateField('mobile_number', $any($event.target).value)"
+                (blur)="validateField('mobile_number')" required />
               <app-icon name="phone" [size]="14" color="#94A3B8" class="right-adornment" />
             </div>
-            @if (fieldErrors()['mobile_number']) { <small class="validation-error">{{ fieldErrors()['mobile_number'] }}</small> }
+            @if (fieldErrors()['mobile_number']) { <small class="validation-error">{{ fieldErrors()['mobile_number']
+              }}</small> }
           </div>
 
           <!-- Aadhaar (12 digits) -->
           <div class="field-item">
             <label class="field-label" for="aadhaar_number">Aadhaar (12 digits) <span class="req">*</span></label>
-            <input
-              id="aadhaar_number"
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              maxlength="12"
-              class="field-input"
-              [class.field-invalid]="!!fieldErrors()['aadhaar_number']"
-              placeholder="12 digits"
-              [value]="aadhaarNumber()"
-              (input)="updateField('aadhaar_number', $any($event.target).value)"
-              (blur)="validateField('aadhaar_number')"
-              required
-            />
-            @if (fieldErrors()['aadhaar_number']) { <small class="validation-error">{{ fieldErrors()['aadhaar_number'] }}</small> }
+            <input id="aadhaar_number" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="12"
+              class="field-input" [class.field-invalid]="!!fieldErrors()['aadhaar_number']" placeholder="12 digits"
+              [value]="aadhaarNumber()" (input)="updateField('aadhaar_number', $any($event.target).value)"
+              (blur)="validateField('aadhaar_number')" required />
+            @if (fieldErrors()['aadhaar_number']) { <small class="validation-error">{{ fieldErrors()['aadhaar_number']
+              }}</small> }
           </div>
 
           <!-- PAN Card -->
           <div class="field-item">
             <label class="field-label" for="pan_number">PAN Card <span class="req">*</span></label>
-            <input
-              id="pan_number"
-              type="text"
-              maxlength="10"
-              class="field-input uppercase"
-              [class.field-invalid]="!!fieldErrors()['pan_number']"
-              placeholder="E.G. ABCDE1234F"
-              [value]="panNumber()"
-              (input)="updateField('pan_number', $any($event.target).value)"
-              (blur)="validateField('pan_number')"
-              required
-            />
-            @if (fieldErrors()['pan_number']) { <small class="validation-error">{{ fieldErrors()['pan_number'] }}</small> }
+            <input id="pan_number" type="text" maxlength="10" class="field-input uppercase"
+              [class.field-invalid]="!!fieldErrors()['pan_number']" placeholder="E.G. ABCDE1234F" [value]="panNumber()"
+              (input)="updateField('pan_number', $any($event.target).value)" (blur)="validateField('pan_number')"
+              required />
+            @if (fieldErrors()['pan_number']) { <small class="validation-error">{{ fieldErrors()['pan_number']
+              }}</small> }
           </div>
 
           <!-- Passport number -->
           <div class="field-item">
             <label class="field-label" for="onboardingPassport">Passport number</label>
-            <input
-              id="onboardingPassport"
-              type="text"
-              maxlength="20"
-              class="field-input uppercase"
-              placeholder="e.g. A1234567"
-              [value]="passportNumber()"
-              (input)="passportNumber.set($any($event.target).value.toUpperCase())"
-            />
+            <input id="onboardingPassport" type="text" maxlength="20" class="field-input uppercase"
+              placeholder="e.g. A1234567" [value]="passportNumber()"
+              (input)="passportNumber.set($any($event.target).value.toUpperCase())" />
           </div>
         </div>
       </div>
@@ -329,55 +243,38 @@
           <!-- Contact Name -->
           <div class="field-item">
             <label class="field-label" for="emergency_contact_name">Contact Name <span class="req">*</span></label>
-            <input
-              id="emergency_contact_name"
-              type="text"
-              maxlength="150"
-              class="field-input"
-              [class.field-invalid]="!!fieldErrors()['emergency_contact_name']"
-              placeholder="Contact full name"
+            <input id="emergency_contact_name" type="text" maxlength="150" class="field-input"
+              [class.field-invalid]="!!fieldErrors()['emergency_contact_name']" placeholder="Contact full name"
               [value]="emergencyContactName()"
               (input)="updateField('emergency_contact_name', $any($event.target).value)"
-              (blur)="validateField('emergency_contact_name')"
-              required
-            />
-            @if (fieldErrors()['emergency_contact_name']) { <small class="validation-error">{{ fieldErrors()['emergency_contact_name'] }}</small> }
+              (blur)="validateField('emergency_contact_name')" required />
+            @if (fieldErrors()['emergency_contact_name']) { <small class="validation-error">{{
+              fieldErrors()['emergency_contact_name'] }}</small> }
           </div>
 
-          <!-- Phone Number -->
+          <!-- Emergency Mobile Number -->
           <div class="field-item">
-            <label class="field-label" for="emergency_contact_phone">Phone Number <span class="req">*</span></label>
-            <input
-              id="emergency_contact_phone"
-              type="tel"
-              maxlength="25"
-              class="field-input"
-              [class.field-invalid]="!!fieldErrors()['emergency_contact_phone']"
-              placeholder="e.g. +91 9876543210"
+            <label class="field-label" for="emergency_contact_phone">Mobile number <span class="req">*</span></label>
+            <input id="emergency_contact_phone" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" class="field-input"
+              [class.field-invalid]="!!fieldErrors()['emergency_contact_phone']" placeholder="9876543210"
               [value]="emergencyContactPhone()"
               (input)="updateField('emergency_contact_phone', $any($event.target).value)"
-              (blur)="validateField('emergency_contact_phone')"
-              required
-            />
-            @if (fieldErrors()['emergency_contact_phone']) { <small class="validation-error">{{ fieldErrors()['emergency_contact_phone'] }}</small> }
+              (blur)="validateField('emergency_contact_phone')" required />
+            @if (fieldErrors()['emergency_contact_phone']) { <small class="validation-error">{{
+              fieldErrors()['emergency_contact_phone'] }}</small> }
           </div>
 
           <!-- Relationship -->
           <div class="field-item">
-            <label class="field-label" for="emergency_contact_relationship">Relationship <span class="req">*</span></label>
-            <input
-              id="emergency_contact_relationship"
-              type="text"
-              maxlength="50"
-              class="field-input"
+            <label class="field-label" for="emergency_contact_relationship">Relationship <span
+                class="req">*</span></label>
+            <input id="emergency_contact_relationship" type="text" maxlength="50" class="field-input"
               [class.field-invalid]="!!fieldErrors()['emergency_contact_relationship']"
-              placeholder="e.g. Spouse / Parent / Sibling"
-              [value]="emergencyContactRelationship()"
+              placeholder="e.g. Spouse / Parent / Sibling" [value]="emergencyContactRelationship()"
               (input)="updateField('emergency_contact_relationship', $any($event.target).value)"
-              (blur)="validateField('emergency_contact_relationship')"
-              required
-            />
-            @if (fieldErrors()['emergency_contact_relationship']) { <small class="validation-error">{{ fieldErrors()['emergency_contact_relationship'] }}</small> }
+              (blur)="validateField('emergency_contact_relationship')" required />
+            @if (fieldErrors()['emergency_contact_relationship']) { <small class="validation-error">{{
+              fieldErrors()['emergency_contact_relationship'] }}</small> }
           </div>
         </div>
       </div>
@@ -399,74 +296,46 @@
           <!-- Bank Name -->
           <div class="field-item">
             <label class="field-label" for="bank_name">Bank Name <span class="req">*</span></label>
-            <input
-              id="bank_name"
-              type="text"
-              maxlength="150"
-              class="field-input"
-              [class.field-invalid]="!!fieldErrors()['bank_name']"
-              placeholder="e.g. HDFC Bank"
-              [value]="bankName()"
-              (input)="updateField('bank_name', $any($event.target).value)"
-              (blur)="validateField('bank_name')"
-              required
-            />
-            @if (fieldErrors()['bank_name']) { <small class="validation-error">{{ fieldErrors()['bank_name'] }}</small> }
+            <input id="bank_name" type="text" maxlength="150" class="field-input"
+              [class.field-invalid]="!!fieldErrors()['bank_name']" placeholder="e.g. HDFC Bank" [value]="bankName()"
+              (input)="updateField('bank_name', $any($event.target).value)" (blur)="validateField('bank_name')"
+              required />
+            @if (fieldErrors()['bank_name']) { <small class="validation-error">{{ fieldErrors()['bank_name'] }}</small>
+            }
           </div>
 
           <!-- Account Number -->
           <div class="field-item">
             <label class="field-label" for="account_number">Account Number <span class="req">*</span></label>
-            <input
-              id="account_number"
-              type="text"
-              maxlength="35"
-              class="field-input"
-              [class.field-invalid]="!!fieldErrors()['account_number']"
-              placeholder="e.g. 50100234567890"
-              [value]="accountNumber()"
-              (input)="updateField('account_number', $any($event.target).value)"
-              (blur)="validateField('account_number')"
-              required
-            />
-            @if (fieldErrors()['account_number']) { <small class="validation-error">{{ fieldErrors()['account_number'] }}</small> }
+            <input id="account_number" type="text" maxlength="35" class="field-input"
+              [class.field-invalid]="!!fieldErrors()['account_number']" placeholder="e.g. 50100234567890"
+              [value]="accountNumber()" (input)="updateField('account_number', $any($event.target).value)"
+              (blur)="validateField('account_number')" required />
+            @if (fieldErrors()['account_number']) { <small class="validation-error">{{ fieldErrors()['account_number']
+              }}</small> }
           </div>
 
           <!-- IFSC Code -->
           <div class="field-item">
             <label class="field-label" for="ifsc_code">IFSC Code <span class="req">*</span></label>
-            <input
-              id="ifsc_code"
-              type="text"
-              maxlength="11"
-              class="field-input uppercase"
-              [class.field-invalid]="!!fieldErrors()['ifsc_code']"
-              placeholder="E.G. HDFC0000123"
-              [value]="ifscCode()"
-              (input)="updateField('ifsc_code', $any($event.target).value)"
-              (blur)="validateField('ifsc_code')"
-              required
-            />
-            @if (fieldErrors()['ifsc_code']) { <small class="validation-error">{{ fieldErrors()['ifsc_code'] }}</small> }
+            <input id="ifsc_code" type="text" maxlength="11" class="field-input uppercase"
+              [class.field-invalid]="!!fieldErrors()['ifsc_code']" placeholder="E.G. HDFC0000123" [value]="ifscCode()"
+              (input)="updateField('ifsc_code', $any($event.target).value)" (blur)="validateField('ifsc_code')"
+              required />
+            @if (fieldErrors()['ifsc_code']) { <small class="validation-error">{{ fieldErrors()['ifsc_code'] }}</small>
+            }
           </div>
 
           <!-- UAN (PF Application) -->
           @if (candidate().pf_applicable === 'YES') {
           <div class="field-item">
-            <label class="field-label" for="onboardingUan">UAN (optional)</label>
-            <input
-              id="onboardingUan"
-              type="text"
-              maxlength="12"
-              inputmode="numeric"
-              class="field-input"
-              [class.field-invalid]="!!fieldErrors()['uan_number']"
-              placeholder="e.g. 100912345678"
-              [value]="uanNumber()"
-              (input)="updateField('uan_number', $any($event.target).value)"
-              (blur)="validateField('uan_number')"
-            />
-            @if (fieldErrors()['uan_number']) { <small class="validation-error">{{ fieldErrors()['uan_number'] }}</small> }
+            <label class="field-label" for="onboardingUan">UAN <span class="req">*</span></label>
+            <input id="onboardingUan" type="text" maxlength="12" inputmode="numeric" class="field-input"
+              [class.field-invalid]="!!fieldErrors()['uan_number']" placeholder="e.g. 100912345678"
+              [value]="uanNumber()" (input)="updateField('uan_number', $any($event.target).value)"
+              (blur)="validateField('uan_number')" />
+            @if (fieldErrors()['uan_number']) { <small class="validation-error">{{ fieldErrors()['uan_number']
+              }}</small> }
           </div>
           }
 
@@ -476,14 +345,16 @@
             <div class="file-picker-row">
               <label class="btn-choose-file">
                 Choose File
-                <input id="identity_proof" type="file" (change)="onIdentityProofChange($event)" accept=".pdf,.jpg,.jpeg,.png" hidden />
+                <input id="identity_proof" type="file" (change)="onIdentityProofChange($event)"
+                  accept=".pdf,.jpg,.jpeg,.png" hidden />
               </label>
               <div class="file-status-wrap">
                 <span class="file-name-text">{{ identityProofName() || 'No file chosen' }}</span>
                 <span class="file-help-text">PDF, JPG or PNG up to 5MB</span>
               </div>
             </div>
-            @if (fieldErrors()['identity_proof']) { <small class="validation-error">{{ fieldErrors()['identity_proof'] }}</small> }
+            @if (fieldErrors()['identity_proof']) { <small class="validation-error">{{ fieldErrors()['identity_proof']
+              }}</small> }
           </div>
 
           <!-- Cancelled Cheque -->
@@ -492,14 +363,16 @@
             <div class="file-picker-row">
               <label class="btn-choose-file">
                 Choose File
-                <input id="cancelled_cheque" type="file" (change)="onCancelledChequeChange($event)" accept=".pdf,.jpg,.jpeg,.png" hidden />
+                <input id="cancelled_cheque" type="file" (change)="onCancelledChequeChange($event)"
+                  accept=".pdf,.jpg,.jpeg,.png" hidden />
               </label>
               <div class="file-status-wrap">
                 <span class="file-name-text">{{ cancelledChequeName() || 'No file chosen' }}</span>
                 <span class="file-help-text">PDF, JPG or PNG up to 5MB</span>
               </div>
             </div>
-            @if (fieldErrors()['cancelled_cheque']) { <small class="validation-error">{{ fieldErrors()['cancelled_cheque'] }}</small> }
+            @if (fieldErrors()['cancelled_cheque']) { <small class="validation-error">{{
+              fieldErrors()['cancelled_cheque'] }}</small> }
           </div>
         </div>
       </div>
@@ -512,7 +385,7 @@
           <div class="card-icon-badge badge-blue-light">
             <app-icon name="graduation-cap" [size]="16" color="#3B82F6" />
           </div>
-          <h3 class="card-section-title">QUALIFICATION , SKILLS &amp; LANGUAGES</h3>
+          <h3 class="card-section-title">QUALIFICATION & LANGUAGES</h3>
         </div>
       </div>
 
@@ -521,18 +394,12 @@
           <!-- Qualification -->
           <div class="field-item">
             <label class="field-label" for="onboardingQual">Qualification</label>
-            <input
-              id="onboardingQual"
-              type="text"
-              maxlength="4000"
-              class="field-input"
-              [class.field-invalid]="!!fieldErrors()['qualification']"
-              placeholder="Enter your qualifications"
-              [value]="qualification()"
-              (input)="updateField('qualification', $any($event.target).value)"
-              (blur)="validateField('qualification')"
-            />
-            @if (fieldErrors()['qualification']) { <small class="validation-error">{{ fieldErrors()['qualification'] }}</small> }
+            <input id="onboardingQual" type="text" maxlength="4000" class="field-input"
+              [class.field-invalid]="!!fieldErrors()['qualification']" placeholder="Enter your qualifications"
+              [value]="qualification()" (input)="updateField('qualification', $any($event.target).value)"
+              (blur)="validateField('qualification')" />
+            @if (fieldErrors()['qualification']) { <small class="validation-error">{{ fieldErrors()['qualification']
+              }}</small> }
           </div>
 
           <!-- Languages Multi-Select Chips -->
@@ -541,26 +408,18 @@
             <div class="languages-widget-box">
               <div class="chips-container">
                 @for (lang of languages(); track lang) {
-                  <span class="language-chip">
-                    {{ lang }}
-                    <button type="button" class="btn-chip-remove" (click)="removeLanguage(lang)" title="Remove">
-                      &times;
-                    </button>
-                  </span>
+                <span class="language-chip">
+                  {{ lang }}
+                  <button type="button" class="btn-chip-remove" (click)="removeLanguage(lang)" title="Remove">
+                    &times;
+                  </button>
+                </span>
                 }
               </div>
 
               <div class="add-language-dropdown">
-                <select
-                  id="languageSelect"
-                  class="select-add-lang"
-                  (change)="addLanguage($any($event.target).value); $any($event.target).value = ''"
-                >
-                  <option value="" disabled selected>+ Add</option>
-                  @for (avail of availableLanguages; track avail) {
-                    <option [value]="avail">{{ avail }}</option>
-                  }
-                </select>
+                <app-dropdown id="languageSelect" [options]="availableLanguageOptions()" placeholder="+ Add"
+                  [resetOnSelect]="true" (valueChange)="addLanguage($event)" size="sm" width="130px" />
               </div>
             </div>
           </div>

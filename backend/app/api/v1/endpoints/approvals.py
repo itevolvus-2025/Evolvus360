@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings

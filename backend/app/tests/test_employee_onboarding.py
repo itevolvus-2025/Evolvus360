@@ -22,6 +22,7 @@ from app.schemas.validators import (
     has_valid_verhoeff,
     validate_mobile,
     validate_pan,
+    validate_uan,
 )
 from app.services.employee_service import (
     _decrypt,
@@ -75,9 +76,17 @@ def _valid_aadhaar() -> str:
 
 def test_mobile_aadhaar_and_pan_validators_enforce_formats() -> None:
     assert validate_mobile("9876543210") == "9876543210"
-    for invalid in ("5876543210", "987654321", "+919876543210", "98765 43210"):
+    for invalid in (
+        "5876543210", "0876543210", "987654321", "1234567890",
+        "+919876543210", "98765 43210", "98765432101", "abcdefghij",
+    ):
         with pytest.raises(ValueError):
             validate_mobile(invalid)
+
+    assert validate_uan("100912345678") == "100912345678"
+    for invalid in ("", "123", "10091234567", "1009123456789", "1009A2345678", "10091 2345678"):
+        with pytest.raises(ValueError, match="UAN must be exactly 12 digits"):
+            validate_uan(invalid)
 
     aadhaar = _valid_aadhaar()
     assert validate_aadhaar(aadhaar) == aadhaar
@@ -125,7 +134,7 @@ def test_profile_submission_returns_all_sensitive_field_errors_without_values() 
     assert response.status_code == 422
     payload = response.json()
     assert payload["message"] == "Validation failed. Please correct the highlighted fields."
-    assert set(payload["errors"]) == {"mobile_number", "aadhaar_number", "pan_number"}
+    assert set(payload["errors"]) == {"mobile_number", "aadhaar_number", "pan_number", "uan_number"}
     assert "1234567890" not in response.text
     assert "123456789012" not in response.text
     assert "bad-pan" not in response.text
@@ -211,7 +220,8 @@ def test_employee_update_accepts_profile_fields_but_rejects_generated_code() -> 
     assert update.reason_for_change == "Role change"
     profile_update = EmployeeUpdate.model_validate(
         {
-            "emergency_contact_phone": "+14155552671",
+            "mobile_number": "9876543210",
+            "emergency_contact_phone": "9812345678",
             "account_number": "12345678",
             "ifsc_code": "ABCD0123456",
             "languages": ["English", "Hindi"],
@@ -219,6 +229,12 @@ def test_employee_update_accepts_profile_fields_but_rejects_generated_code() -> 
     )
     assert profile_update.account_number == "12345678"
     assert profile_update.languages == ["English", "Hindi"]
+    for field, number in (
+        ("mobile_number", "+919876543210"),
+        ("emergency_contact_phone", "987654321"),
+    ):
+        with pytest.raises(ValidationError):
+            EmployeeUpdate.model_validate({field: number})
     with pytest.raises(ValidationError):
         EmployeeUpdate.model_validate({"unmapped_field": "value"})
 
@@ -275,7 +291,7 @@ def test_private_document_storage_checks_file_signature_and_size(
 def test_onboarding_contact_bank_qualification_and_pf_validations() -> None:
     fields = {
         "emergency_contact_name": "Mary O'Neil",
-        "emergency_contact_phone": "+91 9876543210",
+        "emergency_contact_phone": "9876543210",
         "emergency_contact_relationship": "Sister",
         "bank_name": "HDFC Bank Ltd.",
         "account_number": "AB1234567890",
@@ -287,15 +303,24 @@ def test_onboarding_contact_bank_qualification_and_pf_validations() -> None:
     assert account == "AB1234567890"
     assert uan == "100912345678"
 
+    fields["emergency_contact_phone"] = "+91 9876543210"
+    with pytest.raises(HTTPException) as error:
+        _validate_onboarding_contact_and_compliance(fields, True)
+    assert error.value.detail["errors"] == {
+        "emergency_contact_phone": "Mobile number must be exactly 10 digits."
+    }
+    fields["emergency_contact_phone"] = "9876543210"
+
     fields["uan_number"] = ""
-    assert _validate_onboarding_contact_and_compliance(fields, True) == ("AB1234567890", None)
-    assert _validate_onboarding_contact_and_compliance(fields, False)[1] is None
+    with pytest.raises(HTTPException) as error:
+        _validate_onboarding_contact_and_compliance(fields, True)
+    assert error.value.detail["errors"] == {"uan_number": "UAN must be exactly 12 digits."}
 
     fields["uan_number"] = "123"
     with pytest.raises(HTTPException) as error:
         _validate_onboarding_contact_and_compliance(fields, True)
     assert error.value.detail["errors"].keys() == {"uan_number"}
-    fields["uan_number"] = ""
+    fields["uan_number"] = "100912345678"
 
     fields["qualification"] = "BSc Biology!"
     with pytest.raises(HTTPException) as error:

@@ -30,6 +30,13 @@ export class ApiService {
       .pipe(catchError((err) => this.handleError(err)));
   }
 
+  /** GET a protected file through the shared auth interceptor. */
+  getBlob(url: string): Observable<Blob> {
+    return this.http
+      .get(url, { responseType: 'blob' })
+      .pipe(catchError((err) => this.handleError(err)));
+  }
+
   /**
    * Generic POST request
    */

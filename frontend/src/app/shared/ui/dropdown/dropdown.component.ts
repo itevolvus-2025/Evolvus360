@@ -499,6 +499,7 @@ export class DropdownComponent implements ControlValueAccessor {
   @Input() errorMessage = '';
   @Input() id = '';
   @Input() width = '100%';
+  @Input() resetOnSelect = false;
 
   // Two-way value binding support
   @Input() set value(val: any) {
@@ -546,8 +547,13 @@ export class DropdownComponent implements ControlValueAccessor {
     event.stopPropagation();
     if (option.disabled) return;
 
-    this.selectedValue.set(option.value);
-    this.onChange(option.value);
+    if (this.resetOnSelect) {
+      this.selectedValue.set(null);
+      this.onChange(null);
+    } else {
+      this.selectedValue.set(option.value);
+      this.onChange(option.value);
+    }
     this.onTouched();
     this.valueChange.emit(option.value);
     this.select.emit(option);

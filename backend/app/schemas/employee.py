@@ -14,6 +14,8 @@ from app.schemas.validators import (
     LOCATION_ERROR,
     MIDDLE_NAME_ERROR,
     validate_name,
+    validate_mobile,
+    validate_uan,
 )
 
 
@@ -138,6 +140,16 @@ class EmployeeUpdate(BaseModel):
     hobbies: str | None = Field(default=None, max_length=4000)
     languages: list[str] | None = Field(default=None, max_length=50)
     languages_read_and_written: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("mobile_number", "emergency_contact_phone")
+    @classmethod
+    def validate_mobile_numbers(cls, value: str | None) -> str | None:
+        return validate_mobile(value) if value is not None else None
+
+    @field_validator("uan_number")
+    @classmethod
+    def validate_uan_number(cls, value: str | None) -> str | None:
+        return validate_uan(value) if value is not None else None
 
 class InvitationTokenRequest(BaseModel):
     token: str = Field(min_length=32, max_length=256)

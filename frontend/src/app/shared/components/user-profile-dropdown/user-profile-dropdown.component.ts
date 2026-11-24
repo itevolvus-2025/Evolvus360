@@ -48,7 +48,7 @@ import { getInitials } from '../../../core/utils/date.utils';
             Settings
           </a>
 
-          <button type="button" class="logout" (click)="auth.logout()">
+          <button type="button" class="logout" (click)="auth.openLogoutModal(); close()">
             <i class="fa-solid fa-right-from-bracket"></i>
             Logout
           </button>

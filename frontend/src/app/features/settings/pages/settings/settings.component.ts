@@ -88,7 +88,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
           <div class="security-card">
             <i class="fa-solid fa-shield-halved"></i>
             <div class="grow"><strong>Demo Session</strong><small>Authentication is frontend-only until a backend enforces authorization.</small></div>
-            <button class="btn btn-danger-outline" type="button" (click)="auth.logout()">Sign Out</button>
+            <button class="btn btn-danger-outline" type="button" (click)="auth.openLogoutModal()">Sign Out</button>
           </div>
         }
       </section>

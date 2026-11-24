@@ -35,17 +35,7 @@
         </div>
       </div>
 
-      <div class="candidate-header-right">
-        <div class="completion-gauge-wrap">
-          <div class="completion-gauge-ring">
-            <span class="gauge-percent-text">{{ completion.percent }}%</span>
-          </div>
-          <div class="completion-gauge-text">
-            <span class="gauge-title">Profile completion</span>
-            <span class="gauge-sub">{{ completion.remaining }} mandatory fields remaining</span>
-          </div>
-        </div>
-      </div>
+    
     </section>
 
     <!-- 01 SET BY HR (READ ONLY) -->
@@ -122,10 +112,10 @@
           </div>
 
           <div class="field-item">
-            <label class="field-label">Mobile (with country code) <span class="required">*</span></label>
+            <label class="field-label">Mobile number <span class="required">*</span></label>
             <div class="input-with-adornment">
               <input type="text" class="field-input-readonly"
-                [value]="review.profile?.mobile_number || '+91 98765 43210'" readonly />
+                [value]="formatMobileNumber(review.profile?.mobile_number)" readonly />
               <app-icon name="phone" [size]="14" color="#94A3B8" class="adornment-icon" />
             </div>
           </div>
@@ -170,9 +160,9 @@
           </div>
 
           <div class="field-item">
-            <label class="field-label">Phone Number <span class="required">*</span></label>
+            <label class="field-label">Mobile number <span class="required">*</span></label>
             <input type="text" class="field-input-readonly"
-              [value]="review.profile?.emergency_contact_phone || '+91 98123 45678'" readonly />
+              [value]="formatMobileNumber(review.profile?.emergency_contact_phone)" readonly />
           </div>
 
           <div class="field-item">
@@ -225,25 +215,26 @@
             @let idDoc = getReviewDoc(review.documents, 'identity_proof');
             <div class="doc-file-card-preview">
               <div class="doc-file-info-preview">
+                @if (idDoc) {
                 <button type="button" class="btn-change-file-preview"
-                  (click)="downloadReviewDoc(review.employee_id, idDoc)"
-                  [title]="idDoc ? 'Download/View Document' : 'No document on file'">
-                  Change File
+                  (click)="downloadReviewDoc(review.employee_id, idDoc)" [title]="'View ' + idDoc.filename">
+                  View
                 </button>
+                }
                 <div class="doc-meta-preview">
-                  <span class="doc-name-preview">{{ idDoc?.filename || 'Aadhaar_Card_Fro' }}</span>
+                  <span class="doc-name-preview" [title]="idDoc?.filename || 'No document uploaded'">{{ idDoc?.filename || 'No document uploaded' }}</span>
                   <span class="doc-size-preview">
                     @if (idDoc) {
                     Uploaded - {{ formatFileSize(idDoc.size_bytes) }}
                     } @else {
-                    Uploaded - 2.4 MB
+                    No document on file
                     }
                   </span>
                 </div>
               </div>
-              <div class="doc-check-badge" title="Verified Document">
+              @if (idDoc) { <div class="doc-check-badge" title="Verified Document">
                 <app-icon name="check" [size]="14" color="#059669" />
-              </div>
+              </div> }
             </div>
           </div>
 
@@ -253,25 +244,26 @@
             @let cqDoc = getReviewDoc(review.documents, 'cancelled_cheque');
             <div class="doc-file-card-preview">
               <div class="doc-file-info-preview">
+                @if (cqDoc) {
                 <button type="button" class="btn-change-file-preview"
-                  (click)="downloadReviewDoc(review.employee_id, cqDoc)"
-                  [title]="cqDoc ? 'Download/View Document' : 'No document on file'">
-                  Change File
+                  (click)="downloadReviewDoc(review.employee_id, cqDoc)" [title]="'View ' + cqDoc.filename">
+                  View
                 </button>
+                }
                 <div class="doc-meta-preview">
-                  <span class="doc-name-preview">{{ cqDoc?.filename || 'Cancelled_Cheque' }}</span>
+                  <span class="doc-name-preview" [title]="cqDoc?.filename || 'No document uploaded'">{{ cqDoc?.filename || 'No document uploaded' }}</span>
                   <span class="doc-size-preview">
                     @if (cqDoc) {
                     Bank verified - {{ formatFileSize(cqDoc.size_bytes) }}
                     } @else {
-                    Bank verified - 1.1 MB
+                    No document on file
                     }
                   </span>
                 </div>
               </div>
-              <div class="doc-check-badge" title="Verified Document">
+              @if (cqDoc) { <div class="doc-check-badge" title="Verified Document">
                 <app-icon name="check" [size]="14" color="#059669" />
-              </div>
+              </div> }
             </div>
           </div>
         </div>

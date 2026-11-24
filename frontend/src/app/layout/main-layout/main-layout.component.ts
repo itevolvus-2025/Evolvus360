@@ -17,6 +17,7 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { NotificationDropdownComponent } from '../../shared/components/notification-dropdown/notification-dropdown.component';
+import { LogoutModalComponent } from '../../shared/components/logout-modal/logout-modal.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 
 export type SubpageActionType =
@@ -56,6 +57,7 @@ interface PageState {
     RouterLink,
     RouterLinkActive,
     NotificationDropdownComponent,
+    LogoutModalComponent,
     IconComponent,
   ],
   templateUrl: './main-layout.component.html',

@@ -13,7 +13,12 @@ from app.database.session import get_db
 from app.models.hrms import User
 from app.schemas.auth import ApiResponse
 from app.schemas.employee import InvitationTokenRequest
-from app.schemas.validators import validate_aadhaar, validate_mobile, validate_pan
+from app.schemas.validators import (
+    validate_aadhaar,
+    validate_mobile,
+    validate_pan,
+    validate_uan,
+)
 from app.services import employee_service
 from app.utils.responses import success_response
 
@@ -22,8 +27,10 @@ employee_router = APIRouter(prefix="/employee/onboarding", tags=["Employee onboa
 DbSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 MobileForm = Annotated[str, Form(), AfterValidator(validate_mobile)]
+EmergencyMobileForm = Annotated[str, Form(), AfterValidator(validate_mobile)]
 AadhaarForm = Annotated[str, Form(), AfterValidator(validate_aadhaar)]
 PanForm = Annotated[str, Form(), AfterValidator(validate_pan)]
+UanForm = Annotated[str, Form(max_length=12), AfterValidator(validate_uan)]
 
 
 @employee_router.get("/form", response_model=ApiResponse[dict])
@@ -44,14 +51,14 @@ async def submit_employee_form(
     aadhaar_number: AadhaarForm,
     pan_number: PanForm,
     emergency_contact_name: Annotated[str, Form(min_length=1, max_length=150)],
-    emergency_contact_phone: Annotated[str, Form(min_length=5, max_length=25)],
+    emergency_contact_phone: EmergencyMobileForm,
     emergency_contact_relationship: Annotated[str, Form(min_length=1, max_length=50)],
     bank_name: Annotated[str, Form(min_length=1, max_length=150)],
     account_number: Annotated[str, Form(min_length=4, max_length=50)],
     ifsc_code: Annotated[str, Form(min_length=11, max_length=11)],
     identity_proof: Annotated[UploadFile, File()],
     cancelled_cheque: Annotated[UploadFile, File()],
-    uan_number: Annotated[str | None, Form(max_length=12)] = None,
+    uan_number: UanForm,
     passport_number: Annotated[str | None, Form(max_length=30)] = None,
     qualification: Annotated[str | None, Form(max_length=4000)] = None,
     skills: Annotated[str | None, Form(max_length=4000)] = None,
@@ -111,14 +118,14 @@ async def submit_onboarding(
     aadhaar_number: AadhaarForm,
     pan_number: PanForm,
     emergency_contact_name: Annotated[str, Form(min_length=1, max_length=150)],
-    emergency_contact_phone: Annotated[str, Form(min_length=5, max_length=25)],
+    emergency_contact_phone: EmergencyMobileForm,
     emergency_contact_relationship: Annotated[str, Form(min_length=1, max_length=50)],
     bank_name: Annotated[str, Form(min_length=1, max_length=150)],
     account_number: Annotated[str, Form(min_length=4, max_length=50)],
     ifsc_code: Annotated[str, Form(min_length=11, max_length=11)],
     identity_proof: Annotated[UploadFile, File()],
     cancelled_cheque: Annotated[UploadFile, File()],
-    uan_number: Annotated[str | None, Form(max_length=12)] = None,
+    uan_number: UanForm,
     passport_number: Annotated[str | None, Form(max_length=30)] = None,
     qualification: Annotated[str | None, Form(max_length=4000)] = None,
     languages: Annotated[str, Form()] = "[]",

@@ -5,6 +5,13 @@
   font-family: 'Poppins', sans-serif;
 }
 
+.field-validation-error {
+  display: block;
+  margin-top: 4px;
+  color: #dc2626;
+  font-size: 12px;
+}
+
 /* ==========================================================================
    Top Header Bar
    ========================================================================== */
@@ -245,8 +252,12 @@
 
 .form-row-2col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px 24px;
+
+  > .form-group {
+    min-width: 0;
+  }
 
   .full-width {
     grid-column: 1 / -1;
@@ -356,6 +367,11 @@
    Document File Cards (Section 05)
    ========================================================================== */
 .doc-file-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -371,6 +387,7 @@
     align-items: center;
     gap: 10px;
     flex: 1;
+    width: 100%;
     min-width: 0;
 
     .doc-icon-wrap {
@@ -389,8 +406,11 @@
       flex-direction: column;
       min-width: 0;
       flex: 1;
+      overflow: hidden;
 
       .doc-file-title {
+        display: block;
+        max-width: 100%;
         font-size: 13px;
         font-weight: 600;
         color: #1e293b;

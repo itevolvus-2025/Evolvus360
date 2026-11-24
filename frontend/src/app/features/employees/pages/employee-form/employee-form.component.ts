@@ -43,8 +43,11 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
             <input class="form-control" type="email" formControlName="email">
           </div>
           <div>
-            <label>Phone *</label>
-            <input class="form-control" formControlName="phone">
+            <label>Mobile Number *</label>
+            <input class="form-control" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="10" formControlName="phone">
+            @if (form.controls.phone.touched && form.controls.phone.invalid) {
+              <small class="text-danger">Mobile number must be exactly 10 digits.</small>
+            }
           </div>
           <div>
             <label>Date of Birth *</label>
@@ -149,7 +152,7 @@ export class EmployeeFormComponent {
     firstName: ['', Validators.required],
     lastName: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
-    phone: ['', [Validators.required, Validators.pattern(/^[+\d][\d\s-]{7,}$/)]],
+    phone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
     department: ['Engineering', Validators.required],
     designation: ['', Validators.required],
     manager: ['', Validators.required],
@@ -166,7 +169,10 @@ export class EmployeeFormComponent {
     if (this.isEdit) {
       const employee = this.service.getById(this.employeeId);
       if (employee) {
-        this.form.patchValue(employee);
+        this.form.patchValue({
+          ...employee,
+          phone: String(employee.phone ?? '').replace(/^\+\s*91[\s()-]*/, '').replace(/\D/g, '').slice(0, 10),
+        });
       }
     }
   }
