@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -9,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
+import { DropdownComponent, DropdownOption } from '../../../../shared/ui/dropdown';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { UserService, UserRow, UserStatus, ProfileStatus } from '../../data-access/user.service';
 import { MasterDataOption } from '../../../../core/models/api.models';
@@ -16,7 +18,7 @@ import { MasterDataOption } from '../../../../core/models/api.models';
 @Component({
   selector: 'app-user-edit',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, DropdownComponent],
   templateUrl: './user-edit.component.html',
   styleUrl: './user-edit.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +33,33 @@ export class UserEditComponent implements OnInit {
   readonly departments = this.userService.departments;
   readonly roles = this.userService.roles;
   readonly entities = this.userService.entities;
+
+  // Dropdown Options
+  readonly departmentOptions = computed<DropdownOption[]>(() =>
+    this.departments().map((d) => ({ label: d.name, value: d.id }))
+  );
+  readonly roleOptions = computed<DropdownOption[]>(() =>
+    this.roles().map((r) => ({ label: r.name, value: r.id }))
+  );
+  readonly entityOptions = computed<DropdownOption[]>(() =>
+    this.entities().map((e) => ({ label: e.name, value: e.id }))
+  );
+  readonly pfOptions: DropdownOption[] = [
+    { label: 'Yes', value: 'Yes' },
+    { label: 'No', value: 'No' },
+  ];
+  readonly statusOptions: DropdownOption[] = [
+    { label: 'Active', value: 'Active' },
+    { label: 'Inactive', value: 'Inactive' },
+    { label: 'Deactive', value: 'Deactive' },
+    { label: 'Pending', value: 'Pending' },
+  ];
+  readonly genderOptions: DropdownOption[] = [
+    { label: 'Male', value: 'MALE' },
+    { label: 'Female', value: 'FEMALE' },
+    { label: 'Other', value: 'OTHER' },
+    { label: 'Prefer not to say', value: 'PREFER_NOT_TO_SAY' },
+  ];
 
   // 01 Personal Identity
   readonly firstName = signal('');

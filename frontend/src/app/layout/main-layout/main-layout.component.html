@@ -104,37 +104,51 @@
           <app-icon name="bars" [size]="16" />
         </button>
 
-        @if (isSubpage()) {
+        @if (actionType() === 'approval-review') {
           <a
-            [routerLink]="breadcrumbParentPath()"
+            routerLink="/approval-hub"
             class="btn-circle-back"
-            [title]="'Back to ' + breadcrumbParentLabel()"
+            title="Back to Approval Hub"
           >
             <app-icon name="chevron-left" [size]="14" color="#2563EB" />
           </a>
-        }
 
-        <div class="topbar-title-group">
+          <div class="topbar-title-group">
+            <h1 class="page-main-title">{{ activePageTitle() }}</h1>
+          </div>
+        } @else {
           @if (isSubpage()) {
-            <div class="breadcrumb-trail">
-              <a [routerLink]="breadcrumbParentPath()" class="breadcrumb-parent">
-                {{ breadcrumbParentLabel() }}
-              </a>
-              <span class="breadcrumb-separator">/</span>
-              <span class="breadcrumb-current">{{ breadcrumbCurrentLabel() }}</span>
-            </div>
-          } @else {
-            <div class="title-with-badge">
-              <h1 class="page-main-title">{{ activePageTitle() }}</h1>
-              @if (activePageBadge()) {
-                <span class="count-badge">
-                  {{ activePageBadge() }}
-                </span>
-              }
-            </div>
+            <a
+              [routerLink]="breadcrumbParentPath()"
+              class="btn-circle-back"
+              [title]="'Back to ' + breadcrumbParentLabel()"
+            >
+              <app-icon name="chevron-left" [size]="14" color="#2563EB" />
+            </a>
           }
-          <p class="page-main-subtitle">{{ activePageSubtitle() }}</p>
-        </div>
+
+          <div class="topbar-title-group">
+            @if (isSubpage()) {
+              <div class="breadcrumb-trail">
+                <a [routerLink]="breadcrumbParentPath()" class="breadcrumb-parent">
+                  {{ breadcrumbParentLabel() }}
+                </a>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current">{{ breadcrumbCurrentLabel() }}</span>
+              </div>
+            } @else {
+              <div class="title-with-badge">
+                <h1 class="page-main-title">{{ activePageTitle() }}</h1>
+                @if (activePageBadge()) {
+                  <span class="count-badge">
+                    {{ activePageBadge() }}
+                  </span>
+                }
+              </div>
+            }
+            <p class="page-main-subtitle">{{ activePageSubtitle() }}</p>
+          </div>
+        }
       </div>
 
       <div class="topbar-right">
@@ -186,17 +200,30 @@
         <!-- Subpage: Edit Role -->
         @if (actionType() === 'role-edit') {
           <div class="topbar-subpage-actions">
-     
-           <a routerLink="/administration" class="btn-topbar-cancel">Cancel</a>
+            <a routerLink="/administration" class="btn-topbar-cancel">Cancel</a>
             <button type="button" class="btn-topbar-save" (click)="triggerSave()">
               Save Changes
             </button>
           </div>
         }
 
-        <div class="topbar-utility-actions">
-          <app-notification-dropdown />
-        </div>
+        <!-- Subpage: Approval Review -->
+        @if (actionType() === 'approval-review') {
+          <div class="topbar-subpage-actions">
+            <button type="button" class="btn-topbar-reject" (click)="triggerApprovalReject()">
+              Reject Request
+            </button>
+            <button type="button" class="btn-topbar-approve" (click)="triggerApprovalApprove()">
+              Approve Request
+            </button>
+          </div>
+        }
+
+        @if (actionType() !== 'approval-review') {
+          <div class="topbar-utility-actions">
+            <app-notification-dropdown />
+          </div>
+        }
       </div>
     </header>
 
@@ -208,5 +235,3 @@
     </main>
   </section>
 </div>
-
-<app-toast-container />

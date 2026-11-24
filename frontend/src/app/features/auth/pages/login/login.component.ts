@@ -3,8 +3,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../../core/services/auth.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { API_ENDPOINTS } from '../../../../core/constants/api-endpoints';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
+import { AlertComponent } from '../../../../shared/ui/alert/alert.component';
 
 /** Standard comprehensive email validation pattern */
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -12,7 +14,7 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, IconComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, IconComponent, AlertComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
@@ -20,6 +22,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly notification = inject(NotificationService);
 
   /** Centralized API Endpoint for login */
   readonly loginApiUrl = API_ENDPOINTS.auth.login;
@@ -61,6 +64,7 @@ export class LoginComponent {
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.notification.show('Please enter a valid email and password.', 'warning');
       return;
     }
 
@@ -76,6 +80,7 @@ export class LoginComponent {
       next: (result) => {
         this.isLoading.set(false);
         if (result.success) {
+          this.notification.show('Signed in successfully!', 'success');
           const targetRoute = this.auth.getDefaultRoute();
           void this.router.navigateByUrl(targetRoute);
         } else {
@@ -86,7 +91,9 @@ export class LoginComponent {
       },
       error: (err: Error) => {
         this.isLoading.set(false);
-        this.error.set(err.message || 'Authentication failed. Please verify your credentials.');
+        const msg = err.message || 'Authentication failed. Please verify your credentials.';
+        this.error.set(msg);
+        this.notification.show(msg, 'error');
       },
     });
   }

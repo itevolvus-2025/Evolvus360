@@ -346,7 +346,7 @@ export class AuthService {
     if (this.hasPermission('Leave Request')) return '/leave/request';
     if (this.hasPermission('Leave Management')) return '/leave';
 
-    return '/dashboard';
+    return '/access-denied';
   }
 
   /**

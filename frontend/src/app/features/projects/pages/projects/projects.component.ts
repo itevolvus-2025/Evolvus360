@@ -7,6 +7,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
+import { DropdownComponent } from '../../../../shared/ui/dropdown';
 
 export interface ProjectItem {
   id: number;
@@ -24,7 +25,7 @@ export interface ProjectItem {
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, DropdownComponent],
   templateUrl: './projects.component.html',
   styleUrl: './projects.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,6 +33,14 @@ export interface ProjectItem {
 export class ProjectsComponent {
   readonly searchQuery = signal('');
   readonly statusFilter = signal('All');
+
+  readonly statusOptions = [
+    { label: 'All Statuses', value: 'All' },
+    { label: 'In Progress', value: 'In Progress' },
+    { label: 'Planning', value: 'Planning' },
+    { label: 'Completed', value: 'Completed' },
+    { label: 'On Hold', value: 'On Hold' },
+  ];
 
   readonly projects = signal<ProjectItem[]>([
     {

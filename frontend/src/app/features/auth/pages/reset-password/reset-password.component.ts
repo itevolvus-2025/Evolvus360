@@ -3,12 +3,14 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../../core/services/auth.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
+import { AlertComponent } from '../../../../shared/ui/alert/alert.component';
 
 @Component({
   selector: 'app-reset-password',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, IconComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, IconComponent, AlertComponent],
   templateUrl: './reset-password.component.html',
   styleUrl: './reset-password.component.scss'
 })
@@ -17,6 +19,7 @@ export class ResetPasswordComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly notification = inject(NotificationService);
 
   readonly token = signal('');
   readonly email = signal('');
@@ -28,8 +31,8 @@ export class ResetPasswordComponent implements OnInit {
   readonly successMessage = signal('');
 
   readonly form = this.fb.nonNullable.group({
-    newPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
-    confirmPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
+    newPassword: ['', [Validators.required, Validators.minLength(12), Validators.maxLength(128)]],
+    confirmPassword: ['', [Validators.required, Validators.minLength(12), Validators.maxLength(128)]],
   });
 
   ngOnInit(): void {
@@ -53,7 +56,7 @@ export class ResetPasswordComponent implements OnInit {
 
   // Password Strength Indicators
   hasMinLength(): boolean {
-    return (this.form.controls.newPassword.value || '').length >= 8;
+    return (this.form.controls.newPassword.value || '').length >= 12;
   }
 
   hasUppercase(): boolean {
@@ -72,6 +75,16 @@ export class ResetPasswordComponent implements OnInit {
     return /[^A-Za-z0-9]/.test(this.form.controls.newPassword.value || '');
   }
 
+  isPasswordStrong(): boolean {
+    return (
+      this.hasMinLength() &&
+      this.hasUppercase() &&
+      this.hasLowercase() &&
+      this.hasNumber() &&
+      this.hasSpecial()
+    );
+  }
+
   passwordsMatch(): boolean {
     const { newPassword, confirmPassword } = this.form.getRawValue();
     return newPassword.length > 0 && newPassword === confirmPassword;
@@ -79,11 +92,7 @@ export class ResetPasswordComponent implements OnInit {
 
   isFormValid(): boolean {
     return (
-      this.hasMinLength() &&
-      this.hasUppercase() &&
-      this.hasLowercase() &&
-      this.hasNumber() &&
-      this.hasSpecial() &&
+      this.isPasswordStrong() &&
       this.passwordsMatch()
     );
   }
@@ -116,21 +125,23 @@ export class ResetPasswordComponent implements OnInit {
         next: (result) => {
           this.isLoading.set(false);
           if (result.success) {
-            this.successMessage.set(
-              result.message || 'Password updated successfully! Redirecting to login...'
-            );
+            const msg = result.message || 'Password updated successfully! Redirecting to login...';
+            this.successMessage.set(msg);
+            this.notification.show(msg, 'success');
             setTimeout(() => {
               void this.router.navigateByUrl('/auth/login');
             }, 2500);
           } else {
-            this.errorMessage.set(
-              result.message || 'Password reset failed. The link may have expired or is invalid.'
-            );
+            const msg = result.message || 'Password reset failed. The link may have expired or is invalid.';
+            this.errorMessage.set(msg);
+            this.notification.show(msg, 'error');
           }
         },
         error: (err: Error) => {
           this.isLoading.set(false);
-          this.errorMessage.set(err.message || 'An error occurred during password reset.');
+          const msg = err.message || 'An error occurred during password reset.';
+          this.errorMessage.set(msg);
+          this.notification.show(msg, 'error');
         },
       });
   }

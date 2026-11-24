@@ -5,6 +5,18 @@
       <p class="auth-subtitle">Sign in to your Evolvus 360 account</p>
     </div>
 
+    @if (error()) {
+      <div class="auth-alert-wrapper" style="margin-bottom: 16px;">
+        <app-alert
+          type="error"
+          [message]="error()"
+          [showIcon]="true"
+          [closable]="true"
+          (closed)="error.set('')"
+        />
+      </div>
+    }
+
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="field-group">
         <label for="login-email">Registered Email Address</label>
@@ -82,13 +94,6 @@
         </label>
         <a routerLink="/auth/forgot-password" class="forgot-link">Forgot Password?</a>
       </div>
-
-      @if (error()) {
-        <div class="alert alert-danger" role="alert">
-          <i class="fa-solid fa-circle-exclamation"></i>
-          <span>{{ error() }}</span>
-        </div>
-      }
 
       <button
         class="btn btn-signin"

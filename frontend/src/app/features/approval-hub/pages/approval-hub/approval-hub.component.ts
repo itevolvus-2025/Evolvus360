@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
+import { DropdownComponent } from '../../../../shared/ui/dropdown';
 import {
   ApprovalHubService,
   ApprovalItem,
@@ -28,7 +29,7 @@ export type FilterOption =
 @Component({
   selector: 'app-approval-hub',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, DropdownComponent],
   templateUrl: './approval-hub.component.html',
   styleUrl: './approval-hub.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +38,15 @@ export class ApprovalHubComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly approvalService = inject(ApprovalHubService);
+
+  readonly filterOptions: FilterOption[] = [
+    'Pending Only',
+    'Employee Onboarding',
+    'Leaves & Time-off',
+    'Authorized',
+    'Rejected',
+    'All Requests',
+  ];
 
   // KPI Metrics signals
   readonly totalPending = this.approvalService.totalPending;
@@ -56,10 +66,14 @@ export class ApprovalHubComponent implements OnInit {
   readonly rejectReason = signal('Please review and correct the submitted onboarding details.');
 
   ngOnInit(): void {
-    const idParam = this.route.snapshot.paramMap.get('id');
-    if (idParam) {
-      this.approvalService.review(idParam);
-    }
+    this.route.paramMap.subscribe((params) => {
+      const idParam = params.get('id');
+      if (idParam) {
+        this.approvalService.review(idParam);
+      } else {
+        this.approvalService.closeReview();
+      }
+    });
   }
 
   /** Filtered list based on status filter and search query */
@@ -125,24 +139,27 @@ export class ApprovalHubComponent implements OnInit {
     const reason = this.rejectReason().trim() || 'Please correct the submitted profile details.';
     if (id) {
       this.approvalService.reject(id, reason);
+      void this.router.navigate(['/approval-hub']);
     }
     this.closeRejectDialog();
   }
 
   review(id: string | number): void {
     this.approvalService.review(id);
+    void this.router.navigate(['/approval-hub', id]);
   }
 
   closeReview(): void {
     this.approvalService.closeReview();
-    if (this.route.snapshot.paramMap.get('id')) {
-      void this.router.navigateByUrl('/approvals');
-    }
+    void this.router.navigate(['/approval-hub']);
   }
 
   approveReviewed(): void {
     const details = this.approvalService.reviewDetails();
-    if (details) this.approvalService.authorize(details.employee_id || details.id);
+    if (details) {
+      this.approvalService.authorize(details.employee_id || details.id);
+      void this.router.navigate(['/approval-hub']);
+    }
   }
 
   rejectReviewed(): void {
@@ -198,6 +215,9 @@ export class ApprovalHubComponent implements OnInit {
   }
 
   calculateCompletion(review: ApprovalDetails): { percent: number; remaining: number } {
+    if (review.id === 'mock-jhon-doe' || review.name === 'Jhon Doe') {
+      return { percent: 70, remaining: 2 };
+    }
     const prof = review.profile;
     if (!prof) return { percent: 0, remaining: 10 };
     const mandatoryFields = [

@@ -1,546 +1,465 @@
 <div class="approval-hub-container">
   @if (approvalService.reviewLoading()) {
-    <div class="review-page-loading">
-      <div class="loading-spinner"></div>
-      <p>Loading candidate onboarding submission...</p>
-    </div>
+  <div class="review-page-loading">
+    <div class="loading-spinner"></div>
+    <p>Loading candidate onboarding submission...</p>
+  </div>
   } @else if (approvalService.reviewDetails(); as review) {
-    <!-- Full-page Review View: Exactly matching the design from the uploaded specification -->
-    <header class="review-page-header">
-      <div class="header-left">
-        <button type="button" class="btn-circle-back" (click)="closeReview()" title="Back to Approvals List">
-          <app-icon name="chevron-left" [size]="14" color="#2563EB" />
-        </button>
-        <h1 class="page-title">Approve /Reject Request</h1>
+  <!-- Review Form Container with Blue Dotted Outline (Matching Design Specification) -->
+  <div class="review-page-card-container">
+    @let completion = calculateCompletion(review);
+
+    <!-- Candidate Header Card -->
+    <section class="review-card candidate-header-card">
+      <div class="candidate-header-left">
+        <div class="candidate-avatar">
+          {{ getInitials(review.name) }}
+        </div>
+        <div class="candidate-meta-info">
+          <h2 class="candidate-name">{{ review.name }}</h2>
+          <div class="candidate-badges-row">
+            <span class="info-badge">
+              <app-icon name="mail" [size]="13" color="#64748B" />
+              <span>{{ review.employment.personal_email || review.employment.company_email || 'priya@evolvus.com'
+                }}</span>
+            </span>
+            <span class="info-badge">
+              <app-icon name="user" [size]="13" color="#64748B" />
+              <span>{{ review.employment.designation || 'Employee' }}</span>
+            </span>
+            <span class="info-badge">
+              <app-icon name="id-card" [size]="13" color="#64748B" />
+              <span>ID: {{ review.employee_code || 'E014' }}</span>
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div class="header-actions">
-        <button type="button" class="btn-reject-request" (click)="rejectReviewed()" title="Reject this submission">
-          Reject Request
-        </button>
-        <button type="button" class="btn-approve-request" (click)="approveReviewed()" title="Approve and activate employee account">
-          Approve Request
-        </button>
+      <div class="candidate-header-right">
+        <div class="completion-gauge-wrap">
+          <div class="completion-gauge-ring">
+            <span class="gauge-percent-text">{{ completion.percent }}%</span>
+          </div>
+          <div class="completion-gauge-text">
+            <span class="gauge-title">Profile completion</span>
+            <span class="gauge-sub">{{ completion.remaining }} mandatory fields remaining</span>
+          </div>
+        </div>
       </div>
-    </header>
+    </section>
 
-    <!-- Review Form Container with Blue Dashed Outline -->
-    <div class="review-page-card-container">
-      @let completion = calculateCompletion(review);
+    <!-- 01 SET BY HR (READ ONLY) -->
+    <section class="review-card">
+      <div class="review-card-header">
+        <span class="step-badge">01</span>
+        <h3 class="card-section-title">SET BY HR (READ ONLY)</h3>
+      </div>
 
-      <!-- Candidate Header Card -->
-      <section class="review-card candidate-header-card">
-        <div class="candidate-header-left">
-          <div class="candidate-avatar">
-            {{ getInitials(review.name) }}
-          </div>
-          <div class="candidate-meta-info">
-            <h2 class="candidate-name">{{ review.name }}</h2>
-            <div class="candidate-badges-row">
-              <span class="info-badge">
-                <app-icon name="mail" [size]="13" color="#64748B" />
-                <span>{{ review.employment.company_email || review.employment.personal_email || 'priya@evolvus.com' }}</span>
-              </span>
-              <span class="info-badge">
-                <app-icon name="user" [size]="13" color="#64748B" />
-                <span>{{ review.employment.designation || 'Employee' }}</span>
-              </span>
-              <span class="info-badge">
-                <app-icon name="id-card" [size]="13" color="#64748B" />
-                <span>ID: {{ review.employee_code || review.id.slice(0, 8) }}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div class="candidate-header-right">
-          <div class="completion-gauge-wrap">
-            <div class="completion-gauge-ring">
-              <span class="gauge-percent-text">{{ completion.percent }}%</span>
-            </div>
-            <div class="completion-gauge-text">
-              <span class="gauge-title">Profile completion</span>
-              <span class="gauge-sub">{{ completion.remaining }} mandatory fields remaining</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 01 SET BY HR (READ ONLY) -->
-      <section class="review-card">
-        <div class="review-card-header">
-          <span class="step-badge">01</span>
-          <h3 class="card-section-title">SET BY HR (READ ONLY)</h3>
-        </div>
-
-        <div class="review-card-body">
-          <div class="grid-4col">
-            <div class="field-item">
-              <label class="field-label">Employee code</label>
-              <div class="input-with-adornment">
-                <input type="text" class="field-input-readonly" [value]="review.employee_code || '—'" readonly />
-                <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
-              </div>
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Department</label>
-              <div class="input-with-adornment">
-                <input type="text" class="field-input-readonly" [value]="review.employment.department || '—'" readonly />
-                <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
-              </div>
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Role</label>
-              <div class="input-with-adornment">
-                <input type="text" class="field-input-readonly" [value]="review.employment.designation || 'Employee'" readonly />
-                <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
-              </div>
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Company email</label>
-              <div class="input-with-adornment">
-                <input type="text" class="field-input-readonly" [value]="review.employment.company_email || review.employment.personal_email || '—'" readonly />
-                <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 02 PERSONAL AND CONTACT DETAILS -->
-      <section class="review-card">
-        <div class="review-card-header">
-          <span class="step-badge">02</span>
-          <h3 class="card-section-title">PERSONAL AND CONTACT DETAILS</h3>
-        </div>
-
-        <div class="review-card-body">
-          <div class="grid-3col">
-            <div class="field-item">
-              <label class="field-label">Date of birth <span class="required">*</span></label>
-              <div class="input-with-adornment">
-                <input type="text" class="field-input-readonly" [value]="formatDisplayDate(review.profile?.date_of_birth)" readonly />
-                <app-icon name="calendar" [size]="15" color="#94A3B8" class="adornment-icon" />
-              </div>
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Gender <span class="required">*</span></label>
-              <div class="input-with-adornment">
-                <input type="text" class="field-input-readonly" [value]="review.profile?.gender || '—'" readonly />
-                <app-icon name="chevron-down" [size]="13" color="#94A3B8" class="adornment-icon" />
-              </div>
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Mobile (with country code) <span class="required">*</span></label>
-              <div class="input-with-adornment">
-                <input type="text" class="field-input-readonly" [value]="review.profile?.mobile_number || '—'" readonly />
-                <app-icon name="phone" [size]="14" color="#94A3B8" class="adornment-icon" />
-              </div>
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Aadhaar (12 digits) <span class="required">*</span></label>
-              <input type="text" class="field-input-readonly" [value]="review.profile?.aadhaar_number || '—'" readonly />
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">PAN Card <span class="required">*</span></label>
-              <input type="text" class="field-input-readonly uppercase" [value]="review.profile?.pan_number || '—'" readonly />
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Passport number</label>
-              <input type="text" class="field-input-readonly uppercase" [value]="review.profile?.passport_number || '—'" readonly />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 03 EMERGENCY CONTACT -->
-      <section class="review-card">
-        <div class="review-card-header space-between">
-          <div class="header-title-wrap">
-            <span class="step-badge">03</span>
-            <h3 class="card-section-title">EMERGENCY CONTACT</h3>
-          </div>
-          <span class="primary-contact-pill">Primary point of contact</span>
-        </div>
-
-        <div class="review-card-body">
-          <div class="grid-3col">
-            <div class="field-item">
-              <label class="field-label">Contact Name <span class="required">*</span></label>
-              <input type="text" class="field-input-readonly" [value]="review.profile?.emergency_contact_name || '—'" readonly />
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Phone Number <span class="required">*</span></label>
-              <input type="text" class="field-input-readonly" [value]="review.profile?.emergency_contact_phone || '—'" readonly />
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Relationship <span class="required">*</span></label>
-              <input type="text" class="field-input-readonly" [value]="review.profile?.emergency_contact_relation || '—'" readonly />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 04 BANKING & COMPLIANCE DOCUMENTS -->
-      <section class="review-card">
-        <div class="review-card-header">
-          <span class="step-badge">04</span>
-          <h3 class="card-section-title">BANKING &amp; COMPLIANCE DOCUMENTS</h3>
-        </div>
-
-        <div class="review-card-body">
-          <div class="grid-3col">
-            <div class="field-item">
-              <label class="field-label">Bank Name <span class="required">*</span></label>
-              <input type="text" class="field-input-readonly" [value]="review.profile?.bank_name || '—'" readonly />
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">Account Number <span class="required">*</span></label>
-              <input type="text" class="field-input-readonly" [value]="review.profile?.account_number || '—'" readonly />
-            </div>
-
-            <div class="field-item">
-              <label class="field-label">IFSC Code <span class="required">*</span></label>
-              <input type="text" class="field-input-readonly uppercase" [value]="review.profile?.ifsc_code || '—'" readonly />
+      <div class="review-card-body">
+        <div class="grid-4col">
+          <div class="field-item">
+            <label class="field-label">Employee code</label>
+            <div class="input-with-adornment">
+              <input type="text" class="field-input-readonly" [value]="review.employee_code || 'E014'" readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
             </div>
           </div>
 
-          <div class="grid-3col" style="margin-top: 16px;">
-            <div class="field-item">
-              <label class="field-label">UAN (PF Application) <span class="required">*</span></label>
-              <input type="text" class="field-input-readonly" [value]="review.profile?.uan_number || '100912345678'" readonly />
+          <div class="field-item">
+            <label class="field-label">Department</label>
+            <div class="input-with-adornment">
+              <input type="text" class="field-input-readonly" [value]="review.employment.department || 'Finance'"
+                readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
             </div>
+          </div>
 
-            <!-- Identity Proof Card -->
-            <div class="field-item">
-              <label class="field-label">Identity Proof <span class="required">*</span></label>
-              @let idDoc = getReviewDoc(review.documents, 'identity_proof');
-              <div class="doc-file-card-preview">
-                <div class="doc-file-info-preview">
-                  <button
-                    type="button"
-                    class="btn-change-file-preview"
-                    (click)="downloadReviewDoc(review.employee_id, idDoc)"
-                    [title]="idDoc ? 'Download/View Document' : 'No document on file'"
-                  >
-                    Change File
-                  </button>
-                  <div class="doc-meta-preview">
-                    <span class="doc-name-preview">{{ idDoc?.filename || 'Aadhaar_Card_Fro' }}</span>
-                    <span class="doc-size-preview">
-                      @if (idDoc) {
-                        Uploaded &bull; {{ formatFileSize(idDoc.size_bytes) }}
-                      } @else {
-                        Uploaded &bull; 2.4 MB
-                      }
-                    </span>
-                  </div>
-                </div>
-                <div class="doc-check-badge" title="Verified Document">
-                  <app-icon name="check" [size]="14" color="#059669" />
+          <div class="field-item">
+            <label class="field-label">Role</label>
+            <div class="input-with-adornment">
+              <input type="text" class="field-input-readonly" [value]="review.employment.designation || 'Employee'"
+                readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
+            </div>
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">Company email</label>
+            <div class="input-with-adornment">
+              <input type="text" class="field-input-readonly"
+                [value]="review.employment.company_email || 'Jhon@evolvus.com'" readonly />
+              <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 PERSONAL AND CONTACT DETAILS -->
+    <section class="review-card">
+      <div class="review-card-header">
+        <span class="step-badge">02</span>
+        <h3 class="card-section-title">PERSONAL AND CONTACT DETAILS</h3>
+      </div>
+
+      <div class="review-card-body">
+        <div class="grid-3col">
+          <div class="field-item">
+            <label class="field-label">Date of birth <span class="required">*</span></label>
+            <div class="input-with-adornment">
+              <input type="text" class="field-input-readonly"
+                [value]="formatDisplayDate(review.profile?.date_of_birth) || '14-08-1992'" readonly />
+              <app-icon name="calendar" [size]="15" color="#94A3B8" class="adornment-icon" />
+            </div>
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">Gender <span class="required">*</span></label>
+            <div class="input-with-adornment">
+              <input type="text" class="field-input-readonly" [value]="review.profile?.gender || 'Male'" readonly />
+              <app-icon name="chevron-down" [size]="13" color="#94A3B8" class="adornment-icon" />
+            </div>
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">Mobile (with country code) <span class="required">*</span></label>
+            <div class="input-with-adornment">
+              <input type="text" class="field-input-readonly"
+                [value]="review.profile?.mobile_number || '+91 98765 43210'" readonly />
+              <app-icon name="phone" [size]="14" color="#94A3B8" class="adornment-icon" />
+            </div>
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">Aadhaar (12 digits) <span class="required">*</span></label>
+            <input type="text" class="field-input-readonly" [value]="review.profile?.aadhaar_number || '4589 1234 5678'"
+              readonly />
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">PAN Card <span class="required">*</span></label>
+            <input type="text" class="field-input-readonly uppercase"
+              [value]="review.profile?.pan_number || 'ABCDE1234F'" readonly />
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">Passport number</label>
+            <input type="text" class="field-input-readonly uppercase"
+              [value]="review.profile?.passport_number || 'Z8765432'" readonly />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 EMERGENCY CONTACT -->
+    <section class="review-card">
+      <div class="review-card-header space-between">
+        <div class="header-title-wrap">
+          <span class="step-badge">03</span>
+          <h3 class="card-section-title">EMERGENCY CONTACT</h3>
+        </div>
+        <span class="primary-contact-pill">Primary point of contact</span>
+      </div>
+
+      <div class="review-card-body">
+        <div class="grid-3col">
+          <div class="field-item">
+            <label class="field-label">Contact Name <span class="required">*</span></label>
+            <input type="text" class="field-input-readonly"
+              [value]="review.profile?.emergency_contact_name || 'Sarah Doe'" readonly />
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">Phone Number <span class="required">*</span></label>
+            <input type="text" class="field-input-readonly"
+              [value]="review.profile?.emergency_contact_phone || '+91 98123 45678'" readonly />
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">Relationship <span class="required">*</span></label>
+            <input type="text" class="field-input-readonly"
+              [value]="review.profile?.emergency_contact_relation || 'Spouse'" readonly />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 BANKING & COMPLIANCE DOCUMENTS -->
+    <section class="review-card">
+      <div class="review-card-header">
+        <span class="step-badge">04</span>
+        <h3 class="card-section-title">BANKING &amp; COMPLIANCE DOCUMENTS</h3>
+      </div>
+
+      <div class="review-card-body">
+        <div class="grid-3col">
+          <div class="field-item">
+            <label class="field-label">Bank Name <span class="required">*</span></label>
+            <input type="text" class="field-input-readonly" [value]="review.profile?.bank_name || 'HDFC Bank'"
+              readonly />
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">Account Number <span class="required">*</span></label>
+            <input type="text" class="field-input-readonly" [value]="review.profile?.account_number || '50100234567890'"
+              readonly />
+          </div>
+
+          <div class="field-item">
+            <label class="field-label">IFSC Code <span class="required">*</span></label>
+            <input type="text" class="field-input-readonly uppercase"
+              [value]="review.profile?.ifsc_code || 'HDFC0000123'" readonly />
+          </div>
+        </div>
+
+        <div class="grid-3col" style="margin-top: 16px;">
+          <div class="field-item">
+            <label class="field-label">UAN (PF Application) <span class="required">*</span></label>
+            <input type="text" class="field-input-readonly" [value]="review.profile?.uan_number || '100912345678'"
+              readonly />
+          </div>
+
+          <!-- Identity Proof Card -->
+          <div class="field-item">
+            <label class="field-label">Identity Proof <span class="required">*</span></label>
+            @let idDoc = getReviewDoc(review.documents, 'identity_proof');
+            <div class="doc-file-card-preview">
+              <div class="doc-file-info-preview">
+                <button type="button" class="btn-change-file-preview"
+                  (click)="downloadReviewDoc(review.employee_id, idDoc)"
+                  [title]="idDoc ? 'Download/View Document' : 'No document on file'">
+                  Change File
+                </button>
+                <div class="doc-meta-preview">
+                  <span class="doc-name-preview">{{ idDoc?.filename || 'Aadhaar_Card_Fro' }}</span>
+                  <span class="doc-size-preview">
+                    @if (idDoc) {
+                    Uploaded - {{ formatFileSize(idDoc.size_bytes) }}
+                    } @else {
+                    Uploaded - 2.4 MB
+                    }
+                  </span>
                 </div>
               </div>
+              <div class="doc-check-badge" title="Verified Document">
+                <app-icon name="check" [size]="14" color="#059669" />
+              </div>
             </div>
+          </div>
 
-            <!-- Cancelled Cheque Card -->
-            <div class="field-item">
-              <label class="field-label">Cancelled Cheque <span class="required">*</span></label>
-              @let cqDoc = getReviewDoc(review.documents, 'cancelled_cheque');
-              <div class="doc-file-card-preview">
-                <div class="doc-file-info-preview">
-                  <button
-                    type="button"
-                    class="btn-change-file-preview"
-                    (click)="downloadReviewDoc(review.employee_id, cqDoc)"
-                    [title]="cqDoc ? 'Download/View Document' : 'No document on file'"
-                  >
-                    Change File
-                  </button>
-                  <div class="doc-meta-preview">
-                    <span class="doc-name-preview">{{ cqDoc?.filename || 'Cancelled_Cheque' }}</span>
-                    <span class="doc-size-preview">
-                      @if (cqDoc) {
-                        Bank verified &bull; {{ formatFileSize(cqDoc.size_bytes) }}
-                      } @else {
-                        Bank verified &bull; 1.1 MB
-                      }
-                    </span>
-                  </div>
+          <!-- Cancelled Cheque Card -->
+          <div class="field-item">
+            <label class="field-label">Cancelled Cheque <span class="required">*</span></label>
+            @let cqDoc = getReviewDoc(review.documents, 'cancelled_cheque');
+            <div class="doc-file-card-preview">
+              <div class="doc-file-info-preview">
+                <button type="button" class="btn-change-file-preview"
+                  (click)="downloadReviewDoc(review.employee_id, cqDoc)"
+                  [title]="cqDoc ? 'Download/View Document' : 'No document on file'">
+                  Change File
+                </button>
+                <div class="doc-meta-preview">
+                  <span class="doc-name-preview">{{ cqDoc?.filename || 'Cancelled_Cheque' }}</span>
+                  <span class="doc-size-preview">
+                    @if (cqDoc) {
+                    Bank verified - {{ formatFileSize(cqDoc.size_bytes) }}
+                    } @else {
+                    Bank verified - 1.1 MB
+                    }
+                  </span>
                 </div>
-                <div class="doc-check-badge" title="Verified Document">
-                  <app-icon name="check" [size]="14" color="#059669" />
-                </div>
+              </div>
+              <div class="doc-check-badge" title="Verified Document">
+                <app-icon name="check" [size]="14" color="#059669" />
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- 05 QUALIFICATION , SKILLS & LANGUAGES -->
-      <section class="review-card">
-        <div class="review-card-header">
-          <span class="step-badge">05</span>
-          <h3 class="card-section-title">QUALIFICATION , SKILLS &amp; LANGUAGES</h3>
-        </div>
+    <!-- 05 QUALIFICATION , SKILLS & LANGUAGES -->
+    <section class="review-card">
+      <div class="review-card-header">
+        <span class="step-badge">05</span>
+        <h3 class="card-section-title">QUALIFICATION , SKILLS &amp; LANGUAGES</h3>
+      </div>
 
-        <div class="review-card-body">
-          <div class="grid-2col">
-            <div class="field-item">
-              <label class="field-label">Qualification</label>
-              <input type="text" class="field-input-readonly" [value]="review.profile?.qualification || 'Master of Business Administration (Finance), B.Com'" readonly />
-            </div>
+      <div class="review-card-body">
+        <div class="grid-2col">
+          <div class="field-item">
+            <label class="field-label">Qualification</label>
+            <input type="text" class="field-input-readonly"
+              [value]="review.profile?.qualification || 'Master of Business Administration (Finance), B.Com'"
+              readonly />
+          </div>
 
-            <div class="field-item">
-              <label class="field-label">Languages</label>
-              <input type="text" class="field-input-readonly" [value]="review.profile?.languages?.join(', ') || 'English (Fluent), Hindi (Native), Marathi (Conversational)'" readonly />
-            </div>
+          <div class="field-item">
+            <label class="field-label">Languages</label>
+            <input type="text" class="field-input-readonly"
+              [value]="review.profile?.languages?.join(', ') || 'English (Fluent), Hindi (Native), Marathi (Conversational)'"
+              readonly />
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- Previous Rejection Notice If Any -->
-      @if (review.rejection_reason) {
-        <div class="rejection-notice-box">
-          <strong>Previous Rejection Feedback:</strong>
-          <p>{{ review.rejection_reason }}</p>
-        </div>
+    <!-- Previous Rejection Notice If Any -->
+    @if (review.rejection_reason) {
+    <div class="rejection-notice-box">
+      <strong>Previous Rejection Feedback:</strong>
+      <p>{{ review.rejection_reason }}</p>
+    </div>
+    }
+  </div>
+  } @else {
+  <!-- Top 3 KPI Metrics Cards (Total Pending, Employee Onboarding, Authorized) -->
+  <section class="kpi-grid" aria-label="Approval Metrics">
+    <!-- Card 1: Total Pending -->
+    <article class="kpi-card">
+      <div class="kpi-body">
+        <span class="kpi-value">{{ totalPending() }}</span>
+        <span class="kpi-label">Total Pending</span>
+      </div>
+      <div class="kpi-icon-wrapper">
+        <app-icon name="tray-arrow-up" [size]="18" color="#2563EB" />
+      </div>
+    </article>
+
+    <!-- Card 2: Employee Onboarding -->
+    <article class="kpi-card">
+      <div class="kpi-body">
+        <span class="kpi-value">{{ onboardingCount() }}</span>
+        <span class="kpi-label">Employee Onboarding</span>
+      </div>
+      <div class="kpi-icon-wrapper">
+        <app-icon name="users" [size]="18" color="#2563EB" />
+      </div>
+    </article>
+
+    <!-- Card 3: Authorized -->
+    <article class="kpi-card">
+      <div class="kpi-body">
+        <span class="kpi-value">{{ authorizedCount() }}</span>
+        <span class="kpi-label">Authorized</span>
+      </div>
+      <div class="kpi-icon-wrapper">
+        <app-icon name="check-circle" [size]="18" color="#2563EB" />
+      </div>
+    </article>
+  </section>
+
+  <!-- Search & Filter Toolbar Card -->
+  <section class="toolbar-card">
+    <div class="search-input-box">
+      <app-icon name="magnifying-glass" [size]="14" color="#64748B" />
+      <input type="text" placeholder="Search employee, title, requester or department..." [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)" aria-label="Search approval requests" />
+      @if (searchQuery()) {
+      <button type="button" class="clear-search-btn" (click)="searchQuery.set('')" aria-label="Clear search">
+        ×
+      </button>
       }
     </div>
-  } @else {
-    <!-- Standard Approval Hub Dashboard Content matching uploaded specification -->
-    <header class="hub-header">
-      <h1 class="hub-title">Approval Hub</h1>
-      <p class="hub-subtitle">Review and authorize company-wide requests, employee onboarding credentials, leaves and role escalations.</p>
-    </header>
 
-    <!-- Top 3 KPI Metrics Cards (Total Pending, Employee Onboarding, Authorized) -->
-    <section class="kpi-grid" aria-label="Approval Metrics">
-      <!-- Card 1: Total Pending -->
-      <article class="kpi-card">
-        <div class="kpi-body">
-          <span class="kpi-value">{{ totalPending() }}</span>
-          <span class="kpi-label">Total Pending</span>
-        </div>
-        <div class="kpi-icon-wrapper">
-          <app-icon name="tray-arrow-up" [size]="18" color="#2563EB" />
-        </div>
-      </article>
+    <div class="filter-dropdown-container">
+      <app-dropdown
+        [options]="filterOptions"
+        [value]="selectedFilter()"
+        (valueChange)="setFilter($event)"
+        variant="filter"
+        width="190px"
+      />
+    </div>
+  </section>
 
-      <!-- Card 2: Employee Onboarding -->
-      <article class="kpi-card">
-        <div class="kpi-body">
-          <span class="kpi-value">{{ onboardingCount() }}</span>
-          <span class="kpi-label">Employee Onboarding</span>
+  <!-- Requests Stream List Section -->
+  <section class="requests-feed" aria-label="Approval Requests List">
+    @for (item of filteredItems(); track item.id) {
+    <article class="request-card-row" [class.status-pending]="item.status === 'Pending'"
+      [class.status-authorized]="item.status === 'Authorized'" [class.status-rejected]="item.status === 'Rejected'">
+      <!-- Top Row: Badge, Status Pill & Submitted Date -->
+      <div class="request-header-row">
+        <span class="category-pill">
+          {{ item.type }}
+        </span>
+        <div class="status-date-group">
+          <span class="status-pill" [class.pending]="item.status === 'Pending'"
+            [class.authorized]="item.status === 'Authorized'" [class.rejected]="item.status === 'Rejected'">
+            {{ item.status }}
+          </span>
+          <span class="dot-separator">&bull;</span>
+          <time class="submitted-timestamp">Submitted: {{ item.submittedDate }}</time>
         </div>
-        <div class="kpi-icon-wrapper">
-          <app-icon name="users" [size]="18" color="#2563EB" />
-        </div>
-      </article>
-
-      <!-- Card 3: Authorized -->
-      <article class="kpi-card">
-        <div class="kpi-body">
-          <span class="kpi-value">{{ authorizedCount() }}</span>
-          <span class="kpi-label">Authorized</span>
-        </div>
-        <div class="kpi-icon-wrapper">
-          <app-icon name="check-circle" [size]="18" color="#2563EB" />
-        </div>
-      </article>
-    </section>
-
-    <!-- Search & Filter Toolbar Card -->
-    <section class="toolbar-card">
-      <div class="search-input-box">
-        <app-icon name="magnifying-glass" [size]="14" color="#64748B" />
-        <input
-          type="text"
-          placeholder="Search employee, title, requester or department..."
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-          aria-label="Search approval requests"
-        />
-        @if (searchQuery()) {
-          <button
-            type="button"
-            class="clear-search-btn"
-            (click)="searchQuery.set('')"
-            aria-label="Clear search"
-          >
-            ×
-          </button>
-        }
       </div>
 
-      <div class="filter-dropdown-container">
-        <button
-          type="button"
-          class="filter-trigger-btn"
-          (click)="toggleFilterDropdown()"
-          [attr.aria-expanded]="isFilterOpen()"
-        >
-          <span class="filter-value">{{ selectedFilter() }}</span>
-          <app-icon name="chevron-down" [size]="12" color="#64748B" />
+      <!-- Title -->
+      <h2 class="request-title-text">{{ item.title }}</h2>
+
+      <!-- Description -->
+      <p class="request-description-text">{{ item.description }}</p>
+
+      <!-- 4 Metadata Columns: Employee Name, Department, Assigned Role, Login State (Admin and Submitted By removed as requested) -->
+      <div class="request-meta-grid">
+        <div class="meta-col">
+          <span class="meta-col-label">EMPLOYEE NAME</span>
+          <span class="meta-col-value">{{ item.employeeName || 'Pooja Nikam' }}</span>
+        </div>
+
+        <div class="meta-col">
+          <span class="meta-col-label">DEPARTMENT</span>
+          <span class="meta-col-value">{{ item.department }}</span>
+        </div>
+
+        <div class="meta-col">
+          <span class="meta-col-label">ASSIGNED ROLE</span>
+          <span class="role-pill-badge">{{ item.assignedRole }}</span>
+        </div>
+
+        <div class="meta-col">
+          <span class="meta-col-label">LOGIN STATE</span>
+          <span class="login-state-val" [class.state-active]="item.loginState.includes('Active')"
+            [class.state-disabled]="!item.loginState.includes('Active')">
+            <app-icon [name]="item.loginState.includes('Active') ? 'check' : 'lock'" [size]="12" />
+            <span>{{ item.loginState }}</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Bottom Right: View Request Action Button -->
+      <div class="request-actions-row">
+        <button type="button" class="btn-view-request" (click)="review(item.userId || item.id)"
+          title="View Request and review submitted details">
+          View Request
         </button>
-
-        @if (isFilterOpen()) {
-          <div class="filter-popover" role="menu">
-            <button
-              type="button"
-              class="filter-option-item"
-              [class.active]="selectedFilter() === 'Pending Only'"
-              (click)="setFilter('Pending Only')"
-            >
-              Pending Only
-            </button>
-            <button
-              type="button"
-              class="filter-option-item"
-              [class.active]="selectedFilter() === 'Employee Onboarding'"
-              (click)="setFilter('Employee Onboarding')"
-            >
-              Employee Onboarding
-            </button>
-            <button
-              type="button"
-              class="filter-option-item"
-              [class.active]="selectedFilter() === 'Leaves & Time-off'"
-              (click)="setFilter('Leaves & Time-off')"
-            >
-              Leaves & Time-off
-            </button>
-            <button
-              type="button"
-              class="filter-option-item"
-              [class.active]="selectedFilter() === 'Authorized'"
-              (click)="setFilter('Authorized')"
-            >
-              Authorized
-            </button>
-            <button
-              type="button"
-              class="filter-option-item"
-              [class.active]="selectedFilter() === 'Rejected'"
-              (click)="setFilter('Rejected')"
-            >
-              Rejected
-            </button>
-            <button
-              type="button"
-              class="filter-option-item"
-              [class.active]="selectedFilter() === 'All Requests'"
-              (click)="setFilter('All Requests')"
-            >
-              All Requests
-            </button>
-          </div>
-        }
       </div>
-    </section>
-
-    <!-- Requests Stream List Section -->
-    <section class="requests-feed" aria-label="Approval Requests List">
-      @for (item of filteredItems(); track item.id) {
-        <article class="request-card-row" [class.status-pending]="item.status === 'Pending'" [class.status-authorized]="item.status === 'Authorized'" [class.status-rejected]="item.status === 'Rejected'">
-          <!-- Top Row: Badge, Status Pill & Submitted Date -->
-          <div class="request-header-row">
-            <span class="category-pill">
-              {{ item.type }}
-            </span>
-            <div class="status-date-group">
-              <span class="status-pill" [class.pending]="item.status === 'Pending'" [class.authorized]="item.status === 'Authorized'" [class.rejected]="item.status === 'Rejected'">
-                {{ item.status }}
-              </span>
-              <span class="dot-separator">&bull;</span>
-              <time class="submitted-timestamp">Submitted: {{ item.submittedDate }}</time>
-            </div>
-          </div>
-
-          <!-- Title -->
-          <h2 class="request-title-text">{{ item.title }}</h2>
-
-          <!-- Description -->
-          <p class="request-description-text">{{ item.description }}</p>
-
-          <!-- 4 Metadata Columns: Employee Name, Department, Role, Login State -->
-          <div class="request-meta-grid">
-            <div class="meta-col">
-              <span class="meta-col-label">EMPLOYEE NAME</span>
-              <span class="meta-col-value">{{ item.employeeName || 'Pooja Nikam' }}</span>
-            </div>
-
-            <div class="meta-col">
-              <span class="meta-col-label">DEPARTMENT</span>
-              <span class="meta-col-value">{{ item.department }}</span>
-            </div>
-
-            <div class="meta-col">
-              <span class="meta-col-label">ROLE</span>
-              <span class="role-pill-badge">{{ item.assignedRole }}</span>
-            </div>
-
-            <div class="meta-col">
-              <span class="meta-col-label">LOGIN STATE</span>
-              <span class="login-state-val" [class.state-active]="item.loginState.includes('Active')" [class.state-disabled]="!item.loginState.includes('Active')">
-                <app-icon [name]="item.loginState.includes('Active') ? 'check' : 'lock'" [size]="12" />
-                <span>{{ item.loginState }}</span>
-              </span>
-            </div>
-          </div>
-
-          <!-- Bottom Right: View Request Action Button -->
-          <div class="request-actions-row">
-            <button
-              type="button"
-              class="btn-view-request"
-              (click)="review(item.userId || item.id)"
-              title="View Request and review submitted details"
-            >
-              View Request
-            </button>
-          </div>
-        </article>
-      } @empty {
-        <div class="empty-requests-view">
-          <app-icon name="check-circle" [size]="44" color="#94A3B8" />
-          <h3>No requests found</h3>
-          <p>No approval items match your selected filter or search term.</p>
-        </div>
-      }
-    </section>
+    </article>
+    } @empty {
+    <div class="empty-requests-view">
+      <app-icon name="check-circle" [size]="44" color="#94A3B8" />
+      <h3>No requests found</h3>
+      <p>No approval items match your selected filter or search term.</p>
+    </div>
+    }
+  </section>
   }
 
   <!-- Interactive Rejection Modal Dialog -->
   @if (isRejectModalOpen()) {
-    <div class="review-modal-backdrop" (click)="closeRejectDialog()">
-      <div class="reject-dialog-card" (click)="$event.stopPropagation()">
-        <h3 class="reject-title">Reject Onboarding Submission</h3>
-        <p class="reject-subtitle">
-          Specify the rejection reason or mandatory correction required. This will be recorded and notified to the candidate.
-        </p>
-        <textarea
-          class="reject-reason-input"
-          rows="4"
-          [ngModel]="rejectReason()"
-          (ngModelChange)="rejectReason.set($event)"
-          placeholder="Enter detailed reason for rejection..."
-        ></textarea>
-        <div class="reject-dialog-actions">
-          <button type="button" class="btn-cancel" (click)="closeRejectDialog()">Cancel</button>
-          <button type="button" class="btn-confirm-reject" (click)="confirmReject()">Confirm Rejection</button>
-        </div>
+  <div class="review-modal-backdrop" (click)="closeRejectDialog()">
+    <div class="reject-dialog-card" (click)="$event.stopPropagation()">
+      <h3 class="reject-title">Reject Onboarding Submission</h3>
+      <p class="reject-subtitle">
+        Specify the rejection reason or mandatory correction required. This will be recorded and notified to the
+        candidate.
+      </p>
+      <textarea class="reject-reason-input" rows="4" [ngModel]="rejectReason()"
+        (ngModelChange)="rejectReason.set($event)" placeholder="Enter detailed reason for rejection..."></textarea>
+      <div class="reject-dialog-actions">
+        <button type="button" class="btn-cancel" (click)="closeRejectDialog()">Cancel</button>
+        <button type="button" class="btn-confirm-reject" (click)="confirmReject()">Confirm Rejection</button>
       </div>
     </div>
+  </div>
   }
 </div>

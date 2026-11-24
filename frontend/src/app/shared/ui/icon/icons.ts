@@ -77,6 +77,11 @@ export const APP_ICONS: Record<string, string> = {
 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
 </svg>`,
 
+  "magnifying-glass": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="11" cy="11" r="8"></circle>
+<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+</svg>`,
+
   "check-circle": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
 <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -182,12 +187,10 @@ export const APP_ICONS: Record<string, string> = {
 <rect x="3" y="16" width="7" height="5"></rect>
 </svg>`,
 
-  calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-<line x1="16" y1="2" x2="16" y2="6"></line>
-<line x1="8" y1="2" x2="8" y2="6"></line>
-<line x1="3" y1="10" x2="21" y2="10"></line>
-</svg>`,
+  calendar: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5.33333 4.66667V2M10.6667 4.66667V2M4.66667 7.33333H11.3333M3.33333 14H12.6667C13.4026 14 14 13.4026 14 12.6667V4.66667C14 3.93078 13.4026 3.33333 12.6667 3.33333H3.33333C2.59745 3.33333 2 3.93078 2 4.66667V12.6667C2 13.4026 2.59745 14 3.33333 14Z" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>
+</svg>
+`,
 
   "calendar-plus": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>

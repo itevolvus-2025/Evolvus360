@@ -106,19 +106,13 @@
       <div class="section-card-body">
         <div class="form-group max-w-full">
           <label class="form-label" for="editRoleStatus">Status <span class="required">*</span></label>
-          <div class="custom-select-wrap">
-            <select
-              id="editRoleStatus"
-              class="form-select"
-              [value]="status()"
-              (change)="status.set($any($event.target).value)"
-            >
-              <option value="Active">Active</option>
-              <option value="Deactive">Deactive</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-            <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-          </div>
+          <app-dropdown
+            [options]="statusOptions"
+            [value]="status()"
+            (valueChange)="status.set($any($event))"
+            placeholder="Select status"
+            width="100%"
+          />
         </div>
 
         <div class="form-group max-w-full mt-field">

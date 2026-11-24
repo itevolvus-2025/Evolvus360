@@ -525,9 +525,7 @@
     }
 
     .select-icon {
-      position: absolute;
-      right: 12px;
-      pointer-events: none;
+      display: none !important;
     }
   }
 
@@ -650,9 +648,7 @@
       }
 
       .lang-chevron {
-        position: absolute;
-        right: 6px;
-        pointer-events: none;
+        display: none !important;
       }
     }
   }

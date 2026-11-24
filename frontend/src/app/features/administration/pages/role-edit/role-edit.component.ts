@@ -13,10 +13,12 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { RoleService, RoleStatus } from '../../data-access/role.service';
 import { AVAILABLE_PERMISSIONS } from '../../../../core/constants/permissions.constant';
 
+import { DropdownComponent, DropdownOption } from '../../../../shared/ui/dropdown';
+
 @Component({
   selector: 'app-role-edit',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, DropdownComponent],
   templateUrl: './role-edit.component.html',
   styleUrl: './role-edit.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,6 +37,12 @@ export class RoleEditComponent implements OnInit {
   readonly status = signal<RoleStatus>('Active');
   readonly reasonForChange = signal('');
   readonly effectiveDate = signal('');
+
+  readonly statusOptions: DropdownOption[] = [
+    { label: 'Active', value: 'Active' },
+    { label: 'Deactive', value: 'Deactive' },
+    { label: 'Inactive', value: 'Inactive' },
+  ];
 
   // Permissions array centralized and passed to/from API
   readonly availablePermissions = AVAILABLE_PERMISSIONS;

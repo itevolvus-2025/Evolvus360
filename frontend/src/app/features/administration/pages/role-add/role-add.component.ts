@@ -12,10 +12,12 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { RoleService, RoleStatus } from '../../data-access/role.service';
 import { AVAILABLE_PERMISSIONS } from '../../../../core/constants/permissions.constant';
 
+import { DropdownComponent, DropdownOption } from '../../../../shared/ui/dropdown';
+
 @Component({
   selector: 'app-role-add',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, DropdownComponent],
   templateUrl: './role-add.component.html',
   styleUrl: './role-add.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +32,12 @@ export class RoleAddComponent {
   readonly purpose = signal('');
   readonly status = signal<RoleStatus>('Active');
   readonly effectiveDate = signal('');
+
+  readonly statusOptions: DropdownOption[] = [
+    { label: 'Active', value: 'Active' },
+    { label: 'Deactive', value: 'Deactive' },
+    { label: 'Inactive', value: 'Inactive' },
+  ];
 
   // Permissions array centralized and passed to/from API
   readonly availablePermissions = AVAILABLE_PERMISSIONS;
@@ -57,6 +65,11 @@ export class RoleAddComponent {
     const name = this.roleName().trim();
     if (!name) {
       this.notification.show('Role name is mandatory', 'error');
+      return;
+    }
+
+    if (!/^[\p{L}\s]+$/u.test(name)) {
+      this.notification.show('Role name can contain letters and spaces only. Numbers and special characters are not allowed.', 'error');
       return;
     }
 

@@ -39,6 +39,8 @@
               placeholder="e.g. Finance Auditor"
               [value]="roleName()"
               (input)="roleName.set($any($event.target).value)"
+              pattern="[A-Za-z ]+"
+              title="Role name can contain letters and spaces only. Numbers and special characters are not allowed."
               required
             />
           </div>
@@ -104,20 +106,13 @@
       <div class="section-card-body">
         <div class="form-group max-w-full">
           <label class="form-label" for="roleStatus">Status <span class="required">*</span></label>
-          <div class="custom-select-wrap">
-            <select
-              id="roleStatus"
-              class="form-select"
-              [value]="status()"
-              (change)="status.set($any($event.target).value)"
-            >
-              <option value="" disabled>Select status</option>
-              <option value="Active">Active</option>
-              <option value="Deactive">Deactive</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-            <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-          </div>
+          <app-dropdown
+            [options]="statusOptions"
+            [value]="status()"
+            (valueChange)="status.set($any($event))"
+            placeholder="Select status"
+            width="100%"
+          />
         </div>
       </div>
     </section>

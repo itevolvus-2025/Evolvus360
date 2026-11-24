@@ -93,16 +93,13 @@
         <form (ngSubmit)="submitLeaveRequest()" class="modal-form">
           <div class="form-group">
             <label class="form-label" for="leaveTypeSelect">Leave Type <span class="required">*</span></label>
-            <select
-              id="leaveTypeSelect"
-              class="form-select"
+            <app-dropdown
+              [options]="leaveTypeOptions"
               [value]="leaveType()"
-              (change)="leaveType.set($any($event.target).value)"
-            >
-              <option value="Annual Leave">Annual Leave (14 days available)</option>
-              <option value="Sick Leave">Sick Leave (8 days available)</option>
-              <option value="Casual Leave">Casual Leave (6 days available)</option>
-            </select>
+              (valueChange)="leaveType.set($event)"
+              placeholder="Select leave type"
+              width="100%"
+            />
           </div>
 
           <div class="form-row-2col">

@@ -37,54 +37,72 @@ export const routes: Routes = [
     children: [
       {
         path: 'dashboard',
+        canActivate: [roleGuard],
+        data: { permissions: ['Dashboard'] },
         loadChildren: () =>
           import('./features/dashboard/dashboard.routes')
             .then((m) => m.DASHBOARD_ROUTES)
       },
       {
         path: 'users',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/users/user.routes')
             .then((m) => m.USER_ROUTES)
       },
       {
         path: 'employees',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/users/user.routes')
             .then((m) => m.USER_ROUTES)
       },
       {
         path: 'organization',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/organization/organization.routes')
             .then((m) => m.ORGANIZATION_ROUTES)
       },
       {
         path: 'attendance',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/attendance/attendance.routes')
             .then((m) => m.ATTENDANCE_ROUTES)
       },
       {
         path: 'approval-hub',
+        canActivate: [roleGuard],
+        data: { permissions: ['Approval'] },
         loadChildren: () =>
           import('./features/approval-hub/approval-hub.routes')
             .then((m) => m.APPROVAL_HUB_ROUTES)
       },
       {
         path: 'projects',
+        canActivate: [roleGuard],
+        data: { permissions: ['Project'] },
         loadChildren: () =>
           import('./features/projects/project.routes')
             .then((m) => m.PROJECT_ROUTES)
       },
       {
         path: 'leave',
+        canActivate: [roleGuard],
+        data: { permissions: ['Leave Request', 'Leave Management'] },
         loadChildren: () =>
           import('./features/leave/leave.routes')
             .then((m) => m.LEAVE_ROUTES)
       },
       {
         path: 'timesheets',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/timesheets/timesheet.routes')
             .then((m) => m.TIMESHEET_ROUTES)
@@ -99,42 +117,56 @@ export const routes: Routes = [
       },
       {
         path: 'performance',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/performance/performance.routes')
             .then((m) => m.PERFORMANCE_ROUTES)
       },
       {
         path: 'recruitment',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/recruitment/recruitment.routes')
             .then((m) => m.RECRUITMENT_ROUTES)
       },
       {
         path: 'documents',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/documents/document.routes')
             .then((m) => m.DOCUMENT_ROUTES)
       },
       {
         path: 'reports',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/reports/report.routes')
             .then((m) => m.REPORT_ROUTES)
       },
       {
         path: 'administration',
+        canActivate: [roleGuard],
+        data: { permissions: ['Role Management'] },
         loadChildren: () =>
           import('./features/administration/administration.routes')
             .then((m) => m.ADMINISTRATION_ROUTES)
       },
       {
         path: 'settings',
+        canActivate: [roleGuard],
+        data: { permissions: ['User Management'] },
         loadChildren: () =>
           import('./features/settings/settings.routes')
             .then((m) => m.SETTINGS_ROUTES)
       },
       {
         path: 'icons',
+        canActivate: [roleGuard],
+        data: { permissions: ['Dashboard'] },
         loadComponent: () =>
           import('./features/icons-gallery/icons-gallery.component')
             .then((m) => m.IconsGalleryComponent)

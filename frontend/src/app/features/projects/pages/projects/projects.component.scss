@@ -146,9 +146,7 @@
 }
 
 .select-chevron {
-  position: absolute;
-  right: 12px;
-  pointer-events: none;
+  display: none !important;
 }
 
 // 3. Projects Grid

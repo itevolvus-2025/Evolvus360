@@ -107,42 +107,24 @@
           <!-- Row 1: Department & Role -->
           <div class="form-group">
             <label class="form-label" for="editDepartment">Department <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="editDepartment"
-                class="form-select"
-                [ngModel]="department()"
-                (ngModelChange)="department.set($event)"
-                name="department"
-                required
-              >
-                <option value="" disabled>Select department</option>
-                @for (d of departments(); track d.id) {
-                  <option [value]="d.id">{{ d.name }}</option>
-                }
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <app-dropdown
+              [options]="departmentOptions()"
+              [value]="department()"
+              (valueChange)="department.set($event)"
+              placeholder="Select department"
+              width="100%"
+            />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editRole">Role <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="editRole"
-                class="form-select"
-                [ngModel]="role()"
-                (ngModelChange)="role.set($event)"
-                name="role"
-                required
-              >
-                <option value="" disabled>Select role</option>
-                @for (r of roles(); track r.id) {
-                  <option [value]="r.id">{{ r.name }}</option>
-                }
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <app-dropdown
+              [options]="roleOptions()"
+              [value]="role()"
+              (valueChange)="role.set($event)"
+              placeholder="Select role"
+              width="100%"
+            />
           </div>
 
           <!-- Row 2: Designation & Location -->
@@ -177,22 +159,13 @@
           <!-- Row 3: Entity & User/Employee Code -->
           <div class="form-group">
             <label class="form-label" for="editEntity">Entity <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="editEntity"
-                class="form-select"
-                [ngModel]="entity()"
-                (ngModelChange)="entity.set($event)"
-                name="entity"
-                required
-              >
-                <option value="" disabled>Select entity</option>
-                @for (e of entities(); track e.id) {
-                  <option [value]="e.id">{{ e.name }}</option>
-                }
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <app-dropdown
+              [options]="entityOptions()"
+              [value]="entity()"
+              (valueChange)="entity.set($event)"
+              placeholder="Select entity"
+              width="100%"
+            />
           </div>
 
           <div class="form-group">
@@ -251,38 +224,24 @@
           <!-- PF Applicable & Account Status -->
           <div class="form-group">
             <label class="form-label" for="editPfApplicable">PF applicable <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="editPfApplicable"
-                class="form-select"
-                [ngModel]="pfApplicable()"
-                (ngModelChange)="pfApplicable.set($event)"
-                name="pfApplicable"
-              >
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <app-dropdown
+              [options]="pfOptions"
+              [value]="pfApplicable()"
+              (valueChange)="pfApplicable.set($any($event))"
+              placeholder="Select"
+              width="100%"
+            />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editStatus">Account Status <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="editStatus"
-                class="form-select"
-                [ngModel]="status()"
-                (ngModelChange)="status.set($event)"
-                name="status"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Deactive">Deactive</option>
-                <option value="Pending">Pending</option>
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <app-dropdown
+              [options]="statusOptions"
+              [value]="status()"
+              (valueChange)="status.set($any($event))"
+              placeholder="Select status"
+              width="100%"
+            />
           </div>
 
           <!-- Reason for change (Full width) -->
@@ -405,21 +364,13 @@
 
             <div class="form-group">
               <label class="form-label" for="editGender">Gender <span class="required">*</span></label>
-              <div class="custom-select-wrap">
-                <select
-                  id="editGender"
-                  class="form-select"
-                  [value]="(emp.gender || '').toUpperCase()"
-                  (change)="updateEmployeeDetail('gender', $any($event.target).value)"
-                >
-                  <option value="" disabled>Select gender</option>
-                  <option value="MALE" [selected]="(emp.gender || '').toUpperCase() === 'MALE'">Male</option>
-                  <option value="FEMALE" [selected]="(emp.gender || '').toUpperCase() === 'FEMALE'">Female</option>
-                  <option value="OTHER" [selected]="(emp.gender || '').toUpperCase() === 'OTHER'">Other</option>
-                  <option value="PREFER_NOT_TO_SAY" [selected]="(emp.gender || '').toUpperCase() === 'PREFER_NOT_TO_SAY'">Prefer not to say</option>
-                </select>
-                <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-              </div>
+              <app-dropdown
+                [options]="genderOptions"
+                [value]="(emp.gender || '').toUpperCase()"
+                (valueChange)="updateEmployeeDetail('gender', $event)"
+                placeholder="Select gender"
+                width="100%"
+              />
             </div>
 
             <div class="form-group">

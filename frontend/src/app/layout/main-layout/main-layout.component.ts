@@ -17,7 +17,6 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { NotificationDropdownComponent } from '../../shared/components/notification-dropdown/notification-dropdown.component';
-import { ToastContainerComponent } from '../../shared/components/toast-container/toast-container.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 
 export type SubpageActionType =
@@ -27,7 +26,8 @@ export type SubpageActionType =
   | 'user-add'
   | 'user-edit'
   | 'role-add'
-  | 'role-edit';
+  | 'role-edit'
+  | 'approval-review';
 
 interface WorkspaceNavItem {
   label: string;
@@ -55,7 +55,6 @@ interface PageState {
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
-    ToastContainerComponent,
     NotificationDropdownComponent,
     IconComponent,
   ],
@@ -235,8 +234,21 @@ export class MainLayoutComponent implements OnInit {
       };
     }
 
-    // Approval Hub 
-    if (url === '/approval-hub' || url.startsWith('/approval-hub')) {
+    // Approval Hub Review Subpage
+    if (url.startsWith('/approval-hub/') && url !== '/approval-hub') {
+      return {
+        isSubpage: true,
+        parentLabel: 'Approval Hub',
+        parentPath: '/approval-hub',
+        currentLabel: 'Approve /Reject Request',
+        title: 'Approve /Reject Request',
+        subtitle: '',
+        actionType: 'approval-review',
+      };
+    }
+
+    // Approval Hub Main Dashboard
+    if (url === '/approval-hub') {
       return {
         isSubpage: false,
         title: 'Approval Hub',
@@ -334,12 +346,8 @@ export class MainLayoutComponent implements OnInit {
       const count = component?.totalRoleCount?.();
       return count == null ? '' : `${count} Total`;
     }
-    if (url === '/approval-hub' || url.startsWith('/approval-hub/')) {
-      const count = component?.totalCount?.();
-      return count == null ? '' : `${count} Total`;
-    }
 
-    // Projects currently has no backend API, so do not show its sample-data count.
+    // Projects and Approval Hub do not show badge next to page title (matching mockup)
     return '';
   });
   readonly activePageSubtitle = computed(() => this.pageState().subtitle ?? '');
@@ -376,6 +384,20 @@ export class MainLayoutComponent implements OnInit {
       comp.openDeactivateConfirm();
     } else if (typeof comp.openDeleteConfirm === 'function') {
       comp.openDeleteConfirm();
+    }
+  }
+
+  triggerApprovalApprove(): void {
+    const comp = this.activeChildComponent();
+    if (comp && typeof comp.approveReviewed === 'function') {
+      comp.approveReviewed();
+    }
+  }
+
+  triggerApprovalReject(): void {
+    const comp = this.activeChildComponent();
+    if (comp && typeof comp.rejectReviewed === 'function') {
+      comp.rejectReviewed();
     }
   }
 }

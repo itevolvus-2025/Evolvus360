@@ -93,43 +93,25 @@
           <!-- Row 1: Department & Role -->
           <div class="form-group">
             <label class="form-label" for="department_id">Department <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="department_id"
-                class="form-select"
-                [class.field-invalid]="!!fieldErrors()['department_id']"
-                [value]="department()"
-                (change)="selectOption($event, 'department')"
-                (blur)="validateSelection('department_id')"
-              >
-                <option value="" disabled>Select department</option>
-                @for (option of departments(); track option.id) {
-                  <option [value]="option.id">{{ option.name }}</option>
-                }
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <app-dropdown
+              [options]="departmentOptions()"
+              [value]="department()"
+              (valueChange)="setDropdownOption('department', $event)"
+              placeholder="Select department"
+              width="100%"
+            />
             @if (fieldErrors()['department_id']) { <small class="validation-error">{{ fieldErrors()['department_id'] }}</small> }
           </div>
 
           <div class="form-group">
             <label class="form-label" for="role_id">Role <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="role_id"
-                class="form-select"
-                [class.field-invalid]="!!fieldErrors()['role_id']"
-                [value]="role()"
-                (change)="selectOption($event, 'role')"
-                (blur)="validateSelection('role_id')"
-              >
-                <option value="" disabled>Select role</option>
-                @for (option of roles(); track option.id) {
-                  <option [value]="option.id">{{ option.name }}</option>
-                }
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <app-dropdown
+              [options]="roleOptions()"
+              [value]="role()"
+              (valueChange)="setDropdownOption('role', $event)"
+              placeholder="Select role"
+              width="100%"
+            />
             @if (fieldErrors()['role_id']) { <small class="validation-error">{{ fieldErrors()['role_id'] }}</small> }
           </div>
 
@@ -169,22 +151,13 @@
           <!-- Row 3: Entity & User/Employee Code -->
           <div class="form-group">
             <label class="form-label" for="entity_id">Entity <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="entity_id"
-                class="form-select"
-                [class.field-invalid]="!!fieldErrors()['entity_id']"
-                [value]="entity()"
-                (change)="selectOption($event, 'entity')"
-                (blur)="validateSelection('entity_id')"
-              >
-                <option value="" disabled>Select entity</option>
-                @for (option of entities(); track option.id) {
-                  <option [value]="option.id">{{ option.name }}</option>
-                }
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <app-dropdown
+              [options]="entityOptions()"
+              [value]="entity()"
+              (valueChange)="setDropdownOption('entity', $event)"
+              placeholder="Select entity"
+              width="100%"
+            />
             @if (fieldErrors()['entity_id']) { <small class="validation-error">{{ fieldErrors()['entity_id'] }}</small> }
           </div>
 
@@ -240,18 +213,13 @@
           <!-- PF Applicable (Full width / span-2) -->
           <div class="form-group full-width">
             <label class="form-label" for="pfApplicable">PF applicable <span class="required">*</span></label>
-            <div class="custom-select-wrap">
-              <select
-                id="pfApplicable"
-                class="form-select"
-                [value]="pfApplicable()"
-                (change)="pfApplicable.set($any($event.target).value)"
-              >
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
-              <app-icon name="chevron-down" [size]="13" color="#64748B" class="select-chevron" />
-            </div>
+            <app-dropdown
+              [options]="pfOptions"
+              [value]="pfApplicable()"
+              (valueChange)="pfApplicable.set($any($event))"
+              placeholder="Select"
+              width="100%"
+            />
           </div>
         </div>
       </div>

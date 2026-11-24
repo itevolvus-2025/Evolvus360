@@ -11,6 +11,8 @@ import { IconComponent } from '../../../../shared/ui/icon/icon.component';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { AuthService } from '../../../../core/services/auth.service';
 
+import { DropdownComponent, DropdownOption } from '../../../../shared/ui/dropdown';
+
 export interface MyLeaveRequest {
   id: string;
   leaveType: string;
@@ -26,7 +28,7 @@ export interface MyLeaveRequest {
 @Component({
   selector: 'app-leave-request',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, DropdownComponent],
   templateUrl: './leave-request.component.html',
   styleUrl: './leave-request.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,6 +43,12 @@ export class LeaveRequestComponent {
   readonly daysCount = signal(4);
   readonly reason = signal('');
   readonly isSubmitting = signal(false);
+
+  readonly leaveTypeOptions: DropdownOption[] = [
+    { label: 'Annual Leave (14 days available)', value: 'Annual Leave' },
+    { label: 'Sick Leave (8 days available)', value: 'Sick Leave' },
+    { label: 'Casual Leave (6 days available)', value: 'Casual Leave' },
+  ];
 
   readonly showApplyModal = signal(false);
 

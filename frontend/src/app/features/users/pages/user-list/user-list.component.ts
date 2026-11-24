@@ -10,12 +10,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
+import { DropdownComponent } from '../../../../shared/ui/dropdown';
 import { UserService } from '../../data-access/user.service';
 
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, DropdownComponent],
   templateUrl: './user-list.component.html',
   styleUrl: './user-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +24,13 @@ import { UserService } from '../../data-access/user.service';
 export class UserListComponent implements OnInit {
   private readonly userService = inject(UserService);
   readonly userLoadError = this.userService.loadError;
+
+  readonly roleFilterOptions = [
+    { label: 'All Roles', value: 'All' },
+    { label: 'Super Admin', value: 'Super Admin' },
+    { label: 'HR Manager', value: 'HR Manager' },
+    { label: 'Employee', value: 'Employee' },
+  ];
 
   ngOnInit(): void {
     this.userService.loadUsers();

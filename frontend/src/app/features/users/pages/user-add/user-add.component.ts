@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -8,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
+import { DropdownComponent, DropdownOption } from '../../../../shared/ui/dropdown';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { UserService } from '../../data-access/user.service';
 import { MasterDataOption } from '../../../../core/models/api.models';
@@ -16,7 +18,7 @@ import { isValidEmail } from '../../../../shared/utils/employee-validation';
 @Component({
   selector: 'app-user-add',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, DropdownComponent],
   templateUrl: './user-add.component.html',
   styleUrl: './user-add.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,6 +45,21 @@ export class UserAddComponent {
   readonly companyEmail = signal('');
   readonly personalEmail = signal('');
   readonly pfApplicable = signal<'Yes' | 'No'>('Yes');
+
+  // Master Data Options for Dropdown
+  readonly departmentOptions = computed<DropdownOption[]>(() =>
+    this.departments().map((d) => ({ label: d.name, value: d.id }))
+  );
+  readonly roleOptions = computed<DropdownOption[]>(() =>
+    this.roles().map((r) => ({ label: r.name, value: r.id }))
+  );
+  readonly entityOptions = computed<DropdownOption[]>(() =>
+    this.entities().map((e) => ({ label: e.name, value: e.id }))
+  );
+  readonly pfOptions: DropdownOption[] = [
+    { label: 'Yes', value: 'Yes' },
+    { label: 'No', value: 'No' },
+  ];
 
   // 04 Employment Timeline
   readonly joiningDate = signal('');
@@ -76,6 +93,14 @@ export class UserAddComponent {
 
   selectOption(event: Event, target: 'department' | 'role' | 'entity'): void {
     const value = (event.target as HTMLSelectElement).value;
+    if (target === 'department') this.department.set(value);
+    else if (target === 'role') this.role.set(value);
+    else this.entity.set(value);
+    const field = target === 'department' ? 'department_id' : target === 'role' ? 'role_id' : 'entity_id';
+    this.fieldErrors.update((errors) => ({ ...errors, [field]: '' }));
+  }
+
+  setDropdownOption(target: 'department' | 'role' | 'entity', value: string): void {
     if (target === 'department') this.department.set(value);
     else if (target === 'role') this.role.set(value);
     else this.entity.set(value);

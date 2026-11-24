@@ -56,20 +56,13 @@
     </div>
 
     <div class="filter-actions">
-      <div class="filter-dropdown-wrap">
-        <select
-          class="status-select"
-          [value]="statusFilter()"
-          (change)="statusFilter.set($any($event.target).value)"
-        >
-          <option value="All">All Statuses</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Planning">Planning</option>
-          <option value="Completed">Completed</option>
-          <option value="On Hold">On Hold</option>
-        </select>
-        <app-icon name="chevron-down" [size]="12" color="#64748B" class="select-chevron" />
-      </div>
+      <app-dropdown
+        [options]="statusOptions"
+        [value]="statusFilter()"
+        (valueChange)="statusFilter.set($event)"
+        variant="filter"
+        width="160px"
+      />
     </div>
   </section>
 

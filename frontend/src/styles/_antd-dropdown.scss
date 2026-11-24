@@ -1,0 +1,575 @@
+/**
+ * Ant Design Dropdown & Select System Styling
+ * Compliant with Ant Design 5.x Design Tokens and visual specifications.
+ */
+
+// Ant Design Design Tokens
+$antd-primary: #1677ff;
+$antd-primary-hover: #4096ff;
+$antd-primary-active: #0958d9;
+$antd-primary-bg: #e6f4ff;
+$antd-border: #d9d9d9;
+$antd-border-hover: #4096ff;
+$antd-border-focus: #1677ff;
+$antd-text: rgba(0, 0, 0, 0.88);
+$antd-text-secondary: rgba(0, 0, 0, 0.45);
+$antd-text-disabled: rgba(0, 0, 0, 0.25);
+$antd-bg-disabled: rgba(0, 0, 0, 0.04);
+$antd-item-hover-bg: rgba(0, 0, 0, 0.04);
+$antd-error: #ff4d4f;
+$antd-error-border: #ff7875;
+$antd-error-bg: #fff2f0;
+$antd-shadow-dropdown: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+$antd-radius: 6px;
+$antd-radius-lg: 8px;
+$antd-radius-sm: 4px;
+$antd-transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+/* ==========================================================================
+   1. Global Native Select Elements (Themed to Ant Design)
+   ========================================================================== */
+select.form-select,
+.custom-select-wrap select,
+.custom-select-box select,
+.filter-dropdown-wrap select,
+.add-language-dropdown select,
+.field-select,
+.status-select,
+select.ant-select-native,
+select {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 5px 32px 5px 12px;
+  color: $antd-text;
+  font-size: 14px;
+  line-height: 1.5714;
+  list-style: none;
+  font-family: inherit;
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  min-height: 38px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024' width='12' height='12'%3E%3Cpath fill='%238c8c8c' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 225.9 262.6c-3-4.2-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 481.7c7.2 9.9 21.6 9.9 28.8 0l352.6-481.7c3.9-5.3.1-12.7-6.5-12.7z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 11px center !important;
+  background-size: 11px 11px !important;
+  border: 1px solid $antd-border;
+  border-radius: $antd-radius;
+  outline: none;
+  cursor: pointer;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  transition: $antd-transition;
+
+  &:hover {
+    border-color: $antd-border-hover;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024' width='12' height='12'%3E%3Cpath fill='%234096ff' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 225.9 262.6c-3-4.2-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 481.7c7.2 9.9 21.6 9.9 28.8 0l352.6-481.7c3.9-5.3.1-12.7-6.5-12.7z'/%3E%3C/svg%3E") !important;
+  }
+
+  &:focus,
+  &:focus-visible {
+    border-color: $antd-border-focus;
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024' width='12' height='12'%3E%3Cpath fill='%231677ff' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 225.9 262.6c-3-4.2-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 481.7c7.2 9.9 21.6 9.9 28.8 0l352.6-481.7c3.9-5.3.1-12.7-6.5-12.7z'/%3E%3C/svg%3E") !important;
+    outline: 0;
+  }
+
+  &:disabled {
+    background-color: $antd-bg-disabled;
+    border-color: $antd-border;
+    color: $antd-text-disabled;
+    cursor: not-allowed;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024' width='12' height='12'%3E%3Cpath fill='%23bfbfbf' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 225.9 262.6c-3-4.2-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 481.7c7.2 9.9 21.6 9.9 28.8 0l352.6-481.7c3.9-5.3.1-12.7-6.5-12.7z'/%3E%3C/svg%3E") !important;
+  }
+
+  &.field-invalid,
+  &.is-invalid,
+  &.ng-invalid.ng-touched {
+    border-color: $antd-error !important;
+
+    &:focus {
+      border-color: $antd-error !important;
+      box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) !important;
+    }
+  }
+
+  // Ant Design size variants
+  &.ant-select-lg,
+  &.form-select-lg {
+    min-height: 44px;
+    padding: 7px 36px 7px 14px;
+    font-size: 15px;
+    border-radius: $antd-radius-lg;
+  }
+
+  &.ant-select-sm,
+  &.form-select-sm {
+    min-height: 28px;
+    padding: 2px 26px 2px 8px;
+    font-size: 12.5px;
+    border-radius: $antd-radius-sm;
+  }
+}
+
+// Ensure select-chevron or extra icons inside select wrappers are completely hidden
+// to eliminate any duplicate/double dropdown arrows.
+.custom-select-wrap,
+.custom-select-box,
+.filter-dropdown-wrap,
+.add-language-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  .select-chevron,
+  .select-icon,
+  .lang-chevron,
+  app-icon.select-chevron,
+  app-icon.select-icon,
+  app-icon.lang-chevron {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+/* ==========================================================================
+   2. Ant Design Custom Select Component (.ant-select)
+   ========================================================================== */
+.ant-select {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  color: $antd-text;
+  font-size: 14px;
+  line-height: 1.5714;
+  list-style: none;
+  font-family: inherit;
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  width: 100%;
+
+  .ant-select-selector {
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border: 1px solid $antd-border;
+    border-radius: $antd-radius;
+    padding: 0 11px;
+    min-height: 38px;
+    width: 100%;
+    transition: $antd-transition;
+    cursor: pointer;
+
+    .ant-select-selection-item {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: $antd-text;
+      font-size: 14px;
+    }
+
+    .ant-select-selection-placeholder {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: $antd-text-disabled;
+      font-size: 14px;
+      user-select: none;
+    }
+
+    .ant-select-selection-search-input {
+      border: none;
+      outline: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      font-family: inherit;
+      font-size: 14px;
+      color: $antd-text;
+      width: 100%;
+    }
+  }
+
+  // Hover state
+  &:not(.ant-select-disabled):hover .ant-select-selector {
+    border-color: $antd-border-hover;
+  }
+
+  // Focused & Open states
+  &.ant-select-focused:not(.ant-select-disabled) .ant-select-selector,
+  &.ant-select-open:not(.ant-select-disabled) .ant-select-selector {
+    border-color: $antd-border-focus;
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+    outline: 0;
+  }
+
+  // Suffix icons
+  .ant-select-arrow {
+    display: inline-flex;
+    align-items: center;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8c8c8c;
+    font-size: 12px;
+    pointer-events: none;
+    transition: transform 0.2s cubic-bezier(0.645, 0.045, 0.355, 1), color 0.2s ease;
+  }
+
+  &.ant-select-open .ant-select-arrow {
+    transform: translateY(-50%) rotate(180deg);
+    color: $antd-primary;
+  }
+
+  .ant-select-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(0, 0, 0, 0.25);
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease;
+    z-index: 2;
+
+    &:hover {
+      color: rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  &:hover:not(.ant-select-disabled) .ant-select-clear {
+    opacity: 1;
+  }
+
+  &:hover:not(.ant-select-disabled) .ant-select-clear + .ant-select-arrow {
+    opacity: 0;
+  }
+
+  // Status variants
+  &.ant-select-status-error .ant-select-selector {
+    border-color: $antd-error !important;
+
+    &:focus,
+    &.ant-select-focused {
+      box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) !important;
+    }
+  }
+
+  // Disabled state
+  &.ant-select-disabled {
+    cursor: not-allowed;
+
+    .ant-select-selector {
+      background-color: $antd-bg-disabled;
+      border-color: $antd-border;
+      color: $antd-text-disabled;
+      cursor: not-allowed;
+    }
+  }
+
+  // Size variants
+  &.ant-select-lg .ant-select-selector {
+    min-height: 44px;
+    border-radius: $antd-radius-lg;
+    padding: 0 14px;
+
+    .ant-select-selection-item,
+    .ant-select-selection-placeholder {
+      font-size: 15px;
+    }
+  }
+
+  &.ant-select-sm .ant-select-selector {
+    min-height: 28px;
+    border-radius: $antd-radius-sm;
+    padding: 0 8px;
+
+    .ant-select-selection-item,
+    .ant-select-selection-placeholder {
+      font-size: 12.5px;
+    }
+  }
+}
+
+/* ==========================================================================
+   3. Ant Design Dropdown Popup Overlay (.ant-select-dropdown, .ant-dropdown)
+   ========================================================================== */
+.ant-select-dropdown,
+.ant-dropdown-menu,
+.filter-dropdown-menu,
+.filter-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: 1050;
+  box-sizing: border-box;
+  padding: 4px;
+  overflow: hidden;
+  font-size: 14px;
+  font-family: inherit;
+  font-variant: initial;
+  background-color: #ffffff;
+  border-radius: $antd-radius-lg;
+  outline: none;
+  box-shadow: $antd-shadow-dropdown;
+  border: 1px solid rgba(5, 5, 5, 0.06);
+  min-width: 160px;
+  max-height: 256px;
+  overflow-y: auto;
+  animation: antdDropdownSlide 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+
+  // Custom Scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.35);
+  }
+}
+
+@keyframes antdDropdownSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+/* ==========================================================================
+   4. Ant Design Dropdown & Select Option Items
+   ========================================================================== */
+.ant-select-item,
+.ant-select-item-option,
+.ant-dropdown-menu-item,
+.filter-option-item,
+.filter-opt-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 12px;
+  color: $antd-text;
+  font-weight: 400;
+  font-size: 13.5px;
+  line-height: 1.5714;
+  cursor: pointer;
+  border-radius: $antd-radius-sm;
+  background: transparent;
+  border: none;
+  outline: none;
+  text-align: left;
+  box-sizing: border-box;
+  transition: background 0.12s ease, color 0.12s ease;
+
+  &:hover {
+    background-color: $antd-item-hover-bg;
+    color: $antd-text;
+  }
+
+  &.ant-select-item-option-selected,
+  &.selected,
+  &.active {
+    color: $antd-primary;
+    font-weight: 600;
+    background-color: $antd-primary-bg;
+
+    .ant-select-selected-icon,
+    .check-icon {
+      color: $antd-primary;
+      font-size: 13px;
+    }
+  }
+
+  &.ant-select-item-option-disabled,
+  &:disabled {
+    color: $antd-text-disabled;
+    cursor: not-allowed;
+    background-color: transparent;
+
+    &:hover {
+      background-color: transparent;
+    }
+  }
+}
+
+// Group header or title inside dropdown
+.ant-select-item-group-title,
+.filter-dropdown-header {
+  padding: 8px 12px 4px;
+  color: $antd-text-secondary;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+// Divider inside Ant Design Dropdown
+.ant-dropdown-menu-item-divider,
+.filter-dropdown-divider {
+  height: 1px;
+  margin: 4px 0;
+  overflow: hidden;
+  line-height: 0;
+  background-color: rgba(5, 5, 5, 0.06);
+}
+
+/* ==========================================================================
+   5. Ant Design Filter Trigger Buttons
+   ========================================================================== */
+.filter-trigger-btn,
+.btn-filter,
+.ant-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #ffffff;
+  border: 1px solid $antd-border;
+  border-radius: $antd-radius;
+  padding: 7px 15px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: $antd-text;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+  transition: $antd-transition;
+
+  &:hover {
+    color: $antd-primary-hover;
+    border-color: $antd-border-hover;
+    background-color: #ffffff;
+  }
+
+  &:focus-visible,
+  &.active,
+  &[aria-expanded="true"] {
+    color: $antd-primary;
+    border-color: $antd-border-focus;
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+    background-color: #ffffff;
+  }
+}
+
+/* ==========================================================================
+   6. Dark Mode Ant Design Tokens
+   ========================================================================== */
+:root[data-theme='dark'],
+html.dark {
+  select.form-select,
+  .custom-select-wrap select,
+  .custom-select-box select,
+  .field-select,
+  select.ant-select-native {
+    background-color: #141414;
+    border-color: #424242;
+    color: rgba(255, 255, 255, 0.85);
+
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024' width='12' height='12'%3E%3Cpath fill='%238c8c8c' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 225.9 262.6c-3-4.2-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 481.7c7.2 9.9 21.6 9.9 28.8 0l352.6-481.7c3.9-5.3.1-12.7-6.5-12.7z'/%3E%3C/svg%3E");
+
+    &:hover {
+      border-color: #177ddc;
+    }
+
+    &:focus {
+      border-color: #177ddc;
+      box-shadow: 0 0 0 2px rgba(23, 125, 220, 0.2);
+    }
+
+    &:disabled {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: #303030;
+      color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  .ant-select {
+    color: rgba(255, 255, 255, 0.85);
+
+    .ant-select-selector {
+      background-color: #141414;
+      border-color: #424242;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    &:not(.ant-select-disabled):hover .ant-select-selector {
+      border-color: #177ddc;
+    }
+
+    &.ant-select-focused .ant-select-selector,
+    &.ant-select-open .ant-select-selector {
+      border-color: #177ddc;
+      box-shadow: 0 0 0 2px rgba(23, 125, 220, 0.2);
+    }
+  }
+
+  .ant-select-dropdown,
+  .ant-dropdown-menu,
+  .filter-dropdown-menu,
+  .filter-popover {
+    background-color: #1f1f1f;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.36), 0 3px 6px -4px rgba(0, 0, 0, 0.48), 0 9px 28px 8px rgba(0, 0, 0, 0.28);
+  }
+
+  .ant-select-item,
+  .ant-select-item-option,
+  .ant-dropdown-menu-item,
+  .filter-option-item,
+  .filter-opt-btn {
+    color: rgba(255, 255, 255, 0.85);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &.ant-select-item-option-selected,
+    &.selected,
+    &.active {
+      background-color: #111d2c;
+      color: #177ddc;
+    }
+  }
+
+  .filter-trigger-btn,
+  .btn-filter,
+  .ant-dropdown-trigger {
+    background-color: #141414;
+    border-color: #424242;
+    color: rgba(255, 255, 255, 0.85);
+
+    &:hover {
+      border-color: #177ddc;
+      color: #177ddc;
+    }
+
+    &.active,
+    &[aria-expanded="true"] {
+      border-color: #177ddc;
+      color: #177ddc;
+      box-shadow: 0 0 0 2px rgba(23, 125, 220, 0.2);
+    }
+  }
+}

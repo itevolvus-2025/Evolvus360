@@ -62,33 +62,15 @@
       </div>
 
       <div class="toolbar-actions-right">
-        <button type="button" class="btn-filter" (click)="toggleFilterDropdown()"
-          [class.active]="filterRole() !== 'All'">
-          <app-icon name="filter" [size]="14" color="#2563EB" />
-          <span>Filter</span>
-        </button>
-
-        @if (isFilterOpen()) {
-        <div class="filter-dropdown-menu">
-          <div class="filter-dropdown-header">Filter by Role</div>
-          <button type="button" class="filter-opt-btn" [class.selected]="filterRole() === 'All'"
-            (click)="setFilter('All')">
-            All Roles
-          </button>
-          <button type="button" class="filter-opt-btn" [class.selected]="filterRole() === 'Super Admin'"
-            (click)="setFilter('Super Admin')">
-            Super Admin
-          </button>
-          <button type="button" class="filter-opt-btn" [class.selected]="filterRole() === 'HR Manager'"
-            (click)="setFilter('HR Manager')">
-            HR Manager
-          </button>
-          <button type="button" class="filter-opt-btn" [class.selected]="filterRole() === 'Employee'"
-            (click)="setFilter('Employee')">
-            Employee
-          </button>
-        </div>
-        }
+        <app-dropdown
+          [options]="roleFilterOptions"
+          [value]="filterRole()"
+          (valueChange)="setFilter($event)"
+          variant="filter"
+          icon="filter"
+          placeholder="Filter by Role"
+          width="160px"
+        />
       </div>
     </div>
 
