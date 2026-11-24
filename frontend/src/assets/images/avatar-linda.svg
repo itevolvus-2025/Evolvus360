@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6c4025"/>
+      <stop offset="100%" stop-color="#452613"/>
+    </linearGradient>
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fed7aa"/>
+      <stop offset="100%" stop-color="#fcd34d"/>
+    </linearGradient>
+    <clipPath id="circleClip">
+      <rect width="100" height="100" rx="16" ry="16"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#circleClip)">
+    <rect width="100" height="100" fill="url(#bgGrad)"/>
+    <!-- Hair back -->
+    <path d="M26 40 C26 20, 74 20, 74 40 C76 60, 78 75, 78 85 C70 88, 30 88, 22 85 C22 75, 24 60, 26 40 Z" fill="url(#hairGrad)"/>
+    <!-- Shoulders / Blazer -->
+    <path d="M12 100 C15 78, 32 72, 50 72 C68 72, 85 78, 88 100 Z" fill="#1e293b"/>
+    <!-- White shirt V-neck -->
+    <polygon points="50,92 38,72 62,72" fill="#ffffff"/>
+    <polygon points="50,86 42,72 58,72" fill="#f8fafc"/>
+    <!-- Neck -->
+    <rect x="43" y="58" width="14" height="18" fill="#fdba74" rx="4"/>
+    <!-- Face -->
+    <ellipse cx="50" cy="46" rx="18" ry="21" fill="#fed7aa"/>
+    <!-- Hair front / bangs & sides -->
+    <path d="M28 42 C30 25, 45 22, 52 24 C68 22, 72 32, 72 44 C72 56, 75 68, 74 76 C70 76, 68 55, 66 48 C60 40, 52 40, 44 45 C38 52, 35 62, 32 74 C30 74, 28 60, 28 42 Z" fill="url(#hairGrad)"/>
+    <!-- Eyes -->
+    <ellipse cx="43" cy="45" rx="2.5" ry="1.8" fill="#1e293b"/>
+    <ellipse cx="57" cy="45" rx="2.5" ry="1.8" fill="#1e293b"/>
+    <circle cx="43.8" cy="44.2" r="0.7" fill="#ffffff"/>
+    <circle cx="57.8" cy="44.2" r="0.7" fill="#ffffff"/>
+    <!-- Eyebrows -->
+    <path d="M39 40 Q43 38 47 41" stroke="#452613" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+    <path d="M53 41 Q57 38 61 40" stroke="#452613" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+    <!-- Smile -->
+    <path d="M44 54 Q50 60 56 54" stroke="#e11d48" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <!-- Blush -->
+    <circle cx="38" cy="51" r="3" fill="#f43f5e" opacity="0.2"/>
+    <circle cx="62" cy="51" r="3" fill="#f43f5e" opacity="0.2"/>
+  </g>
+</svg>

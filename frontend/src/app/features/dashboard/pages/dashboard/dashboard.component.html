@@ -1,0 +1,157 @@
+<div class="dashboard-container">
+  <!-- Top 4 KPI Metrics -->
+  <section class="kpi-grid" aria-label="Workforce metrics">
+    <article class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-value">{{ totalUsers() }}</span>
+        <div class="kpi-icon-box">
+          <app-icon name="users" [size]="18" color="#2563EB" />
+        </div>
+      </div>
+      <div class="kpi-label">Total User</div>
+    </article>
+
+    <article class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-value">{{ activeUsers() }}</span>
+        <div class="kpi-icon-box">
+          <app-icon name="check-circle" [size]="18" color="#2563EB" />
+        </div>
+      </div>
+      <div class="kpi-label">Active User</div>
+    </article>
+
+    <article class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-value">{{ requestsPending() }}</span>
+        <div class="kpi-icon-box">
+          <app-icon name="clock" [size]="18" color="#2563EB" />
+        </div>
+      </div>
+      <div class="kpi-label">Requests Pending</div>
+    </article>
+
+    <article class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-value">{{ profilesSubmitted() }}</span>
+        <div class="kpi-icon-box">
+          <app-icon name="file-text" [size]="18" color="#2563EB" />
+        </div>
+      </div>
+      <div class="kpi-label">Profiles Submitted</div>
+    </article>
+  </section>
+
+  <!-- Middle: Entities Distribution -->
+  <section class="entities-card">
+    <h2 class="card-heading">Entities Distribution</h2>
+    <div class="entities-list">
+      @for (entity of entities(); track entity.code) {
+        <div class="entity-item">
+          <div class="entity-name">{{ entity.code }}</div>
+          <div class="entity-track-row">
+            <div class="entity-track">
+              <div
+                class="entity-bar"
+                [style.width.%]="entity.percentage"
+                [style.background-color]="entity.color"
+              ></div>
+            </div>
+            <span class="entity-users-count">({{ entity.users }} users)</span>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Bottom: 2 Columns (Pending Actions & Birthdays Today) -->
+  <section class="bottom-grid">
+    <!-- Left: Pending Actions -->
+    <article class="dashboard-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Pending Actions</h2>
+        @if (pendingActions().length > 0) {
+          <span class="pending-pill">{{ pendingActions().length }} Pending</span>
+        }
+      </div>
+
+      <div class="pending-list">
+        @for (item of pendingActions(); track item.id) {
+          <div class="pending-item-card">
+            <div class="item-header">
+              <div class="user-meta">
+                <div class="user-avatar-initials">{{ item.initials }}</div>
+                <span class="user-display-name">{{ item.name }}</span>
+              </div>
+              <span class="item-timestamp">{{ item.time }}</span>
+            </div>
+
+            <p class="pending-desc">
+              {{ item.type }}<span class="quote">{{ item.quote }}</span>
+            </p>
+
+            <div class="item-actions">
+              <button
+                type="button"
+                class="btn-approve"
+                (click)="approveAction(item.id, item.name)"
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                class="btn-reject"
+                (click)="rejectAction(item.id, item.name)"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state">
+            <p>No pending actions at this moment.</p>
+          </div>
+        }
+      </div>
+    </article>
+
+    <!-- Right: Birthdays Today -->
+    <article class="dashboard-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Birthdays Today</h2>
+        <button type="button" class="btn-wish-header" (click)="wishAll()">
+          Wish All
+        </button>
+      </div>
+
+      <div class="birthdays-list">
+        @for (bday of birthdays(); track $index) {
+          <div class="birthday-row">
+            <div class="birthday-profile">
+              <div class="birthday-avatar-wrap">
+                <img
+                  [src]="bday.avatar"
+                  [alt]="bday.name"
+                  class="birthday-avatar"
+                />
+                <span class="birthday-cake-badge" aria-label="Birthday cake">🎂</span>
+              </div>
+              <div class="birthday-info">
+                <div class="birthday-name">{{ bday.name }}</div>
+                <div class="birthday-role">{{ bday.role }}</div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="btn-wish-item"
+              (click)="wishMember(bday.name)"
+            >
+              Wish All
+            </button>
+          </div>
+        }
+      </div>
+    </article>
+  </section>
+</div>

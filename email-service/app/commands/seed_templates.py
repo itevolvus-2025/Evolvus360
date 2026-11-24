@@ -98,69 +98,96 @@ def _layout(preheader: str, content: str) -> str:
 
 
 INVITATION_HTML = _layout(
-    "Complete your Evolvus 360 profile.",
+    "Action required: complete your Evolvus 360 profile.",
     _h1("Complete your profile")
-    + _p("Hello $employee_name,")
+    + _p("Dear $employee_name,")
     + _p(
-        "Evolvus 360 has invited you to complete your profile. "
-        "Click the button below to get started."
+        "Welcome to Evolvus 360. Your account has been created, and you have "
+        "been invited to complete your employee profile."
+    )
+    + _p(
+        "Please use the secure button below to submit your personal and "
+        "professional details."
     )
     + _button("Complete your profile", "$invitation_link")
-    + _note("This link expires in <strong>$expiry_hours hours</strong>.")
-    + _fallback_link("$invitation_link"),
+    + _note(
+        "For security reasons, this link will expire in "
+        "<strong>$expiry_hours hours</strong>. If it expires, please contact "
+        "your HR team to request a new invitation."
+    )
+    + _fallback_link("$invitation_link")
+    + '<p style="margin:18px 0 0;font-size:13px;line-height:20px;color:' + MUTED + ';">'
+    "If you were not expecting this email, please notify your HR administrator.</p>",
 )
 
 PASSWORD_RESET_HTML = _layout(
     "Reset your Evolvus 360 password.",
     _h1("Reset your password")
+    + _p("Hello,")
     + _p(
-        "We received a request to reset your Evolvus 360 password. "
-        "Click the button below to choose a new one."
+        "We received a request to reset the password for your Evolvus 360 "
+        "account. Please use the secure button below to set a new password."
     )
     + _button("Reset password", "$reset_link")
     + _note(
-        "This is a single-use link. If you didn't request a reset, "
-        "you can safely ignore this email."
+        "This link can be used only once. If you did not request a password "
+        "reset, no action is needed and your password will remain unchanged. "
+        "If you are concerned about your account security, please contact your "
+        "system administrator."
     )
     + _fallback_link("$reset_link"),
 )
 
 WELCOME_HTML = _layout(
-    "Welcome aboard!",
+    "Welcome to $company_name.",
     _h1("Welcome to $company_name")
-    + _p("Hello $employee_name,")
+    + _p("Dear $employee_name,")
     + _p(
-        "We're happy to have you on board at <strong>$company_name</strong>. "
-        "Your account is all set, and you can now start using Evolvus 360."
+        "Welcome to <strong>$company_name</strong>. We are pleased to have you "
+        "on board."
     )
-    + _p("If you need any help getting started, reach out to your HR team."),
+    + _p(
+        "Your Evolvus 360 account is now active, and you can sign in to access "
+        "your workspace. If you need any assistance getting started, please "
+        "reach out to your HR team."
+    )
+    + _p("We wish you a great start and a successful journey with us."),
 )
 
 PROFILE_SUBMITTED_HTML = _layout(
-    "A new employee profile is waiting for review.",
+    "A new employee profile is waiting for your review.",
     _h1("Profile submitted for review")
     + _p("Hello,")
     + _p(
-        "<strong>$employee_name</strong> has submitted an employee profile. "
-        "Please review it in the Approval Hub."
+        "<strong>$employee_name</strong> has completed and submitted their "
+        "employee profile."
     )
-    + _note("Action required: review and approve or request changes."),
+    + _p(
+        "Please review the submitted details in the Approval Hub and approve "
+        "the profile or request changes at your earliest convenience."
+    )
+    + _note("Action required: review and approve, or request changes."),
 )
 
 PROFILE_APPROVED_HTML = _layout(
     "Your profile has been approved.",
-    _h1("Your profile is approved")
-    + _p("Hello $employee_name,")
+    _h1("Your profile has been approved")
+    + _p("Dear $employee_name,")
     + _p(
-        "Good news! Your profile at <strong>$company_name</strong> has been "
-        "reviewed and approved by HR."
+        "We are pleased to inform you that your profile at "
+        "<strong>$company_name</strong> has been reviewed and approved by HR."
     )
-    + _p("You can now sign in and access your Evolvus 360 workspace."),
+    + _p(
+        "You now have full access to your Evolvus 360 workspace. If you have "
+        "any questions or notice any incorrect details in your profile, please "
+        "contact your HR team."
+    ),
 )
 
 GENERAL_HTML = _layout(
     "$subject_line",
     _h1("$subject_line")
+    + _p("Hello,")
     + '<p style="margin:0 0 14px;font-size:15px;line-height:24px;color:#334155;'
     'white-space:pre-line;">$message_text</p>',
 )
@@ -169,12 +196,19 @@ DEFAULT_TEMPLATES = (
     {
         "template_key": "EMPLOYEE_INVITATION",
         "name": "Employee invitation",
-        "subject": "Evolvus360 invited you to complete your profile",
+        "subject": "Action required: Complete your Evolvus 360 profile",
         "body_text": (
-            "Hello $employee_name,\n\nEvolvus360 has invited you to complete "
-            "your profile. Please follow the link below to complete your profile:\n"
-            "$invitation_link\n\n"
-            "This link expires in $expiry_hours hours."
+            "Dear $employee_name,\n\n"
+            "Welcome to Evolvus 360. Your account has been created, and you "
+            "have been invited to complete your employee profile.\n\n"
+            "Please use the secure link below to submit your personal and "
+            "professional details:\n\n$invitation_link\n\n"
+            "For security reasons, this link will expire in $expiry_hours "
+            "hours. If it expires, please contact your HR team to request a "
+            "new invitation.\n\n"
+            "If you were not expecting this email, please notify your HR "
+            "administrator.\n\n"
+            "Regards,\nEvolvus 360 Team"
         ),
         "body_html": INVITATION_HTML,
         "description": "Invitation link for employee onboarding.",
@@ -187,10 +221,18 @@ DEFAULT_TEMPLATES = (
     {
         "template_key": "PASSWORD_RESET",
         "name": "Password reset",
-        "subject": "Reset your Evolvus360 password",
+        "subject": "Reset your Evolvus 360 password",
         "body_text": (
-            "Use this single-use link to reset your password: $reset_link\n\n"
-            "If you didn't request this, you can ignore this email."
+            "Hello,\n\n"
+            "We received a request to reset the password for your Evolvus 360 "
+            "account.\n\n"
+            "Please use the secure link below to set a new password:\n\n"
+            "$reset_link\n\n"
+            "This link can be used only once. If you did not request a "
+            "password reset, no action is needed and your password will remain "
+            "unchanged. If you are concerned about your account security, "
+            "please contact your system administrator.\n\n"
+            "Regards,\nEvolvus 360 Team"
         ),
         "body_html": PASSWORD_RESET_HTML,
         "description": "Single-use password reset email.",
@@ -200,7 +242,15 @@ DEFAULT_TEMPLATES = (
         "template_key": "WELCOME_EMAIL",
         "name": "Welcome",
         "subject": "Welcome to $company_name, $employee_name",
-        "body_text": "Hello $employee_name, welcome to $company_name.",
+        "body_text": (
+            "Dear $employee_name,\n\n"
+            "Welcome to $company_name. We are pleased to have you on board.\n\n"
+            "Your Evolvus 360 account is now active, and you can sign in to "
+            "access your workspace. If you need any assistance getting "
+            "started, please reach out to your HR team.\n\n"
+            "We wish you a great start and a successful journey with us.\n\n"
+            "Regards,\n$company_name Team"
+        ),
         "body_html": WELCOME_HTML,
         "description": "Welcome email for newly onboarded employees.",
         "required_variables": ["employee_name", "company_name"],
@@ -208,8 +258,16 @@ DEFAULT_TEMPLATES = (
     {
         "template_key": "EMPLOYEE_PROFILE_SUBMITTED",
         "name": "Employee profile submitted",
-        "subject": "Employee profile submitted: $employee_name",
-        "body_text": "$employee_name submitted an employee profile for review.",
+        "subject": "Profile submitted for review: $employee_name",
+        "body_text": (
+            "Hello,\n\n"
+            "$employee_name has completed and submitted their employee "
+            "profile.\n\n"
+            "Please review the submitted details in the Approval Hub and "
+            "approve the profile or request changes at your earliest "
+            "convenience.\n\n"
+            "Regards,\nEvolvus 360 Team"
+        ),
         "body_html": PROFILE_SUBMITTED_HTML,
         "description": "HR notification when employee onboarding is submitted.",
         "required_variables": ["employee_name"],
@@ -217,8 +275,16 @@ DEFAULT_TEMPLATES = (
     {
         "template_key": "EMPLOYEE_PROFILE_APPROVED",
         "name": "Employee profile approved",
-        "subject": "Your Evolvus360 profile is approved",
-        "body_text": "Hello $employee_name, your profile at $company_name is approved.",
+        "subject": "Your Evolvus 360 profile has been approved",
+        "body_text": (
+            "Dear $employee_name,\n\n"
+            "We are pleased to inform you that your profile at $company_name "
+            "has been reviewed and approved by HR.\n\n"
+            "You now have full access to your Evolvus 360 workspace. If you "
+            "have any questions or notice any incorrect details in your "
+            "profile, please contact your HR team.\n\n"
+            "Regards,\nEvolvus 360 Team"
+        ),
         "body_html": PROFILE_APPROVED_HTML,
         "description": "Employee notification after HR profile approval.",
         "required_variables": ["employee_name", "company_name"],
@@ -227,7 +293,7 @@ DEFAULT_TEMPLATES = (
         "template_key": "GENERAL_NOTIFICATION",
         "name": "General notification",
         "subject": "$subject_line",
-        "body_text": "$message_text",
+        "body_text": "Hello,\n\n$message_text\n\nRegards,\nEvolvus 360 Team",
         "body_html": GENERAL_HTML,
         "description": "Generic text-only internal notification.",
         "required_variables": ["subject_line", "message_text"],

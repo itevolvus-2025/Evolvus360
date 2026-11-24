@@ -228,8 +228,8 @@ export class MainLayoutComponent implements OnInit {
     if (url === '/dashboard') {
       return {
         isSubpage: false,
-        title: 'Dashboard',
-        subtitle: 'Overview of enterprise workforce operations and analytics.',
+        title: 'Workforce Dashboard',
+        subtitle: 'Manage enterprise access privileges and identity profiles',
         actionType: 'none',
       };
     }

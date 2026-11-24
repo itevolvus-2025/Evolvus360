@@ -271,14 +271,14 @@ export class AuthService {
       token: 'demo-hardcoded-session-token',
       permissions: isAdmin
         ? [
-            'Dashboard',
-            'Role Management',
-            'User Management',
-            'Approval',
-            'Project',
-            'Leave Request',
-            'Leave Management',
-          ]
+          'Dashboard',
+          'Role Management',
+          'User Management',
+          'Approval',
+          'Project',
+          'Leave Request',
+          'Leave Management',
+        ]
         : ['Approval', 'Project', 'Leave Request'],
     };
 
