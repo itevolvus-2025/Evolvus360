@@ -170,54 +170,74 @@ PROFILE_SUBMITTED_HTML = _layout(
 )
 
 
+
 PROFILE_APPROVED_HTML = _layout(
-    "Your Evolvus 360 employee account has been approved.",
-    _h1("Your Employee Account Has Been Approved")
+    "Your Evolvus 360 employee account is approved!",
+    _h1("Your Evolvus 360 employee account is approved!")
     + _p("Hello $employee_name,")
     + _p(
-        "We are pleased to inform you that your onboarding request "
-        "has been successfully approved by the HR team."
+        "Your onboarding is approved and your employee account is "
+        "ready. Use the credentials below to sign in and set your "
+        "permanent password."
     )
-    + _p(
-        "Your employee account at <strong>$company_name</strong> "
-        "is now active. You can use the login credentials below "
-        "to access your Evolvus 360 workspace."
-    )
-    # Login Credentials
+
+    # Login ID and Temporary Password
     + '<table role="presentation" width="100%" cellpadding="0" '
-    'cellspacing="0" border="0" '
-    'style="margin:20px 0;background:#F8FAFC;'
-    'border:1px solid ' + BORDER + ';border-radius:8px;">'
-    '<tr><td style="padding:18px 20px;'
-    'font-family:' + FONT + ';font-size:14px;'
-    'line-height:24px;color:#334155;">'
-    '<strong style="color:' + INK + ';">Login ID</strong><br>'
-    '<a href="mailto:$employee_email" '
-    'style="color:' + BLUE + ';text-decoration:none;">'
-    '$employee_email</a><br><br>'
-    '<strong style="color:' + INK + ';">Temporary Password</strong><br>'
-    '<span style="color:' + INK + ';">$temporary_password</span>'
-    '</td></tr></table>'
-    # Login Button
-    + _button("Login to Evolvus 360", "$login_url")
+    'cellspacing="0" border="0" style="margin:18px 0;">'
+
+    # Login ID
+    + '<tr><td style="padding:12px 14px;background:#F8FAFC;'
+    'border:1px solid ' + BORDER + ';border-radius:8px;'
+    'font-family:' + FONT + ';">'
+    '<div style="font-size:10px;font-weight:600;letter-spacing:1px;'
+    'color:' + MUTED + ';margin-bottom:8px;">LOGIN ID</div>'
+    '<div style="font-size:13px;color:' + INK + ';'
+    'word-break:break-all;">$employee_email</div>'
+    '</td></tr>'
+
+    + '<tr><td height="12" style="font-size:0;line-height:0;">&nbsp;</td></tr>'
+
+    # Temporary Password
+    + '<tr><td style="padding:12px 14px;background:#F8FAFC;'
+    'border:1px solid ' + BORDER + ';border-radius:8px;'
+    'font-family:' + FONT + ';">'
+    '<div style="font-size:10px;font-weight:600;letter-spacing:1px;'
+    'color:' + MUTED + ';margin-bottom:8px;">TEMPORARY PASSWORD</div>'
+    '<div style="font-size:13px;color:' + INK + ';'
+    'word-break:break-all;">$temporary_password</div>'
+    '</td></tr>'
+    '</table>'
+
+    + _p(
+        '<span style="font-size:12px;color:' + MUTED + ';">'
+        'Please copy or select the password carefully to avoid '
+        'extra spaces.</span>'
+    )
+
+    # Direct Login URL
+    + _p(
+        '<strong style="font-size:13px;color:' + INK + ';">'
+        'Direct Link:</strong><br>'
+        '<a href="$login_url" target="_blank" '
+        'style="color:' + BLUE + ';font-size:13px;'
+        'word-break:break-all;">$login_url</a>'
+    )
+
     # Important Notice
     + _note(
-        "<strong>Important:</strong> Please sign in within "
-        "<strong>24 hours</strong> using your temporary password. "
-        "You must change your password immediately after your first login."
+        '<strong>Sign in within 24 hours</strong> and change your '
+        'temporary password before using your account.'
     )
-    # Fallback Login URL
-    + _fallback_link("$login_url")
+
+    # Login Button
+    + _button("Sign in to Evolvus360", "$login_url")
+
     + _p(
-        "If you experience any issues accessing your account, "
-        "please contact your HR administrator."
-    )
-    + _p(
-        "Welcome to Evolvus 360!<br><br>"
-        "Best Regards,<br>"
-        "<strong>Evolvus 360 Team</strong>"
+        "Thanks,<br>"
+        "<strong style='color:" + BLUE + ";'>Evolvus Team</strong>"
     ),
 )
+
 
 
 
@@ -367,12 +387,12 @@ DEFAULT_TEMPLATES = (
     "body_html": PROFILE_APPROVED_HTML,
     "description": "Employee account approval notification with login credentials.",
     "required_variables": [
-        "employee_name",
-        "company_name",
-        "employee_email",
-        "temporary_password",
-        "login_url",
-    ],
+    "employee_name",
+    "company_name",
+    "employee_email",
+    "temporary_password",
+    "login_url",
+],
 },
 
    
