@@ -404,11 +404,7 @@ def reject(db: Session, actor: User, employee_id: UUID, reason: str) -> dict:
                 reason=reason,
             )
         )
-        recipients = list(dict.fromkeys(
-            address.strip()
-            for address in (employee.personal_email, employee.company_email)
-            if address and address.strip()
-        ))
+        recipients = [employee.personal_email.strip()] if employee.personal_email else []
         email_rows = [
             email_dispatch.enqueue(
                 db,
@@ -468,12 +464,12 @@ def retry_email(db: Session, employee_id: UUID, event: str) -> dict:
     )
     if (
         employee is None
-        or not employee.company_email
-        or row.recipient_email.casefold() != employee.company_email.casefold()
+        or not employee.personal_email
+        or row.recipient_email.casefold() != employee.personal_email.casefold()
     ):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "Email retry requires the current company email as recipient",
+            "Email retry requires the current personal email as recipient",
         )
     sent = email_dispatch.retry(row.id, entity_type=entity_type, entity_id=employee_id)
     return {"email_dispatch_status": "DISPATCHED" if sent else "FAILED"}
