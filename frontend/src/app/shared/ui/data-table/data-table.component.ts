@@ -42,6 +42,7 @@ export class DataTableComponent<T = any> {
   readonly currentPage = model<number>(1);
   readonly itemLabel = input<string>('users');
   readonly totalItems = input<number | null>(null);
+  readonly totalPagesOverride = input<number | null>(null);
 
   // Accessibility & custom caption
   readonly caption = input<string>('');
@@ -105,7 +106,7 @@ export class DataTableComponent<T = any> {
   readonly totalPages = computed(() => {
     const size = this.pageSize();
     if (size <= 0) return 1;
-    return Math.max(1, Math.ceil(this.totalCalculated() / size));
+    return this.totalPagesOverride() ?? Math.max(1, Math.ceil(this.totalCalculated() / size));
   });
 
   /**

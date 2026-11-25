@@ -35,6 +35,7 @@ export class OnboardingComponent implements OnInit {
 
   readonly token = signal<string>('');
   readonly isSubmitting = signal(false);
+  readonly isSaving = signal(false);
   readonly isLoading = signal(false);
   readonly invitationInvalid = signal(false);
   readonly fieldErrors = signal<Record<string, string>>({});
@@ -117,12 +118,43 @@ export class OnboardingComponent implements OnInit {
       next: (info) => {
         this.isLoading.set(false);
         this.candidate.set(info);
+        this.restoreDraft(info.draft || {}, info.documents || []);
       },
       error: () => {
         this.isLoading.set(false);
         this.invitationInvalid.set(true);
       },
     });
+  }
+
+  private restoreDraft(
+    draft: Record<string, string | null>,
+    documents: Array<{ document_type: string; original_filename: string }>,
+  ): void {
+    this.dateOfBirth.set(draft['date_of_birth'] || '');
+    this.gender.set(draft['gender'] || '');
+    this.mobileNumber.set(draft['mobile_number'] || '');
+    this.aadhaarNumber.set(draft['aadhaar_number'] || '');
+    this.panNumber.set(draft['pan_number'] || '');
+    this.passportNumber.set(draft['passport_number'] || '');
+    this.emergencyContactName.set(draft['emergency_contact_name'] || '');
+    this.emergencyContactPhone.set(draft['emergency_contact_phone'] || '');
+    this.emergencyContactRelationship.set(draft['emergency_contact_relationship'] || '');
+    this.bankName.set(draft['bank_name'] || '');
+    this.accountNumber.set(draft['account_number'] || '');
+    this.ifscCode.set(draft['ifsc_code'] || '');
+    this.uanNumber.set(draft['uan_number'] || '');
+    this.qualification.set(draft['qualification'] || '');
+    try {
+      const languages = JSON.parse(draft['languages'] || '[]');
+      this.languages.set(Array.isArray(languages) ? languages.filter((item) => typeof item === 'string') : []);
+    } catch {
+      this.languages.set(['ENGLISH', 'HINDI']);
+    }
+    const identityName = documents.find((item) => item.document_type === 'identity_proof')?.original_filename || '';
+    const chequeName = documents.find((item) => item.document_type === 'cancelled_cheque')?.original_filename || '';
+    if (identityName) this.identityProofName.set(identityName);
+    if (chequeName) this.cancelledChequeName.set(chequeName);
   }
 
   // Dynamic Profile Completion Calculation
@@ -297,7 +329,7 @@ export class OnboardingComponent implements OnInit {
     else if (field === 'bank_name' && value && !/^[\p{L}\p{N} &().,'/-]+$/u.test(value)) error = 'Use letters, numbers, spaces or common punctuation only.';
     else if (field === 'account_number' && value && !/^[A-Za-z0-9]{6,35}$/.test(value.replace(/\s/g, ''))) error = 'Account number must contain 6 to 35 letters or digits.';
     else if (field === 'ifsc_code' && value && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value)) error = 'Enter a valid 11-character IFSC code.';
-    else if (field === 'uan_number' && !/^\d{12}$/.test(value)) error = required[field];
+    else if (field === 'uan_number' && value && !/^\d{12}$/.test(value)) error = required[field];
     else if (field === 'qualification' && value && !/^[\p{L}\p{N}\s]*$/u.test(value)) error = required[field];
     else if (required[field] && !value && !['identity_proof', 'cancelled_cheque', 'qualification'].includes(field)) error = required[field];
     else if (field === 'date_of_birth') {
@@ -320,8 +352,8 @@ export class OnboardingComponent implements OnInit {
         }
       }
     }
-    else if (field === 'identity_proof' && !this.identityProofFile()) error = required[field];
-    else if (field === 'cancelled_cheque' && !this.cancelledChequeFile()) error = required[field];
+    else if (field === 'identity_proof' && !this.identityProofFile() && !this.identityProofName()) error = required[field];
+    else if (field === 'cancelled_cheque' && !this.cancelledChequeFile() && !this.cancelledChequeName()) error = required[field];
     this.fieldErrors.update((errors) => ({ ...errors, [field]: error ?? '' }));
     return error;
   }
@@ -332,7 +364,6 @@ export class OnboardingComponent implements OnInit {
       'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship',
       'bank_name', 'account_number', 'ifsc_code', 'identity_proof', 'cancelled_cheque',
     ];
-    fields.push('uan_number');
     if (this.qualification()) fields.push('qualification');
     for (const field of fields) this.validateField(field);
     const first = fields.find((field) => this.fieldErrors()[field]);
@@ -342,35 +373,62 @@ export class OnboardingComponent implements OnInit {
     return false;
   }
 
+  private buildFormData(includeFiles: boolean): FormData {
+    const formData = new FormData();
+    formData.append('token', this.token());
+    const fields: Record<string, string> = {
+      date_of_birth: this.dateOfBirth(), gender: this.gender(),
+      mobile_number: this.mobileNumber(), aadhaar_number: this.aadhaarNumber(),
+      pan_number: this.panNumber().toUpperCase(), passport_number: this.passportNumber(),
+      emergency_contact_name: this.emergencyContactName(),
+      emergency_contact_phone: this.emergencyContactPhone(),
+      emergency_contact_relationship: this.emergencyContactRelationship(),
+      bank_name: this.bankName(), account_number: this.accountNumber(),
+      ifsc_code: this.ifscCode().toUpperCase(), uan_number: this.uanNumber(),
+      qualification: this.qualification(), languages: JSON.stringify(this.languages()),
+    };
+    for (const [key, value] of Object.entries(fields)) formData.append(key, value);
+    if (includeFiles) {
+      if (this.identityProofFile()) formData.append('identity_proof', this.identityProofFile()!);
+      if (this.cancelledChequeFile()) formData.append('cancelled_cheque', this.cancelledChequeFile()!);
+    }
+    return formData;
+  }
+
+  saveOnboardingDraft(): void {
+    if (this.isSaving() || this.isSubmitting()) return;
+    this.isSaving.set(true);
+    this.onboardingService.saveDraft(this.buildFormData(true)).subscribe({
+      next: (response) => {
+        this.isSaving.set(false);
+        const uploaded = response?.data?.documents as Array<{ document_type: string; original_filename: string }> | undefined;
+        if (uploaded) {
+          const identityName = uploaded.find((item) => item.document_type === 'identity_proof')?.original_filename;
+          const chequeName = uploaded.find((item) => item.document_type === 'cancelled_cheque')?.original_filename;
+          if (identityName) this.identityProofName.set(identityName);
+          if (chequeName) this.cancelledChequeName.set(chequeName);
+        }
+        this.identityProofFile.set(null);
+        this.cancelledChequeFile.set(null);
+        this.notification.show('Your onboarding information has been saved. You can return using this link before it expires.', 'success');
+      },
+      error: (error: Error) => {
+        this.isSaving.set(false);
+        this.notification.show(error.message || 'Could not save your onboarding draft.', 'error');
+      },
+    });
+  }
+
   submitOnboarding(): void {
-    if (this.isSubmitting()) return;
+    if (this.isSubmitting() || this.isSaving()) return;
 
     if (!this.validateForm()) return;
 
     this.isSubmitting.set(true);
 
-    const formData = new FormData();
-    const currentToken = this.token();
-    formData.append('token', currentToken);
-    formData.append('date_of_birth', this.dateOfBirth());
-    formData.append('gender', this.gender());
-    formData.append('mobile_number', this.mobileNumber());
-    formData.append('aadhaar_number', this.aadhaarNumber());
-    formData.append('pan_number', this.panNumber().toUpperCase());
-    formData.append('passport_number', this.passportNumber() || '');
-    formData.append('emergency_contact_name', this.emergencyContactName());
-    formData.append('emergency_contact_phone', this.emergencyContactPhone());
-    formData.append('emergency_contact_relationship', this.emergencyContactRelationship() || 'Primary');
-    formData.append('bank_name', this.bankName());
-    formData.append('account_number', this.accountNumber());
-    formData.append('ifsc_code', this.ifscCode().toUpperCase());
-    if (this.uanNumber().trim()) formData.append('uan_number', this.uanNumber().trim());
-    formData.append('qualification', this.qualification() || '');
-    formData.append('languages', JSON.stringify(this.languages()));
-
-    formData.append('identity_proof', this.identityProofFile()!);
-    formData.append('cancelled_cheque', this.cancelledChequeFile()!);
-
+    const formData = this.buildFormData(false);
+    if (this.identityProofFile()) formData.append('identity_proof', this.identityProofFile()!);
+    if (this.cancelledChequeFile()) formData.append('cancelled_cheque', this.cancelledChequeFile()!);
     this.onboardingService.submitOnboarding(formData).subscribe({
       next: () => {
         this.isSubmitting.set(false);

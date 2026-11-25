@@ -2,99 +2,115 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  OnDestroy,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { DataTableComponent, TableColumn, TableActionClick } from '../../../../shared/ui/data-table';
+import { Router, RouterLink } from '@angular/router';
+import { IconComponent } from '../../../../shared/ui/icon/icon.component';
+import { DropdownOption } from '../../../../shared/ui/dropdown';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { RoleService, RoleRow } from '../../data-access/role.service';
 
 @Component({
   selector: 'app-role-management',
   standalone: true,
-  imports: [CommonModule, DataTableComponent],
+  imports: [CommonModule, RouterLink, IconComponent],
   templateUrl: './role-management.component.html',
   styleUrl: './role-management.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RoleManagementComponent implements OnInit {
+export class RoleManagementComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly roleService = inject(RoleService);
   private readonly notification = inject(NotificationService);
 
-  ngOnInit(): void {
-    this.roleService.loadRoles();
-  }
+  readonly isLoading = this.roleService.isLoading;
+  readonly loadError = computed(() => this.roleService.loadError());
 
   /** Access scope dropdown filter */
   readonly selectedScope = signal<string>('Department');
-  readonly scopeOptions = ['Department', 'Organization', 'All'];
-
-  /** Columns configuration for common table matching user's design */
-  readonly columns: TableColumn<RoleRow>[] = [
-    { key: 'role', header: 'ROLE', sortable: true, width: '22%' },
-    { key: 'purpose', header: 'PURPOSE', sortable: true, width: '40%' },
-    { key: 'status', header: 'STATUS', type: 'badge', sortable: true, width: '20%' },
-    {
-      key: 'action',
-      header: 'ACTION',
-      type: 'action',
-      actionIcon: 'edit',
-      actionColor: '#2563EB',
-      actionTooltip: 'Edit Role',
-      width: '18%',
-      align: 'left',
-    },
+  readonly scopeOptions: DropdownOption[] = [
+    { label: 'Department', value: 'Department' },
+    { label: 'Organization', value: 'Organization' },
+    { label: 'All', value: 'All' },
   ];
 
-  /** Live dataset from RoleService */
+  /** Search query signal */
+  readonly searchQuery = signal('');
+
+  /** Active pagination state */
+  readonly currentPage = signal(1);
+  readonly pageSize = 10;
+
+  /** Live dataset directly populated by backend API */
   readonly roles = this.roleService.roles;
   readonly totalRoleCount = this.roleService.totalRoleCount;
+  readonly totalRolePages = this.roleService.totalRolePages;
 
-  /** Filtered roles (ensuring roles always display for user browsing) */
-  readonly filteredRoles = computed(() => {
-    const list = this.roles();
-    const scope = (this.selectedScope() || '').trim().toLowerCase();
-
-    if (!scope || scope === 'all' || scope === 'department') {
-      return list;
-    }
-
-    const filtered = list.filter((r) => {
-      const rScope = (r.scope || 'all').toLowerCase();
-      return rScope === scope || rScope === 'all';
-    });
-
-    return filtered.length > 0 ? filtered : list;
+  /** Array of page numbers for pagination buttons */
+  readonly pages = computed(() => {
+    const total = this.totalRolePages();
+    return Array.from({ length: total }, (_, i) => i + 1);
   });
 
-  /** Delete confirmation state */
-  readonly roleToDelete = signal<RoleRow | null>(null);
+  private searchDebounceTimer: any = null;
 
-  /** Handle action button click from common data-table */
-  handleAction(event: TableActionClick<RoleRow>): void {
-    if (event.action === 'edit' && event.row) {
-      // Navigate to dedicated Edit Role page
-      void this.router.navigate(['/administration/roles/edit', event.row.id]);
-    } else if (event.action === 'delete' && event.row) {
-      this.roleToDelete.set(event.row);
+  ngOnInit(): void {
+    this.fetchRoles();
+  }
+
+  ngOnDestroy(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
     }
   }
 
-  /** Delete Role confirmation methods */
-  closeDeleteModal(): void {
-    this.roleToDelete.set(null);
+  /**
+   * Dispatches backend API call with current page, pageSize, and search query
+   */
+  fetchRoles(): void {
+    this.roleService.loadRoles(
+      this.currentPage(),
+      this.pageSize,
+      this.searchQuery()
+    );
   }
 
-  confirmDelete(): void {
-    const role = this.roleToDelete();
-    if (role) {
-      this.roleService.deleteRole(role.id);
-      this.notification.show(`Role "${role.role}" deleted successfully.`, 'info');
-      this.roleToDelete.set(null);
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalRolePages()) return;
+    this.currentPage.set(page);
+    this.fetchRoles();
+  }
+
+  onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(value);
+    this.currentPage.set(1);
+
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
     }
+    this.searchDebounceTimer = setTimeout(() => {
+      this.fetchRoles();
+    }, 300);
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+    this.currentPage.set(1);
+    this.fetchRoles();
+  }
+
+  onScopeChange(scope: string): void {
+    this.selectedScope.set(scope);
+    this.currentPage.set(1);
+    this.fetchRoles();
+  }
+
+  editRole(role: RoleRow): void {
+    void this.router.navigate(['/administration/roles/edit', role.id]);
   }
 }

@@ -4,12 +4,13 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 
 import { routes } from './app.routes';
 import { apiInterceptor } from './core/interceptors/api.interceptor';
+import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { GlobalErrorHandler } from './core/services/global-error-handler.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes, withComponentInputBinding()),
-    provideHttpClient(withInterceptors([apiInterceptor])),
+    provideHttpClient(withInterceptors([loadingInterceptor, apiInterceptor])),
     {
       provide: ErrorHandler,
       useClass: GlobalErrorHandler

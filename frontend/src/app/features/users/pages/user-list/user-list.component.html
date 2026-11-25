@@ -62,15 +62,8 @@
       </div>
 
       <div class="toolbar-actions-right">
-        <app-dropdown
-          [options]="roleFilterOptions"
-          [value]="filterRole()"
-          (valueChange)="setFilter($event)"
-          variant="filter"
-          icon="filter"
-          placeholder="Filter by Role"
-          width="160px"
-        />
+        <app-dropdown [options]="roleFilterOptions()" [value]="filterRole()" (valueChange)="setFilter($event)"
+          variant="filter" icon="filter" placeholder="Filter by Role" width="160px" />
       </div>
     </div>
 
@@ -96,7 +89,7 @@
                 <span class="user-avatar-circle">
                   {{ getInitials(user.name) }}
                 </span>
-                <span class="user-full-name">{{ user.name }}</span>
+                <span class="user-full-name">{{ formatPersonName(user.name) }}</span>
               </div>
             </td>
 
@@ -106,11 +99,10 @@
             <!-- Role -->
             <td class="cell-role">{{ user.role }}</td>
 
-            <!-- Status Badge Pill -->
+            <!-- Status Badge Pill: User Status is strictly Active or Inactive -->
             <td>
               <span class="table-status-pill" [class.status-active]="user.status === 'Active'"
-                [class.status-inactive]="user.status === 'Inactive' || user.status === 'Deactive'"
-                [class.status-pending]="user.status === 'Pending'">
+                [class.status-inactive]="user.status === 'Inactive'">
                 {{ user.status }}
               </span>
             </td>
@@ -119,18 +111,24 @@
             <td>
               <span class="table-profile-pill" [class.profile-pending]="user.profile === 'Pending'"
                 [class.profile-submitted]="user.profile === 'Submitted'"
-                [class.profile-approved]="user.profile === 'Approved'">
+                [class.profile-approved]="user.profile === 'Approved'"
+                [class.profile-rejected]="user.profile === 'Rejected'">
                 {{ user.profile }}
               </span>
             </td>
 
-            <!-- Action: Edit Pencil Icon Button -->
+            <!-- Action: Edit Pencil Icon Button & Send/Resend Mail Button -->
             <td>
               <div class="action-btn-group">
                 <a [routerLink]="['/users/edit', user.id]" class="table-action-icon-btn" title="Edit User">
-                  <app-icon name="edit" [size]="16" color="#2563EB" />
+                  <app-icon name="edit" [size]="20" color="#2563EB" />
                 </a>
-
+                @if (canSendInvitation(user)) {
+                <button type="button" class="table-action-icon-btn btn-send-mail" (click)="sendInvitation(user)"
+                  [title]="isRejected(user) ? 'Resend Onboarding Invitation Mail' : 'Send Invitation Mail'">
+                  <app-icon name="mail" [size]="18" color="#2563EB" />
+                </button>
+                }
               </div>
             </td>
           </tr>
@@ -139,9 +137,9 @@
             <td colspan="6" class="empty-cell">
               <app-icon name="search" [size]="28" color="#94A3B8" />
               @if (userLoadError(); as loadError) {
-                <p>Could not load users: {{ loadError }}</p>
+              <p>Could not load users: {{ loadError }}</p>
               } @else {
-                <p>No users found</p>
+              <p>No users found</p>
               }
             </td>
           </tr>
@@ -153,7 +151,8 @@
     <!-- Table Footer / Pagination Bar -->
     <div class="table-footer">
       <div class="table-counts">
-        Showing <b>{{ paginatedUsers().length }}</b> of <b>{{ totalUsers() }}</b> users
+        Showing <b>{{ (currentPage() - 1) * pageSize() + (paginatedUsers().length ? 1 : 0) }}-{{ (currentPage() - 1) *
+          pageSize() + paginatedUsers().length }}</b> of <b>{{ totalUsers() }}</b> users
       </div>
 
       <div class="table-pagination">

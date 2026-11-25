@@ -36,7 +36,10 @@
 
 
         <div class="topbar-actions">
-          <button type="button" class="btn-submit-top" (click)="submitOnboarding()" [disabled]="isSubmitting()">
+          <button type="button" class="btn-save-top" (click)="saveOnboardingDraft()" [disabled]="isSaving() || isSubmitting()">
+            {{ isSaving() ? 'Saving...' : 'Save' }}
+          </button>
+          <button type="button" class="btn-submit-top" (click)="submitOnboarding()" [disabled]="isSubmitting() || isSaving()">
             {{ isSubmitting() ? 'Submitting...' : 'Submit' }}
           </button>
         </div>
@@ -329,7 +332,7 @@
           <!-- UAN (PF Application) -->
           @if (candidate().pf_applicable === 'YES') {
           <div class="field-item">
-            <label class="field-label" for="onboardingUan">UAN <span class="req">*</span></label>
+            <label class="field-label" for="onboardingUan">UAN (Optional)</label>
             <input id="onboardingUan" type="text" maxlength="12" inputmode="numeric" class="field-input"
               [class.field-invalid]="!!fieldErrors()['uan_number']" placeholder="e.g. 100912345678"
               [value]="uanNumber()" (input)="updateField('uan_number', $any($event.target).value)"

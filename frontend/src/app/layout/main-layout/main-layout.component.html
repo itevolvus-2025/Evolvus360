@@ -60,7 +60,7 @@
             class="nav-item"
             [title]="collapsed() ? item.label : ''"
           >
-            <app-icon [name]="item.icon" [size]="18" />
+            <app-icon [name]="item.icon" [size]="20" />
             <span class="nav-label">{{ item.label }}</span>
           </a>
         }
@@ -177,12 +177,20 @@
         <!-- Subpage: Edit User -->
         @if (actionType() === 'user-edit') {
           <div class="topbar-subpage-actions">
-            <button type="button" class="btn-topbar-delete" (click)="triggerDelete()">
-              <app-icon name="user-x" [size]="14" color="#DC2626" />
-              <span>Deactivate User</span>
-            </button>
+            @if (canDeactivateUserInChild()) {
+              <button type="button" class="btn-topbar-delete" (click)="triggerDelete()">
+                <app-icon name="ban" [size]="14" color="#DC2626" />
+                <span>Deactivate User</span>
+              </button>
+            }
             <a routerLink="/users" class="btn-topbar-cancel">Cancel</a>
-            <button type="button" class="btn-topbar-save" (click)="triggerSave()">
+            <button
+              type="button"
+              class="btn-topbar-save"
+              [disabled]="isChildReadOnly()"
+              (click)="triggerSave()"
+              [title]="isChildReadOnly() ? 'Cannot save changes because user account is deactivated' : 'Save Changes'"
+            >
               Save Changes
             </button>
           </div>

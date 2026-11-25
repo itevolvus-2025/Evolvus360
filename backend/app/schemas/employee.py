@@ -149,7 +149,7 @@ class EmployeeUpdate(BaseModel):
     @field_validator("uan_number")
     @classmethod
     def validate_uan_number(cls, value: str | None) -> str | None:
-        return validate_uan(value) if value is not None else None
+        return validate_uan(value) if value and value.strip() else None
 
 class InvitationTokenRequest(BaseModel):
     token: str = Field(min_length=32, max_length=256)

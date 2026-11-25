@@ -10,6 +10,7 @@ from uuid import UUID
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -86,10 +87,11 @@ def _validate_onboarding_contact_and_compliance(fields: dict, pf_applicable: boo
     if len(qualification) > 4000 or any(not (char.isalnum() or char.isspace()) for char in qualification):
         raise _field_validation_error("qualification", "Qualification may contain letters, numbers and spaces only.")
     uan = (fields.get("uan_number") or "").strip()
-    try:
-        validate_uan(uan)
-    except ValueError as error:
-        raise _field_validation_error("uan_number", str(error)) from None
+    if uan:
+        try:
+            validate_uan(uan)
+        except ValueError as error:
+            raise _field_validation_error("uan_number", str(error)) from None
     return account, uan
 
 
@@ -375,10 +377,12 @@ def _get_employee(
             joinedload(EmployeeEmploymentDetails.contact_details),
             joinedload(EmployeeEmploymentDetails.bank_details),
             joinedload(EmployeeEmploymentDetails.skills_and_interests),
-            joinedload(EmployeeEmploymentDetails.invitation),
         )
         .where(
-            EmployeeEmploymentDetails.user_id == user_id,
+            or_(
+                EmployeeEmploymentDetails.user_id == user_id,
+                EmployeeEmploymentDetails.id == user_id,
+            ),
             EmployeeEmploymentDetails.deleted_at.is_(None),
         )
     )
@@ -393,34 +397,67 @@ def _get_employee(
 def send_invitation(db: Session, actor: User, user_id: UUID) -> dict:
     try:
         employee = _get_employee(db, user_id, lock=True)
-        if employee.profile_status != "PENDING":
+        if employee.profile_status not in {"PENDING", "REJECTED"}:
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
-                "Invitation can only be sent while the profile is pending",
+                "Invitation can only be sent while the profile is pending or rejected",
             )
         invitation = employee.invitation
-        if invitation is None:
-            raise HTTPException(status.HTTP_409_CONFLICT, "Invitation state is missing")
-        if invitation.invitation_status == "ACCEPTED":
-            raise HTTPException(
-                status.HTTP_409_CONFLICT, "Invitation was already accepted"
-            )
         raw_token = new_opaque_token()
         now = datetime.now(UTC)
         expiry = now + timedelta(
             hours=get_settings().onboarding_invitation_expire_hours
         )
-        invitation.sent_at = now
-        invitation.expires_at = expiry
-        invitation.submitted_at = None
-        invitation.invitation_token_hash = hash_token(raw_token)
-        invitation.invitation_status = "SENT"
+        token_hash = hash_token(raw_token)
+        recipient = (
+            employee.personal_email
+            or employee.company_email
+            or (employee.user.email if employee.user else None)
+        )
+        if not recipient:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Candidate email address is required to send invitation",
+            )
+        if invitation is None:
+            invitation = OnboardingInvitation(
+                employee_id=employee.id,
+                recipient_email=recipient,
+                invitation_token_hash=token_hash,
+                current_step=1,
+                invitation_status="SENT",
+                sent_at=now,
+                expires_at=expiry,
+            )
+            db.add(invitation)
+            employee.invitation = invitation
+        else:
+            if invitation.invitation_status == "ACCEPTED":
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT, "Invitation was already accepted"
+                )
+            invitation.sent_at = now
+            invitation.expires_at = expiry
+            invitation.submitted_at = None
+            invitation.invitation_token_hash = token_hash
+            invitation.invitation_status = "SENT"
+            invitation.recipient_email = recipient
+
+        # If previously rejected, restore to PENDING profile state and re-enable user account
+        if employee.profile_status == "REJECTED" or employee.onboarding_status == "REJECTED":
+            employee.profile_status = "PENDING"
+            employee.onboarding_status = "INVITED"
+            employee.rejection_reason = None
+            if employee.user:
+                employee.user.account_status = "INVITED"
+                employee.user.is_active = True
+
         invitation_url = f"{get_settings().frontend_onboarding_url}?token={raw_token}"
         dispatch_row = email_dispatch.enqueue(
             db,
             entity_type="INVITATION",
             entity_id=user_id,
-            recipient=employee.personal_email,
+            recipient=recipient,
             template_key="EMPLOYEE_INVITATION",
             variables={
                 "employee_name": f"{employee.first_name} {employee.last_name}".strip(),
@@ -516,6 +553,210 @@ def validate_invitation(db: Session, raw_token: str) -> dict:
         "role": employee.designation or "Employee",
         "expires_at": invitation.expires_at,
     }
+
+
+def _invitation_for_active_form(db: Session, raw_token: str) -> OnboardingInvitation:
+    invitation = db.scalar(
+        select(OnboardingInvitation)
+        .options(
+            joinedload(OnboardingInvitation.employee).joinedload(
+                EmployeeEmploymentDetails.personal_details
+            ),
+            joinedload(OnboardingInvitation.employee).joinedload(
+                EmployeeEmploymentDetails.contact_details
+            ),
+            joinedload(OnboardingInvitation.employee).joinedload(
+                EmployeeEmploymentDetails.bank_details
+            ),
+            joinedload(OnboardingInvitation.employee).joinedload(
+                EmployeeEmploymentDetails.skills_and_interests
+            ),
+            joinedload(OnboardingInvitation.employee).selectinload(
+                EmployeeEmploymentDetails.documents
+            ),
+        )
+        .where(OnboardingInvitation.invitation_token_hash == hash_token(raw_token))
+    )
+    now = datetime.now(UTC)
+    if (
+        invitation is None
+        or invitation.invitation_status not in {"SENT", "ACCEPTED"}
+        or invitation.expires_at <= now
+        or invitation.employee.profile_status not in {"PENDING", "REJECTED"}
+    ):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired invitation")
+    return invitation
+
+
+def get_onboarding_invitation(db: Session, raw_token: str) -> dict:
+    """Validate an invitation and return its candidate and saved draft data."""
+    invitation = _invitation_for_active_form(db, raw_token)
+    employee = invitation.employee
+    if employee.onboarding_status in {"INVITED", "REJECTED"}:
+        employee.onboarding_status = "ONBOARDING"
+    return {
+        "first_name": employee.first_name,
+        "last_name": employee.last_name,
+        "employee_code": employee.employee_code,
+        "company_name": employee.entity_name or "Evolvus360",
+        "entity": employee.entity_name or "ETPL",
+        "company_email": employee.company_email or f"{employee.first_name.lower()}@evolvus.com",
+        "department": employee.department_name or "Chemistry",
+        "pf_applicable": "YES" if employee.pf_applicable else "NO",
+        "role": employee.designation or "Employee",
+        "expires_at": invitation.expires_at,
+        "draft": _onboarding_draft_for_form(db, invitation),
+        "documents": [
+            {
+                "document_type": document.document_type,
+                "original_filename": document.original_filename,
+            }
+            for document in employee.documents
+        ],
+    }
+
+
+def _onboarding_draft_for_form(
+    db: Session, invitation: OnboardingInvitation
+) -> dict:
+    draft = invitation.draft_form_data or {}
+    encryptor = _encryptor()
+
+    def draft_value(name: str, fallback: object = None) -> object:
+        encrypted_value = draft.get(name)
+        if encrypted_value is None:
+            return fallback
+        return _decrypt(encryptor, encrypted_value)
+
+    employee = invitation.employee
+    personal, contact, bank = (
+        employee.personal_details,
+        employee.contact_details,
+        employee.bank_details,
+    )
+    return {
+        "date_of_birth": draft_value("date_of_birth", personal.birth_date.isoformat() if personal else None),
+        "gender": draft_value("gender", personal.gender if personal else None),
+        "mobile_number": draft_value("mobile_number", contact.mobile_number if contact else None),
+        "aadhaar_number": draft_value("aadhaar_number"),
+        "pan_number": draft_value("pan_number"),
+        "passport_number": draft_value("passport_number"),
+        "emergency_contact_name": draft_value("emergency_contact_name", contact.emergency_contact_name if contact else None),
+        "emergency_contact_phone": draft_value("emergency_contact_phone", contact.emergency_contact_phone if contact else None),
+        "emergency_contact_relationship": draft_value("emergency_contact_relationship", contact.emergency_contact_relation if contact else None),
+        "bank_name": draft_value("bank_name", bank.bank_name if bank else None),
+        "account_number": draft_value("account_number"),
+        "ifsc_code": draft_value("ifsc_code", bank.ifsc_code if bank else None),
+        "uan_number": draft_value("uan_number"),
+        "qualification": draft_value("qualification", employee.skills_and_interests.additional_qualifications if employee.skills_and_interests else None),
+        "languages": draft_value("languages", employee.skills_and_interests.languages_spoken if employee.skills_and_interests else None),
+    }
+
+
+def save_onboarding_draft(
+    db: Session,
+    raw_token: str,
+    fields: dict,
+    files: dict[str, tuple[str, str | None, bytes]],
+) -> dict:
+    """Encrypt and persist a partial invitation form without submitting it."""
+    stored_paths: list[Path] = []
+    replaced_paths: list[Path] = []
+    try:
+        invitation = _invitation_for_active_form(db, raw_token)
+        invitation = db.scalar(
+            select(OnboardingInvitation)
+            .where(OnboardingInvitation.id == invitation.id)
+            .with_for_update(of=OnboardingInvitation)
+        )
+        employee = invitation.employee
+        encryptor = _encryptor()
+        draft = dict(invitation.draft_form_data or {})
+        for name, value in fields.items():
+            if value is None:
+                continue
+            if name in {"aadhaar_number", "pan_number", "account_number", "uan_number"} and not value.strip():
+                continue
+            if name == "date_of_birth":
+                normalized = value.strip()
+                if normalized:
+                    try:
+                        normalized = date.fromisoformat(normalized).isoformat()
+                    except ValueError:
+                        raise _field_validation_error("date_of_birth", "Enter a valid date in YYYY-MM-DD format.") from None
+            elif name == "languages":
+                try:
+                    parsed = json.loads(value or "[]")
+                except (TypeError, ValueError):
+                    raise _field_validation_error("languages", "Languages must be a JSON array.") from None
+                if not isinstance(parsed, list) or any(not isinstance(item, str) for item in parsed):
+                    raise _field_validation_error("languages", "Languages must be a JSON array of strings.")
+                normalized = json.dumps(parsed, ensure_ascii=False)
+            else:
+                normalized = str(value).strip()
+            if name in {"gender", "pan_number", "ifsc_code", "uan_number"}:
+                normalized = normalized.upper()
+            draft[name] = encryptor.encrypt(normalized.encode()).decode()
+
+        for document_type, (filename, content_type, contents) in files.items():
+            if not contents:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    f"{document_type.replace('_', ' ').capitalize()} file is empty",
+                )
+            document = next((item for item in employee.documents if item.document_type == document_type), None)
+            if document:
+                replaced_paths.append(Path(document.storage_path))
+                db.delete(document)
+        if replaced_paths:
+            db.flush()
+
+        for document_type, (filename, content_type, contents) in files.items():
+            path, clean_name, mime = _store_document(document_type, filename, content_type, contents)
+            stored_paths.append(Path(path))
+            employee.documents.append(EmployeeDocuments(
+                document_type=document_type,
+                original_filename=clean_name,
+                storage_path=path,
+                file_size_bytes=len(contents),
+                mime_type=mime,
+                uploaded_by_user_id=employee.user_id,
+            ))
+
+        invitation.draft_form_data = draft
+        flag_modified(invitation, "draft_form_data")
+        if employee.onboarding_status in {"INVITED", "REJECTED"}:
+            employee.onboarding_status = "ONBOARDING"
+        db.commit()
+        for path in replaced_paths:
+            path.unlink(missing_ok=True)
+        return {
+            "saved": True,
+            "saved_at": datetime.now(UTC),
+            "documents": [
+                {
+                    "document_type": document.document_type,
+                    "original_filename": document.original_filename,
+                }
+                for document in employee.documents
+            ],
+        }
+    except BaseException:
+        db.rollback()
+        for path in stored_paths:
+            path.unlink(missing_ok=True)
+        raise
+
+
+def documents_for_invitation(db: Session, raw_token: str) -> list[dict[str, str]]:
+    invitation = _invitation_for_active_form(db, raw_token)
+    return [
+        {
+            "document_type": document.document_type,
+            "original_filename": document.original_filename,
+        }
+        for document in invitation.employee.documents
+    ]
 
 
 def _encryptor() -> Fernet:
@@ -927,6 +1168,9 @@ def submit_onboarding(
                 joinedload(OnboardingInvitation.employee).joinedload(
                     EmployeeEmploymentDetails.skills_and_interests
                 ),
+                joinedload(OnboardingInvitation.employee).selectinload(
+                    EmployeeEmploymentDetails.documents
+                ),
             )
             .where(OnboardingInvitation.invitation_token_hash == hash_token(raw_token))
             .with_for_update(of=OnboardingInvitation)
@@ -947,17 +1191,26 @@ def submit_onboarding(
             )
         was_rejected = employee.profile_status == "REJECTED"
         previous_snapshot = _submission_snapshot(employee) if was_rejected else None
-        if employee.profile_status == "PENDING" and (
-            employee.personal_details
-            or employee.contact_details
-            or employee.bank_details
-        ):
-            raise HTTPException(
-                status.HTTP_409_CONFLICT, "Employee profile was already submitted"
-            )
+        saved_draft = _onboarding_draft_for_form(db, invitation)
+        fields = {
+            key: value if value not in (None, "") else saved_draft.get(key)
+            for key, value in fields.items()
+        }
+        if isinstance(fields.get("date_of_birth"), str):
+            try:
+                fields["date_of_birth"] = date.fromisoformat(fields["date_of_birth"])
+            except ValueError:
+                raise _field_validation_error(
+                    "date_of_birth", "Enter a valid date in YYYY-MM-DD format."
+                ) from None
         account_number, uan = _validate_onboarding_contact_and_compliance(
             fields, employee.pf_applicable
         )
+        if uan:
+            try:
+                validate_uan(uan)
+            except ValueError as error:
+                raise _field_validation_error("uan_number", str(error)) from None
         encryptor = _encryptor()
         try:
             aadhaar = validate_aadhaar(fields["aadhaar_number"])
@@ -1018,8 +1271,16 @@ def submit_onboarding(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "Languages must be a JSON array of strings",
             )
-        if set(files) != {"identity_proof", "cancelled_cheque"}:
-            missing = {"identity_proof", "cancelled_cheque"}.difference(files)
+        existing_document_types = {
+            document.document_type for document in employee.documents
+        }
+        available_document_types = existing_document_types | set(files)
+        if not {"identity_proof", "cancelled_cheque"}.issubset(
+            available_document_types
+        ):
+            missing = {"identity_proof", "cancelled_cheque"}.difference(
+                available_document_types
+            )
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 {
@@ -1030,6 +1291,19 @@ def submit_onboarding(
                     },
                 },
             )
+        for document in employee.documents:
+            if document.document_type in {"identity_proof", "cancelled_cheque"}:
+                if not Path(document.storage_path).is_file():
+                    raise _field_validation_error(
+                        document.document_type,
+                        f"Please upload the {document.document_type.replace('_', ' ')} document again.",
+                    )
+        for document_type, (_, _, contents) in files.items():
+            if not contents:
+                raise _field_validation_error(
+                    document_type,
+                    f"Please upload a valid {document_type.replace('_', ' ')} document.",
+                )
 
         stored: list[tuple[str, str, str, int, str]] = []
         for document_type, (filename, content_type, contents) in files.items():
@@ -1047,40 +1321,37 @@ def submit_onboarding(
         if gender not in {"MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"}:
             raise _field_validation_error("gender", "Please select a valid gender.")
         passport_number = (fields.get("passport_number") or "").strip()
-        employee.personal_details = EmployeePersonalDetails(
-            birth_date=fields["date_of_birth"],
-            gender=gender,
-            aadhaar_number_encrypted=encryptor.encrypt(aadhaar.encode()).decode(),
-            aadhaar_number_last_four=aadhaar[-4:],
-            pan_number_encrypted=encryptor.encrypt(pan.encode()).decode(),
-            passport_number_encrypted=(
-                encryptor.encrypt(passport_number.encode()).decode()
-                if passport_number
-                else None
-            ),
-            uan_number_encrypted=(
-                encryptor.encrypt(uan.encode()).decode() if uan else None
-            ),
+        personal = employee.personal_details or EmployeePersonalDetails(employee_id=employee.id)
+        personal.birth_date = fields["date_of_birth"]
+        personal.gender = gender
+        personal.aadhaar_number_encrypted = encryptor.encrypt(aadhaar.encode()).decode()
+        personal.aadhaar_number_last_four = aadhaar[-4:]
+        personal.pan_number_encrypted = encryptor.encrypt(pan.encode()).decode()
+        personal.passport_number_encrypted = (
+            encryptor.encrypt(passport_number.encode()).decode() if passport_number else None
         )
-        employee.contact_details = EmployeeContactDetails(
-            mobile_number=mobile_number,
-            emergency_contact_name=fields["emergency_contact_name"].strip(),
-            emergency_contact_phone=fields["emergency_contact_phone"].strip(),
-            emergency_contact_relation=fields["emergency_contact_relationship"].strip(),
-        )
-        employee.bank_details = EmployeeBankDetails(
-            bank_name=fields["bank_name"].strip(),
-            bank_account_number_encrypted=encryptor.encrypt(
-                account_number.encode()
-            ).decode(),
-            bank_account_number_last_four=account_number[-4:],
-            ifsc_code=fields["ifsc_code"].strip().upper(),
-            account_holder_name=f"{employee.first_name} {employee.last_name}".strip(),
-        )
-        employee.skills_and_interests = EmployeeSkillsAndInterests(
-            additional_qualifications=fields.get("qualification") or None,
-            languages_spoken=json.dumps(languages, ensure_ascii=False),
-        )
+        personal.uan_number_encrypted = encryptor.encrypt(uan.encode()).decode() if uan else None
+        employee.personal_details = personal
+
+        contact = employee.contact_details or EmployeeContactDetails(employee_id=employee.id)
+        contact.mobile_number = mobile_number
+        contact.emergency_contact_name = fields["emergency_contact_name"].strip()
+        contact.emergency_contact_phone = fields["emergency_contact_phone"].strip()
+        contact.emergency_contact_relation = fields["emergency_contact_relationship"].strip()
+        employee.contact_details = contact
+
+        bank = employee.bank_details or EmployeeBankDetails(employee_id=employee.id)
+        bank.bank_name = fields["bank_name"].strip()
+        bank.bank_account_number_encrypted = encryptor.encrypt(account_number.encode()).decode()
+        bank.bank_account_number_last_four = account_number[-4:]
+        bank.ifsc_code = fields["ifsc_code"].strip().upper()
+        bank.account_holder_name = f"{employee.first_name} {employee.last_name}".strip()
+        employee.bank_details = bank
+
+        skills = employee.skills_and_interests or EmployeeSkillsAndInterests(employee_id=employee.id)
+        skills.additional_qualifications = fields.get("qualification") or None
+        skills.languages_spoken = json.dumps(languages, ensure_ascii=False)
+        employee.skills_and_interests = skills
         for document_type, path, filename, size, media_type in stored:
             employee.documents.append(
                 EmployeeDocuments(
@@ -1090,6 +1361,13 @@ def submit_onboarding(
                     file_size_bytes=size,
                     mime_type=media_type,
                 )
+            )
+        # Submission consumes the invitation; retain documents in private storage.
+        final_document_types = existing_document_types | set(files)
+        if not {"identity_proof", "cancelled_cheque"}.issubset(final_document_types):
+            missing = next(iter({"identity_proof", "cancelled_cheque"} - final_document_types))
+            raise _field_validation_error(
+                missing, f"Please upload the {missing.replace('_', ' ')} document."
             )
         if previous_snapshot is not None:
             db.add(
@@ -1234,6 +1512,16 @@ def list_employees(
                 EmployeeEmploymentDetails.employee_code.ilike(pattern),
                 EmployeeEmploymentDetails.company_email.ilike(pattern),
                 EmployeeEmploymentDetails.personal_email.ilike(pattern),
+                select(UserRole.id)
+                .join(Role, UserRole.role_id == Role.id)
+                .where(
+                    UserRole.user_id == User.id,
+                    or_(
+                        Role.role_name.ilike(pattern),
+                        Role.role_code.ilike(pattern),
+                    ),
+                )
+                .exists(),
             )
         )
     if conditions:
@@ -1292,10 +1580,7 @@ def _decrypt(encryptor: Fernet, value: str | None) -> str | None:
     try:
         return encryptor.decrypt(value.encode()).decode()
     except (InvalidToken, ValueError, UnicodeDecodeError):
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Unable to decrypt stored employee information",
-        ) from None
+        return value
 
 
 def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
@@ -1369,18 +1654,15 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
             "blood_group": personal.blood_group,
             "mother_tongue": personal.mother_tongue,
             "marital_status": personal.marital_status,
-            "aadhaar_number": (
-                f"********{personal.aadhaar_number_last_four}"
-                if personal.aadhaar_number_last_four
-                else None
+            "aadhaar_number": _decrypt(
+                encryptor, personal.aadhaar_number_encrypted
+            )
+            or personal.aadhaar_number_last_four,
+            "pan_number": _decrypt(encryptor, personal.pan_number_encrypted),
+            "passport_number": _decrypt(
+                encryptor, personal.passport_number_encrypted
             ),
-            "pan_number": _mask(_decrypt(encryptor, personal.pan_number_encrypted), 4),
-            "passport_number": _mask(
-                _decrypt(encryptor, personal.passport_number_encrypted), 4
-            ),
-            "uan_number": _mask(
-                _decrypt(encryptor, personal.uan_number_encrypted), 4
-            ),
+            "uan_number": _decrypt(encryptor, personal.uan_number_encrypted),
             "mobile_number": contact.mobile_number,
             "landline_number": contact.landline_number,
             "alternate_phone_number": contact.alternate_phone_number,
@@ -1392,7 +1674,10 @@ def employee_details(db: Session, actor: User, user_id: UUID) -> dict:
             "bank_details": {
                 "bank_name": bank.bank_name,
                 "account_holder_name": bank.account_holder_name,
-                "account_number": _mask(bank.bank_account_number_last_four, 4),
+                "account_number": _decrypt(
+                    encryptor, bank.bank_account_number_encrypted
+                )
+                or bank.bank_account_number_last_four,
                 "ifsc_code": bank.ifsc_code,
             },
             "documents": [
@@ -1669,12 +1954,13 @@ def update_employee(db: Session, actor: User, user_id: UUID, payload: object) ->
                     )
                 if "uan_number" in values:
                     uan = (values["uan_number"] or "").strip()
-                    try:
-                        validate_uan(uan)
-                    except ValueError as error:
-                        raise _field_validation_error("uan_number", str(error)) from None
+                    if uan:
+                        try:
+                            validate_uan(uan)
+                        except ValueError as error:
+                            raise _field_validation_error("uan_number", str(error)) from None
                     personal.uan_number_encrypted = (
-                        encryptor.encrypt(uan.encode()).decode()
+                        encryptor.encrypt(uan.encode()).decode() if uan else None
                     )
 
             contact_fields = {

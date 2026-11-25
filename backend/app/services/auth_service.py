@@ -287,16 +287,27 @@ def login(db: Session, email: str, password: str) -> dict:
         select(User)
         .options(
             selectinload(User.role_assignments).joinedload(UserRole.role),
+            joinedload(User.employee),
         )
         .where(
             func.lower(User.email) == submitted_email,
             User.deleted_at.is_(None),
         )
-        .with_for_update()
+        .with_for_update(of=User)
     )
     now = datetime.now(UTC)
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, EMAIL_NOT_FOUND_ERROR)
+
+    employee = user.employee
+    if employee is not None and (
+        employee.onboarding_status == "REJECTED"
+        or employee.profile_status == "REJECTED"
+    ):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Your onboarding request has been rejected by HR Team. Please contact them.",
+        )
 
     valid_password = verify_password(password, user.password_hash)
     account_is_active = user.is_active and user.account_status == "ACTIVE"

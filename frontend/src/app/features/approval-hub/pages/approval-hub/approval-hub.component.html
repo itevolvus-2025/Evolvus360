@@ -7,8 +7,6 @@
   } @else if (approvalService.reviewDetails(); as review) {
   <!-- Review Form Container with Blue Dotted Outline (Matching Design Specification) -->
   <div class="review-page-card-container">
-    @let completion = calculateCompletion(review);
-
     <!-- Candidate Header Card -->
     <section class="review-card candidate-header-card">
       <div class="candidate-header-left">
@@ -16,7 +14,7 @@
           {{ getInitials(review.name) }}
         </div>
         <div class="candidate-meta-info">
-          <h2 class="candidate-name">{{ review.name }}</h2>
+          <h2 class="candidate-name">{{ formatPersonName(review.name) }}</h2>
           <div class="candidate-badges-row">
             <span class="info-badge">
               <app-icon name="mail" [size]="13" color="#64748B" />
@@ -204,8 +202,8 @@
 
         <div class="grid-3col" style="margin-top: 16px;">
           <div class="field-item">
-            <label class="field-label">UAN (PF Application) <span class="required">*</span></label>
-            <input type="text" class="field-input-readonly" [value]="review.profile?.uan_number || '100912345678'"
+            <label class="field-label">UAN (Optional)</label>
+            <input type="text" class="field-input-readonly" [value]="review.profile?.uan_number || ''"
               readonly />
           </div>
 
@@ -345,10 +343,10 @@
   <section class="toolbar-card">
     <div class="search-input-box">
       <app-icon name="magnifying-glass" [size]="14" color="#64748B" />
-      <input type="text" placeholder="Search employee, title, requester or department..." [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)" aria-label="Search approval requests" />
+      <input type="text" placeholder="Search employee, title, requester or department..." [value]="searchQuery()"
+        (input)="onSearchInput($any($event.target).value)" aria-label="Search approval requests" />
       @if (searchQuery()) {
-      <button type="button" class="clear-search-btn" (click)="searchQuery.set('')" aria-label="Clear search">
+      <button type="button" class="clear-search-btn" (click)="clearSearch()" aria-label="Clear search">
         ×
       </button>
       }
@@ -395,7 +393,7 @@
       <div class="request-meta-grid">
         <div class="meta-col">
           <span class="meta-col-label">EMPLOYEE NAME</span>
-          <span class="meta-col-value">{{ item.employeeName || 'Pooja Nikam' }}</span>
+          <span class="meta-col-value">{{ formatPersonName(item.employeeName || 'Pooja Nikam') }}</span>
         </div>
 
         <div class="meta-col">
@@ -418,8 +416,15 @@
         </div>
       </div>
 
-      <!-- Bottom Right: View Request Action Button -->
+      <!-- Bottom Right: Resend Mail (if Rejected or Pending) & View Request Action Button -->
       <div class="request-actions-row">
+        @if (item.status === 'Rejected' || item.status === 'Pending') {
+          <button type="button" class="btn-resend-mail-hub" (click)="sendInvitation(item)"
+            title="Resend onboarding invitation email to candidate">
+            <app-icon name="tray-arrow-up" [size]="14" color="#2563EB" />
+            <span>Resend Mail</span>
+          </button>
+        }
         <button type="button" class="btn-view-request" (click)="review(item.userId || item.id)"
           title="View Request and review submitted details">
           View Request

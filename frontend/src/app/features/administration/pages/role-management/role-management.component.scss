@@ -1,115 +1,323 @@
+:host {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
 .role-management-page {
   width: 100%;
-  padding: 0 0 32px;
+  padding: 4px 0 32px;
+  color: #0f172a;
 }
 
 /* ==========================================================================
-   Delete Confirmation Modal
+   Main Role Management Card (Matching User Screenshot)
    ========================================================================== */
-.delete-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background-color: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+.role-management-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
-.delete-modal-dialog {
-  background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  border: 1px solid #fee2e2;
-  width: 100%;
-  max-width: 440px;
-  padding: 28px 24px;
-  text-align: center;
-  font-family: 'Poppins', sans-serif;
-  animation: modalIn 0.18s ease-out;
+/* --------------------------------------------------------------------------
+   Top Toolbar: Search Box & Scope Filter
+   -------------------------------------------------------------------------- */
+.role-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
 
-  .delete-dialog-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background-color: #fee2e2;
-    display: inline-flex;
+.role-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 300px;
+  max-width: 100%;
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    pointer-events: none;
+    display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 16px;
   }
 
-  .delete-dialog-title {
-    margin: 0 0 8px;
-    font-size: 18px;
-    font-weight: 700;
+  .role-search-input {
+    width: 100%;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0 32px 0 40px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-family: inherit;
     color: #0f172a;
+    outline: none;
+    transition: all 0.15s ease;
+
+    &::placeholder {
+      color: #94a3b8;
+    }
+
+    &:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
   }
 
-  .delete-dialog-message {
-    margin: 0 0 24px;
+  .clear-search-btn {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: #475569;
+    }
+  }
+}
+
+.scope-filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  .scope-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Table Layout & Headers
+   -------------------------------------------------------------------------- */
+.role-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.role-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+
+  thead {
+    background-color: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+
+    th {
+      padding: 13px 24px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #f1f5f9;
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: #fafbfc;
+      }
+
+      td {
+        padding: 18px 24px;
+        vertical-align: middle;
+        color: #334155;
+        font-size: 13.5px;
+      }
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Cell Elements (Matching User Screenshot)
+   -------------------------------------------------------------------------- */
+.role-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.role-purpose {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+/* Green bordered capsule status pill */
+.status-pill {
+  display: inline-block;
+  border-radius: 9999px;
+  padding: 2.5px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: center;
+  background-color: #ffffff;
+  border: 1.5px solid #22c55e;
+  color: #16a34a;
+
+  &.status-active {
+    border-color: #22c55e;
+    color: #16a34a;
+  }
+
+  &.status-inactive,
+  &.status-deactive {
+    border-color: #94a3b8;
+    color: #64748b;
+  }
+}
+
+/* Blue Edit Pencil Icon Button */
+.action-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: #2563eb;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+
+  &:hover {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+  }
+}
+
+/* Empty State */
+.empty-row {
+  .empty-cell {
+    text-align: center;
+    padding: 48px 24px;
+    color: #94a3b8;
+
+    p {
+      margin: 10px 0 0;
+      font-size: 14px;
+      color: #64748b;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Footer / Pagination (Matching User Screenshot)
+   -------------------------------------------------------------------------- */
+.role-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  .footer-count-text {
     font-size: 13px;
     color: #64748b;
-    line-height: 1.5;
+    margin: 0;
 
     strong {
+      font-weight: 700;
       color: #0f172a;
     }
   }
 
-  .delete-dialog-actions {
+  .pagination-controls {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
+    gap: 8px;
 
-    .btn-cancel {
-      height: 40px;
-      padding: 0 20px;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
+    .btn-page-nav {
       background-color: #ffffff;
-      color: #64748b;
-      font-family: inherit;
-      font-size: 14px;
+      border: 1.5px solid #3b82f6;
+      color: #2563eb;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 13px;
       font-weight: 500;
       cursor: pointer;
+      transition: all 0.15s ease;
+      outline: none;
+      font-family: inherit;
 
-      &:hover {
-        background-color: #f8fafc;
-        color: #0f172a;
+      &:hover:not(:disabled) {
+        background-color: #eff6ff;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        border-color: #cbd5e1;
+        color: #94a3b8;
       }
     }
 
-    .btn-confirm-delete {
-      height: 40px;
-      padding: 0 22px;
+    .btn-page-num {
+      background: transparent;
       border: none;
-      border-radius: 8px;
-      background-color: #dc2626;
-      color: #ffffff;
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 600;
+      color: #2563eb;
+      font-size: 13.5px;
+      font-weight: 700;
+      padding: 6px 12px;
       cursor: pointer;
-      transition: background-color 0.15s ease;
+      border-radius: 4px;
+      font-family: inherit;
 
-      &:hover {
-        background-color: #b91c1c;
+      &.active {
+        color: #2563eb;
       }
     }
   }
 }
 
-@keyframes modalIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
+/* --------------------------------------------------------------------------
+   Responsive Layout
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .role-toolbar {
+    flex-direction: column;
+    align-items: stretch;
   }
-  to {
-    opacity: 1;
-    transform: scale(1);
+
+  .role-search-wrap {
+    width: 100%;
+  }
+
+  .scope-filter-wrap {
+    justify-content: space-between;
+  }
+
+  .role-footer {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

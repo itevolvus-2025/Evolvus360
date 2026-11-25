@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { API_ENDPOINTS } from '../../../core/constants/api-endpoints';
@@ -165,7 +166,7 @@ const DEFAULT_REVIEW_JHON_DOE: ApprovalDetails = {
     aadhaar_number: '4589 1234 5678',
     pan_number: 'ABCDE1234F',
     passport_number: 'Z8765432',
-    uan_number: '100912345678',
+    uan_number: '',
     mobile_number: '+91 98765 43210',
     emergency_contact_name: 'Sarah Doe',
     emergency_contact_phone: '+91 98123 45678',
@@ -218,58 +219,28 @@ export class ApprovalHubService {
     this.loadApprovals();
   }
 
-  loadApprovals(): void {
+  loadApprovals(onboardingStatus?: string, search?: string): void {
     this.isLoading.set(true);
-    this.apiService.get<{ items: EmployeeApprovalRecord[]; total?: number }>(API_ENDPOINTS.approvals.employees, { page: 1, page_size: 100, onboarding_status: 'PENDING_APPROVAL' }).subscribe({
-      next: (res) => {
-        const pending = (res.data?.items || []).map((record) => this.toItem(record));
-        const pendingTotal = res.data?.total ?? pending.length;
-        this.apiService.get<{ items: EmployeeApprovalRecord[]; total?: number }>(API_ENDPOINTS.approvals.employees, { page: 1, page_size: 100, onboarding_status: 'APPROVED' }).subscribe({
-          next: (approvedRes) => {
-            const approved = (approvedRes.data?.items || []).map((record) => this.toItem(record));
-            const approvedTotal = approvedRes.data?.total ?? approved.length;
-            this.apiService.get<{ items: EmployeeApprovalRecord[]; total?: number }>(API_ENDPOINTS.approvals.employees, { page: 1, page_size: 100, onboarding_status: 'REJECTED' }).subscribe({
-              next: (rejectedRes) => {
-                const rejected = (rejectedRes.data?.items || []).map((record) => this.toItem(record));
-                const allApi = [...pending, ...approved, ...rejected];
-                if (allApi.length > 0) {
-                  this.items.set(allApi);
-                  this.totalApprovalCount.set(pendingTotal + approvedTotal + (rejectedRes.data?.total ?? rejected.length));
-                } else {
-                  this.items.set(DEFAULT_APPROVAL_ITEMS);
-                  this.totalApprovalCount.set(DEFAULT_APPROVAL_ITEMS.length);
-                }
-                this.isLoading.set(false);
-              },
-              error: () => {
-                const combined = [...pending, ...approved];
-                if (combined.length > 0) {
-                  this.items.set(combined);
-                  this.totalApprovalCount.set(pendingTotal + approvedTotal);
-                } else {
-                  this.items.set(DEFAULT_APPROVAL_ITEMS);
-                  this.totalApprovalCount.set(DEFAULT_APPROVAL_ITEMS.length);
-                }
-                this.isLoading.set(false);
-              },
-            });
-          },
-          error: () => {
-            if (pending.length > 0) {
-              this.items.set(pending);
-              this.totalApprovalCount.set(pendingTotal);
-            } else {
-              this.items.set(DEFAULT_APPROVAL_ITEMS);
-              this.totalApprovalCount.set(DEFAULT_APPROVAL_ITEMS.length);
-            }
-            this.isLoading.set(false);
-          },
-        });
+    const statusMap: Record<string, string> = { 'Pending Only': 'PENDING_APPROVAL', Authorized: 'APPROVED', Rejected: 'REJECTED' };
+    const params: Record<string, string | number> = { page: 1, page_size: 100 };
+    if (search && search.trim()) {
+      params['search'] = search.trim();
+    }
+    const selectedStatus = onboardingStatus ? statusMap[onboardingStatus] : undefined;
+    if (selectedStatus) params['onboarding_status'] = selectedStatus;
+    const loadStatus = (status: string) => this.apiService.get<{ items: EmployeeApprovalRecord[]; total?: number; page?: number; page_size?: number }>(API_ENDPOINTS.approvals.employees, { ...params, onboarding_status: status });
+    const request = forkJoin(['PENDING_APPROVAL', 'APPROVED', 'REJECTED'].map(loadStatus));
+    request.subscribe({
+      next: (responses) => {
+        const mapped = responses.flatMap((response) => (response.data?.items || []).map((record) => this.toItem(record)));
+        this.items.set(mapped);
+        const total = responses.reduce((sum, response) => sum + (response.data?.total ?? response.data?.items?.length ?? 0), 0);
+        this.totalApprovalCount.set(total);
+        this.isLoading.set(false);
       },
       error: () => {
-        // Fallback to default items matching user design specification
-        this.items.set(DEFAULT_APPROVAL_ITEMS);
-        this.totalApprovalCount.set(DEFAULT_APPROVAL_ITEMS.length);
+        this.items.set([]);
+        this.totalApprovalCount.set(0);
         this.isLoading.set(false);
       },
     });
@@ -278,24 +249,30 @@ export class ApprovalHubService {
   private toItem(record: EmployeeApprovalRecord): ApprovalItem {
     const approved = record.onboarding_status === 'APPROVED';
     const rejected = record.onboarding_status === 'REJECTED';
+    const employeeName = this.formatPersonName(record.name);
     return {
       id: record.employee_id,
       userId: record.employee_id,
       type: 'EMPLOYEE ONBOARDING',
-      title: `New Hire Onboarding: ${record.name}`,
-      description: `HR Manager registered new employee ${record.name} Proposed Role: ${record.designation || 'Data Entry Opertaor'}. Requires Super Admin approval to activate system login credentials.`,
+      title: `New Hire Onboarding: ${employeeName}`,
+      description: `HR Manager registered new employee ${employeeName} Proposed Role: ${record.designation || 'Data Entry Opertaor'}. Requires Super Admin approval to activate system login credentials.`,
       status: approved ? 'Authorized' : rejected ? 'Rejected' : 'Pending',
       submittedDate: record.submitted_at
         ? new Date(record.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : 'Nov 21, 2026',
-      employeeName: record.name,
+      employeeName,
       admin: (record as any).admin || 'Asha Rao',
       department: record.department || 'Chemistry',
       assignedRole: record.designation || 'Data Entry Opertaor',
       submittedBy: (record as any).submitted_by || 'Meera Iyer (HR Manager)',
-      loginState: approved ? 'Enabled (Active)' : 'Disabled (Pending Approval)',
+      loginState: approved ? 'Enabled (Active)' : rejected ? 'Disabled (Rejected)' : 'Disabled (Pending Approval)',
       emailDispatchStatus: record.email_dispatch_status,
     };
+  }
+
+  private formatPersonName(name: string | null | undefined): string {
+    return (name || '').trim().toLocaleLowerCase()
+      .replace(/\b([\p{L}])/gu, (letter) => letter.toLocaleUpperCase());
   }
 
   review(id: string | number): void {
@@ -405,7 +382,7 @@ export class ApprovalHubService {
           aadhaar_number: personal?.aadhaar_last_four ? `4589 1234 ${personal.aadhaar_last_four}` : '4589 1234 5678',
           pan_number: personal?.pan_present ? 'ABCDE1234F' : 'ABCDE1234F',
           passport_number: personal?.passport_present ? 'Z8765432' : 'Z8765432',
-          uan_number: (personal as any)?.uan_number || (data as any)?.uan_number || '100912345678',
+          uan_number: personal?.uan_number || '',
           mobile_number: contact?.mobile_number || '+91 98765 43210',
           emergency_contact_name: contact?.emergency_contact_name || 'Sarah Doe',
           emergency_contact_phone: contact?.emergency_contact_phone || '+91 98123 45678',
@@ -460,7 +437,7 @@ export class ApprovalHubService {
         aadhaar_number: emp.aadhaar_number || '4589 1234 5678',
         pan_number: emp.pan_number || 'ABCDE1234F',
         passport_number: emp.passport_number || 'Z8765432',
-        uan_number: emp.uan_number || '100912345678',
+        uan_number: emp.uan_number || '',
         mobile_number: emp.mobile_number || '+91 98765 43210',
         emergency_contact_name: emp.emergency_contact?.name || 'Sarah Doe',
         emergency_contact_phone: emp.emergency_contact?.phone || '+91 98123 45678',

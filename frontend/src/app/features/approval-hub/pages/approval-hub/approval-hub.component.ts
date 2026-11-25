@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnDestroy,
   OnInit,
   computed,
   inject,
@@ -34,10 +35,15 @@ export type FilterOption =
   styleUrl: './approval-hub.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ApprovalHubComponent implements OnInit {
+export class ApprovalHubComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly approvalService = inject(ApprovalHubService);
+
+  formatPersonName(value: string | undefined): string {
+    return (value || '').trim().toLocaleLowerCase()
+      .replace(/\b([\p{L}])/gu, (letter) => letter.toLocaleUpperCase());
+  }
 
   readonly filterOptions: FilterOption[] = [
     'Pending Only',
@@ -59,6 +65,7 @@ export class ApprovalHubComponent implements OnInit {
   readonly searchQuery = signal('');
   readonly selectedFilter = signal<FilterOption>('Pending Only');
   readonly isFilterOpen = signal(false);
+  private searchDebounceTimer: any = null;
 
   // Rejection Reason Modal
   readonly isRejectModalOpen = signal(false);
@@ -66,6 +73,7 @@ export class ApprovalHubComponent implements OnInit {
   readonly rejectReason = signal('Please review and correct the submitted onboarding details.');
 
   ngOnInit(): void {
+    this.approvalService.loadApprovals(this.selectedFilter(), this.searchQuery());
     this.route.paramMap.subscribe((params) => {
       const idParam = params.get('id');
       if (idParam) {
@@ -74,6 +82,30 @@ export class ApprovalHubComponent implements OnInit {
         this.approvalService.closeReview();
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+  }
+
+  onSearchInput(value: string): void {
+    this.searchQuery.set(value);
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+    this.searchDebounceTimer = setTimeout(() => {
+      this.approvalService.loadApprovals(this.selectedFilter(), this.searchQuery());
+    }, 300);
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+    this.approvalService.loadApprovals(this.selectedFilter(), '');
   }
 
   /** Filtered list based on status filter and search query */
@@ -95,7 +127,7 @@ export class ApprovalHubComponent implements OnInit {
       list = list.filter((item) => item.type === 'LEAVES & TIME-OFF');
     }
 
-    // 2. Search Query
+    // 2. Search Query (instant client-side filtering)
     if (query) {
       list = list.filter(
         (item) =>
@@ -117,6 +149,7 @@ export class ApprovalHubComponent implements OnInit {
   setFilter(option: FilterOption): void {
     this.selectedFilter.set(option);
     this.isFilterOpen.set(false);
+    this.approvalService.loadApprovals(option, this.searchQuery());
   }
 
   authorize(id: string | number): void {
@@ -185,6 +218,11 @@ export class ApprovalHubComponent implements OnInit {
 
   retryInvitation(id: string | number): void {
     this.approvalService.retryInvitation(id);
+  }
+
+  sendInvitation(item: ApprovalItem): void {
+    const id = item.userId || item.id;
+    this.approvalService.sendInvitation(id);
   }
 
   getInitials(name?: string): string {

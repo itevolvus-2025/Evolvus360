@@ -25,9 +25,11 @@ export class RoleService {
   /** Live dataset of roles backed by API and optimistic state */
   readonly roles = signal<RoleRow[]>([]);
   readonly totalRoleCount = signal(0);
+  readonly totalRolePages = signal(1);
 
   /** Loading state indicator */
   readonly isLoading = signal(false);
+  readonly loadError = signal<string | null>(null);
 
   constructor() {
     this.loadRoles();
@@ -36,16 +38,21 @@ export class RoleService {
   /**
    * Fetch roles from backend API (GET /api/v1/roles).
    */
-  loadRoles(): void {
+  loadRoles(page = 1, pageSize = 10, search = ''): void {
     this.isLoading.set(true);
-    this.apiService.get<RoleListResponse>(API_ENDPOINTS.roles.list, { page: 1, page_size: 100 }).subscribe({
+    this.loadError.set(null);
+    const params: Record<string, any> = { page, page_size: pageSize };
+    if (search && search.trim()) {
+      params['search'] = search.trim();
+    }
+    this.apiService.get<RoleListResponse>(API_ENDPOINTS.roles.list, params).subscribe({
       next: (res) => {
         this.isLoading.set(false);
         const items = res?.data?.items;
         if (Array.isArray(items)) {
           const mapped: RoleRow[] = items.map((r: RoleDto) => ({
             id: r.id,
-            role: r.role || r.name || r.role_name || 'Role',
+            role: this.formatRoleName(r.role || r.name || r.role_name || 'Role'),
             purpose: r.purpose || r.description || '',
             status: (r.status === 'Active' || r.status === 'ACTIVE' || r.is_active
               ? 'Active'
@@ -57,16 +64,19 @@ export class RoleService {
           }));
           this.roles.set(mapped);
           this.totalRoleCount.set(res.data.pagination?.total ?? mapped.length);
-          console.log(`[RoleService] Loaded ${mapped.length} roles from backend API.`);
+          this.totalRolePages.set(res.data.pagination?.total_pages ?? Math.max(1, Math.ceil((res.data.pagination?.total ?? mapped.length) / pageSize)));
+          console.log(`[RoleService] Loaded ${mapped.length} roles from backend API (Page ${page}, Total: ${this.totalRoleCount()}).`);
         } else {
           this.roles.set([]);
           this.totalRoleCount.set(0);
+          this.totalRolePages.set(1);
         }
       },
       error: (err) => {
         this.isLoading.set(false);
         this.roles.set([]);
         this.totalRoleCount.set(0);
+        this.totalRolePages.set(1);
         console.warn(
           '[RoleService] Could not load roles from backend API:',
           err.message
@@ -77,6 +87,11 @@ export class RoleService {
 
   getRoleById(id: number | string): RoleRow | undefined {
     return this.roles().find((r) => String(r.id) === String(id));
+  }
+
+  private formatRoleName(value: string): string {
+    return value.trim().toLocaleLowerCase()
+      .replace(/\b([\p{L}])/gu, (letter) => letter.toLocaleUpperCase());
   }
 
   /**
@@ -95,7 +110,7 @@ export class RoleService {
           const r = res.data;
           const mapped: RoleRow = {
             id: r.id,
-            role: r.role || r.name || r.role_name || 'Role',
+            role: this.formatRoleName(r.role || r.name || r.role_name || 'Role'),
             purpose: r.purpose || r.description || '',
             status: (r.status === 'Active' || r.status === 'ACTIVE' || r.is_active
               ? 'Active'
@@ -218,7 +233,7 @@ export class RoleService {
           const r = res.data;
           const mapped: RoleRow = {
             id: r.id,
-            role: r.role || r.name || r.role_name || updated.role || 'Role',
+            role: this.formatRoleName(r.role || r.name || r.role_name || updated.role || 'Role'),
             purpose: r.purpose || r.description || updated.purpose || '',
             status: (r.status === 'Active' || r.status === 'ACTIVE' || r.is_active
               ? 'Active'

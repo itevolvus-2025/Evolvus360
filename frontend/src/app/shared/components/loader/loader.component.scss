@@ -1,0 +1,199 @@
+/* ==========================================================================
+   Ant Design Spin Component (100% AntD specification)
+   ========================================================================== */
+
+$ant-primary: #1677ff;
+
+/* Base Ant Spin Container */
+.ant-spin {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  color: $ant-primary;
+  font-size: 14px;
+  line-height: 1.5714285714285714;
+  list-style: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  position: static;
+  display: inline-block;
+  text-align: center;
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86);
+
+  &.ant-spin-spinning {
+    position: static;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+  }
+}
+
+/* 4-Dot Rotating Spinner */
+.ant-spin-dot {
+  position: relative;
+  display: inline-block;
+  font-size: 20px;
+  width: 1em;
+  height: 1em;
+  transform: rotate(45deg);
+  animation: antRotate 1.2s infinite linear;
+}
+
+.ant-spin-dot-spin {
+  transform: rotate(45deg);
+  animation: antRotate 1.2s infinite linear;
+}
+
+.ant-spin-dot-item {
+  position: absolute;
+  display: block;
+  width: 9px;
+  height: 9px;
+  background-color: $ant-primary;
+  border-radius: 100%;
+  transform: scale(0.75);
+  transform-origin: 50% 50%;
+  opacity: 0.3;
+  animation: antSpinMove 1s infinite linear alternate;
+
+  &:nth-child(1) {
+    top: 0;
+    left: 0;
+  }
+
+  &:nth-child(2) {
+    top: 0;
+    right: 0;
+    animation-delay: 0.4s;
+  }
+
+  &:nth-child(3) {
+    right: 0;
+    bottom: 0;
+    animation-delay: 0.8s;
+  }
+
+  &:nth-child(4) {
+    bottom: 0;
+    left: 0;
+    animation-delay: 1.2s;
+  }
+}
+
+/* Sizes */
+.ant-spin-sm {
+  .ant-spin-dot {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .ant-spin-dot-item {
+    width: 6px;
+    height: 6px;
+  }
+
+  .ant-spin-text {
+    font-size: 12px;
+    margin-top: 6px;
+  }
+}
+
+.ant-spin-lg {
+  .ant-spin-dot {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .ant-spin-dot-item {
+    width: 14px;
+    height: 14px;
+  }
+
+  .ant-spin-text {
+    font-size: 14px;
+    margin-top: 14px;
+  }
+}
+
+/* Text */
+.ant-spin-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: $ant-primary;
+  margin-top: 10px;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  user-select: none;
+}
+
+/* ==========================================================================
+   Ant Design Overlay / Mask
+   ========================================================================== */
+.ant-spin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: antFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ant-spin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
+              0 3px 6px -4px rgba(0, 0, 0, 0.12),
+              0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(5, 5, 5, 0.06);
+  min-width: 200px;
+  max-width: 320px;
+  animation: antScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   Ant Design Keyframe Animations
+   ========================================================================== */
+@keyframes antSpinMove {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes antRotate {
+  to {
+    transform: rotate(405deg);
+  }
+}
+
+@keyframes antFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes antScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

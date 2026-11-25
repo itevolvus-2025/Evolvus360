@@ -51,8 +51,6 @@ export class UserEditComponent implements OnInit {
   readonly statusOptions: DropdownOption[] = [
     { label: 'Active', value: 'Active' },
     { label: 'Inactive', value: 'Inactive' },
-    { label: 'Deactive', value: 'Deactive' },
-    { label: 'Pending', value: 'Pending' },
   ];
   readonly genderOptions: DropdownOption[] = [
     { label: 'Male', value: 'MALE' },
@@ -82,6 +80,31 @@ export class UserEditComponent implements OnInit {
   readonly profile = signal<ProfileStatus>('Pending');
   readonly reasonForChange = signal('');
 
+  /** Profile is in read-only mode when account is Inactive/Deactive */
+  readonly isReadOnly = computed(() => this.status() === 'Inactive');
+
+  /** Whether deactivation is disabled: when user is deactive, inactive, pending, or profile is pending or submitted */
+  readonly isDeactivateDisabled = computed(() => {
+    return (
+      this.status() === 'Inactive' ||
+      this.profile() === 'Pending' ||
+      this.profile() === 'Submitted'
+    );
+  });
+
+  readonly deactivateTooltip = computed(() => {
+    if (this.status() === 'Inactive') {
+      return 'User account is already deactivated';
+    }
+    if (this.profile() === 'Submitted') {
+      return 'Cannot deactivate user while onboarding profile is submitted for approval';
+    }
+    if (this.profile() === 'Pending') {
+      return 'Cannot deactivate user with pending status';
+    }
+    return 'Deactivate user account and revoke access';
+  });
+
   // 04 Employment Timeline
   readonly joiningDate = signal('');
   readonly startDate = signal('');
@@ -92,6 +115,8 @@ export class UserEditComponent implements OnInit {
   readonly todayDate = new Date().toISOString().slice(0, 10);
   readonly sensitiveUpdates = signal<Record<string, string>>({});
   readonly contactFieldErrors = signal<Record<string, string>>({});
+  readonly showAadhaar = signal(true);
+  readonly showPan = signal(true);
   readonly selectedDocuments = signal<{ identity_proof: File | null; cancelled_cheque: File | null }>({
     identity_proof: null,
     cancelled_cheque: null,
@@ -180,6 +205,7 @@ export class UserEditComponent implements OnInit {
   }
 
   openDatePicker(input: HTMLInputElement): void {
+    if (this.isReadOnly()) return;
     try {
       if ('showPicker' in input && typeof input.showPicker === 'function') {
         input.showPicker();
@@ -285,6 +311,10 @@ export class UserEditComponent implements OnInit {
   }
 
   saveUser(): void {
+    if (this.isReadOnly()) {
+      this.notification.show('Cannot save changes because the user account is inactive.', 'error');
+      return;
+    }
     const firstName = this.firstName().trim();
     const lastName = this.lastName().trim();
     const department = this.department().trim();
@@ -402,11 +432,7 @@ export class UserEditComponent implements OnInit {
         joining_date: parseDate(joiningDate),
         start_date: parseDate(startDate),
         end_date: endDate ? parseDate(endDate) : null,
-        account_status: this.status() === 'Active'
-          ? 'ACTIVE'
-          : this.status() === 'Pending'
-            ? 'INVITED'
-            : 'INACTIVE',
+        account_status: this.status() === 'Active' ? 'ACTIVE' : 'INACTIVE',
       };
 
       if (this.reasonForChange().trim()) {
@@ -509,6 +535,9 @@ export class UserEditComponent implements OnInit {
   }
 
   openDeactivateConfirm(): void {
+    if (this.isDeactivateDisabled()) {
+      return;
+    }
     this.showDeactivateModal.set(true);
   }
 

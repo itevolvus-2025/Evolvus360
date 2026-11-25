@@ -3,7 +3,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { API_ENDPOINTS } from '../../../core/constants/api-endpoints';
 import { EmployeeApiRecord, MasterDataOption } from '../../../core/models/api.models';
 
-export type UserStatus = 'Active' | 'Inactive' | 'Deactive' | 'Pending';
+export type UserStatus = 'Active' | 'Inactive';
 export type ProfileStatus = 'Pending' | 'Submitted' | 'Approved' | 'Rejected';
 
 export interface UserRow {
@@ -62,17 +62,28 @@ export class UserService {
   readonly isSaving = signal(false);
   readonly failedInvitationIds = signal<Set<string>>(new Set());
 
-  constructor() {
-    this.loadUsers();
+  formatPersonName(name: string | null | undefined): string {
+    return (name || '').trim().toLocaleLowerCase()
+      .replace(/\b([\p{L}])/gu, (letter) => letter.toLocaleUpperCase());
   }
 
   /**
    * Load users from backend API (GET /api/v1/users)
    */
-  loadUsers(): void {
+  loadUsers(page = 1, pageSize = 10, roleId?: string, search?: string): void {
     this.isLoading.set(true);
     this.loadError.set(null);
-    this.apiService.get<{ items: EmployeeApiRecord[]; pagination?: { total?: number } }>(API_ENDPOINTS.users.list, { page: 1, page_size: 100 }).subscribe({
+    const params: Record<string, any> = { page, page_size: pageSize };
+    if (roleId && roleId !== 'All') {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roleId);
+      if (isUuid) {
+        params['role_id'] = roleId;
+      }
+    }
+    if (search && search.trim()) {
+      params['search'] = search.trim();
+    }
+    this.apiService.get<{ items: EmployeeApiRecord[]; pagination?: { total?: number; total_pages?: number } }>(API_ENDPOINTS.users.list, params).subscribe({
       next: (res) => {
         this.isLoading.set(false);
         const items = res?.data?.items;
@@ -90,7 +101,7 @@ export class UserService {
               firstName,
               middleName: u.middle_name || '',
               lastName,
-              name: fullName,
+              name: this.formatPersonName(fullName),
               code: u.employee_code || 'E001',
               companyEmail: u.company_email || '',
               personalEmail: u.personal_email || '',
@@ -116,10 +127,12 @@ export class UserService {
           });
           this.users.set(mapped);
           this.totalUsersCount.set(res?.data?.pagination?.total ?? mapped.length);
+          this.totalUserPages.set(res?.data?.pagination?.total_pages ?? Math.ceil((res?.data?.pagination?.total ?? mapped.length) / pageSize));
           console.log(`[UserService] Loaded ${mapped.length} users from backend API.`);
         } else {
           this.users.set([]);
           this.totalUsersCount.set(0);
+          this.totalUserPages.set(1);
           this.loadError.set('The users API returned an unexpected response.');
         }
       },
@@ -127,6 +140,7 @@ export class UserService {
         this.isLoading.set(false);
         this.users.set([]);
         this.totalUsersCount.set(0);
+        this.totalUserPages.set(1);
         this.loadError.set(err.message || 'Could not load users.');
         console.warn('[UserService] Could not load users from backend API:', err.message);
       },
@@ -149,9 +163,7 @@ export class UserService {
   }
 
   private mapAccountStatus(status?: string): UserStatus {
-    if (status === 'ACTIVE') return 'Active';
-    if (status === 'INVITED' || status === 'PENDING_APPROVAL') return 'Pending';
-    return 'Inactive';
+    return status === 'ACTIVE' ? 'Active' : 'Inactive';
   }
 
   createEmployee(payload: Record<string, unknown>, onSuccess: (result: EmployeeApiRecord) => void, onError: (message: string, fieldErrors?: Record<string, string>) => void): void {
@@ -224,7 +236,7 @@ export class UserService {
             firstName: hr.first_name || '',
             middleName: hr.middle_name || '',
             lastName: hr.last_name || '',
-            name: [hr.first_name, hr.middle_name, hr.last_name].filter(Boolean).join(' ').trim() || hr.employee_code,
+            name: this.formatPersonName([hr.first_name, hr.middle_name, hr.last_name].filter(Boolean).join(' ').trim() || hr.employee_code),
             code: hr.employee_code || '',
             reasonForChange: hr.reason_for_change || '',
             companyEmail: hr.company_email || '',
@@ -244,7 +256,7 @@ export class UserService {
             startDate: hr.start_date || '',
             endDate: hr.end_date || '',
             status: this.mapAccountStatus(d.account_status),
-            profile: (d.profile_status === 'APPROVED' ? 'Approved' : ['SUBMITTED', 'PENDING_APPROVAL'].includes(d.profile_status) ? 'Submitted' : 'Pending'),
+            profile: (d.profile_status === 'APPROVED' ? 'Approved' : ['SUBMITTED', 'PENDING_APPROVAL'].includes(d.profile_status) ? 'Submitted' : d.profile_status === 'REJECTED' ? 'Rejected' : 'Pending'),
             employeeDetails: d.employee_details || null,
             rawDetails: d,
           };
@@ -324,7 +336,7 @@ export class UserService {
       id: result.id,
       firstName: '', middleName: '', lastName: '',
       name: 'New user', department: '', role: '', designation: '', code: result.employee_code,
-      companyEmail: '', email: '', pfApplicable: 'No', status: 'Pending', profile: 'Pending',
+      companyEmail: '', email: '', pfApplicable: 'No', status: 'Inactive', profile: 'Pending',
       emailDispatchStatus: result.email_dispatch_status,
     };
     this.users.update((list) => [user, ...list]);
@@ -333,11 +345,12 @@ export class UserService {
 
   /** KPI Metrics */
   readonly totalUsersCount = signal(0);
+  readonly totalUserPages = signal(1);
   readonly activeUsersCount = computed(
     () => this.users().filter((u) => u.status === 'Active').length
   );
   readonly awaitingActivationCount = computed(
-    () => this.users().filter((u) => u.status === 'Pending' || u.status === 'Deactive').length
+    () => this.users().filter((u) => u.status === 'Inactive' && u.profile !== 'Approved').length
   );
   readonly requestsPendingCount = computed(
     () => this.users().filter((u) => u.profile === 'Pending' && u.status !== 'Active').length
@@ -358,7 +371,7 @@ export class UserService {
 
     const newUser: UserRow = {
       id: `temp_${Date.now()}`,
-      name: fullName,
+      name: this.formatPersonName(fullName),
       ...userData,
       email: userData.companyEmail || userData.email,
     };
@@ -373,10 +386,10 @@ export class UserService {
         if (String(u.id) !== String(id)) return u;
         const merged = { ...u, ...updated };
         if (updated.firstName || updated.lastName || updated.middleName) {
-          merged.name = [merged.firstName, merged.middleName, merged.lastName]
+          merged.name = this.formatPersonName([merged.firstName, merged.middleName, merged.lastName]
             .filter(Boolean)
             .join(' ')
-            .trim();
+            .trim());
         }
         if (updated.companyEmail) {
           merged.email = updated.companyEmail;

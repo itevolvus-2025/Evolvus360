@@ -131,7 +131,9 @@ async def database_exception_handler(
     request: Request, exc: SQLAlchemyError
 ) -> JSONResponse:
     logger.error(
-        "Database operation failed",
+        "Database operation failed: %s",
+        exc,
+        exc_info=True,
         extra={
             "request_id": _request_id(request),
             "exception_type": type(exc).__name__,

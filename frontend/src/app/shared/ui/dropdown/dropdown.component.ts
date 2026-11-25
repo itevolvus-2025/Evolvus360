@@ -489,7 +489,14 @@ export class DropdownComponent implements ControlValueAccessor {
   @Input() placeholder = 'Select option';
   @Input() label = '';
   @Input() required = false;
-  @Input() disabled = false;
+  private _disabled = false;
+  @Input() set disabled(val: boolean) {
+    this._disabled = val;
+    this.isDisabled.set(val);
+  }
+  get disabled(): boolean {
+    return this._disabled;
+  }
   @Input() allowClear = false;
   @Input() showSearch = false;
   @Input() size: 'sm' | 'md' | 'lg' = 'md';

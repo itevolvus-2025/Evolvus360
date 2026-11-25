@@ -9,32 +9,35 @@
     </div>
 
     <div class="header-actions">
-      @if (status() === 'Pending' || profile() === 'Pending') {
-        <button type="button" class="btn-resend-mail" (click)="sendInvitationEmail()" title="Send onboarding invitation email">
-          <app-icon name="tray-arrow-up" [size]="14" color="#2563EB" />
-          <span>Send Invitation Email</span>
-        </button>
+      @if (profile() === 'Pending' || profile() === 'Rejected') {
+      <button type="button" class="btn-resend-mail" (click)="sendInvitationEmail()"
+        [title]="profile() === 'Rejected' ? 'Resend onboarding invitation email' : 'Send onboarding invitation email'">
+        <app-icon name="tray-arrow-up" [size]="14" color="#2563EB" />
+        <span>{{ profile() === 'Rejected' ? 'Resend Invitation Email' : 'Send Invitation Email' }}</span>
+      </button>
       }
 
-      @if (status() !== 'Inactive' && status() !== 'Deactive') {
-        <button type="button" class="btn-deactivate" (click)="openDeactivateConfirm()" title="Deactivate user account and revoke access">
-          <app-icon name="user-x" [size]="14" color="#DC2626" />
-          <span>Deactivate User</span>
-        </button>
-      } @else {
-        <div class="badge-deactivated" title="Account is inactive">
-          <app-icon name="alert-circle" [size]="14" color="#64748B" />
-          <span>User Inactive</span>
-        </div>
-      }
+      <button type="button" class="btn-deactivate" [disabled]="isDeactivateDisabled()"
+        (click)="!isDeactivateDisabled() && openDeactivateConfirm()" [title]="deactivateTooltip()">
+        <app-icon name="ban" [size]="14" [color]="isDeactivateDisabled() ? '#94A3B8' : '#DC2626'" />
+        <span>Deactivate User</span>
+      </button>
 
       <a routerLink="/users" class="btn-cancel">Cancel</a>
 
-      <button type="button" class="btn-save" (click)="saveUser()">
+      <button type="button" class="btn-save" [disabled]="isReadOnly()" (click)="!isReadOnly() && saveUser()"
+        [title]="isReadOnly() ? 'Cannot save changes because user account is deactivated' : 'Save user changes'">
         Save Changes
       </button>
     </div>
   </header>
+
+  @if (isReadOnly()) {
+  <div class="read-only-banner">
+    <app-icon name="alert-circle" [size]="18" color="#DC2626" />
+    <span>This user account is inactive. Profile is in read-only mode — no changes can be made.</span>
+  </div>
+  }
 
   <!-- Form Body -->
   <form (ngSubmit)="saveUser()" class="user-form">
@@ -51,43 +54,22 @@
         <div class="form-row-3col">
           <div class="form-group">
             <label class="form-label" for="editFirstName">First name <span class="required">*</span></label>
-            <input
-              id="editFirstName"
-              type="text"
-              class="form-input"
-              placeholder="Enter first name"
-              [ngModel]="firstName()"
-              (ngModelChange)="firstName.set($event)"
-              name="firstName"
-              required
-            />
+            <input id="editFirstName" type="text" class="form-input" placeholder="Enter first name"
+              [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" [readonly]="isReadOnly()"
+              required />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editMiddleName">Middle name</label>
-            <input
-              id="editMiddleName"
-              type="text"
-              class="form-input"
-              placeholder="Optional middle name"
-              [ngModel]="middleName()"
-              (ngModelChange)="middleName.set($event)"
-              name="middleName"
-            />
+            <input id="editMiddleName" type="text" class="form-input" placeholder="Optional middle name"
+              [ngModel]="middleName()" (ngModelChange)="middleName.set($event)" name="middleName"
+              [readonly]="isReadOnly()" />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editLastName">Last name <span class="required">*</span></label>
-            <input
-              id="editLastName"
-              type="text"
-              class="form-input"
-              placeholder="Enter last name"
-              [ngModel]="lastName()"
-              (ngModelChange)="lastName.set($event)"
-              name="lastName"
-              required
-            />
+            <input id="editLastName" type="text" class="form-input" placeholder="Enter last name" [ngModel]="lastName()"
+              (ngModelChange)="lastName.set($event)" name="lastName" [readonly]="isReadOnly()" required />
           </div>
         </div>
       </div>
@@ -107,77 +89,41 @@
           <!-- Row 1: Department & Role -->
           <div class="form-group">
             <label class="form-label" for="editDepartment">Department <span class="required">*</span></label>
-            <app-dropdown
-              [options]="departmentOptions()"
-              [value]="department()"
-              (valueChange)="department.set($event)"
-              placeholder="Select department"
-              width="100%"
-            />
+            <app-dropdown [options]="departmentOptions()" [value]="department()" (valueChange)="department.set($event)"
+              [disabled]="isReadOnly()" placeholder="Select department" width="100%" />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editRole">Role <span class="required">*</span></label>
-            <app-dropdown
-              [options]="roleOptions()"
-              [value]="role()"
-              (valueChange)="role.set($event)"
-              placeholder="Select role"
-              width="100%"
-            />
+            <app-dropdown [options]="roleOptions()" [value]="role()" (valueChange)="role.set($event)"
+              [disabled]="isReadOnly()" placeholder="Select role" width="100%" />
           </div>
 
           <!-- Row 2: Designation & Location -->
           <div class="form-group">
             <label class="form-label" for="editDesignation">Designation <span class="required">*</span></label>
-            <input
-              id="editDesignation"
-              type="text"
-              class="form-input"
-              placeholder="e.g. HR Generalist / Operations Lead"
-              [ngModel]="designation()"
-              (ngModelChange)="designation.set($event)"
-              name="designation"
-              required
-            />
+            <input id="editDesignation" type="text" class="form-input"
+              placeholder="e.g. HR Generalist / Operations Lead" [ngModel]="designation()"
+              (ngModelChange)="designation.set($event)" name="designation" [readonly]="isReadOnly()" required />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editLocation">Location <span class="required">*</span></label>
-            <input
-              id="editLocation"
-              type="text"
-              class="form-input"
-              placeholder="e.g. Mumbai, Bengaluru, Hyderabad"
-              [ngModel]="location()"
-              (ngModelChange)="location.set($event)"
-              name="location"
-              required
-            />
+            <input id="editLocation" type="text" class="form-input" placeholder="e.g. Mumbai, Bengaluru, Hyderabad"
+              [ngModel]="location()" (ngModelChange)="location.set($event)" name="location" [readonly]="isReadOnly()"
+              required />
           </div>
 
           <!-- Row 3: Entity & User/Employee Code -->
           <div class="form-group">
             <label class="form-label" for="editEntity">Entity <span class="required">*</span></label>
-            <app-dropdown
-              [options]="entityOptions()"
-              [value]="entity()"
-              (valueChange)="entity.set($event)"
-              placeholder="Select entity"
-              width="100%"
-            />
+            <app-dropdown [options]="entityOptions()" [value]="entity()" (valueChange)="entity.set($event)"
+              [disabled]="isReadOnly()" placeholder="Select entity" width="100%" />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editCode">User/Employee code <span class="required">*</span></label>
-            <input
-              id="editCode"
-              type="text"
-              class="form-input"
-              placeholder="e.g. EV-8492"
-              [value]="code()"
-              readonly
-            />
+            <input id="editCode" type="text" class="form-input" placeholder="e.g. EV-8492" [value]="code()" readonly />
           </div>
         </div>
       </div>
@@ -196,66 +142,48 @@
         <div class="form-row-2col">
           <div class="form-group">
             <label class="form-label" for="editCompanyEmail">Company email</label>
-            <input
-              id="editCompanyEmail"
-              type="email"
-              class="form-input"
-              placeholder="username@evolvus360.com"
-              [ngModel]="companyEmail()"
-              (ngModelChange)="companyEmail.set($event)"
-              name="companyEmail"
-            />
+            <input id="editCompanyEmail" type="email" class="form-input" placeholder="username@evolvus360.com"
+              [ngModel]="companyEmail()" (ngModelChange)="companyEmail.set($event)" name="companyEmail"
+              [readonly]="isReadOnly()" />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editPersonalEmail">Personal email <span class="required">*</span></label>
-            <input
-              id="editPersonalEmail"
-              type="email"
-              class="form-input"
-              placeholder="personaladdress@gmail.com"
-              [ngModel]="personalEmail()"
-              (ngModelChange)="personalEmail.set($event)"
-              name="personalEmail"
-              required
-            />
+            <input id="editPersonalEmail" type="email" class="form-input" placeholder="personaladdress@gmail.com"
+              [ngModel]="personalEmail()" (ngModelChange)="personalEmail.set($event)" name="personalEmail"
+              [readonly]="isReadOnly()" required />
           </div>
 
           <!-- PF Applicable & Account Status -->
           <div class="form-group">
             <label class="form-label" for="editPfApplicable">PF applicable <span class="required">*</span></label>
-            <app-dropdown
-              [options]="pfOptions"
-              [value]="pfApplicable()"
-              (valueChange)="pfApplicable.set($any($event))"
-              placeholder="Select"
-              width="100%"
-            />
+            <app-dropdown [options]="pfOptions" [value]="pfApplicable()" (valueChange)="pfApplicable.set($any($event))"
+              [disabled]="isReadOnly()" placeholder="Select" width="100%" />
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="editStatus">Account Status <span class="required">*</span></label>
-            <app-dropdown
-              [options]="statusOptions"
-              [value]="status()"
-              (valueChange)="status.set($any($event))"
-              placeholder="Select status"
-              width="100%"
-            />
+            <label class="form-label">Account Status</label>
+            <div class="account-status-static">
+              @if (status() === 'Active') {
+              <span class="status-pill-badge active">
+                <app-icon name="check-circle" [size]="14" color="#16A34A" />
+                <span>Enabled (Active)</span>
+              </span>
+              } @else {
+              <span class="status-pill-badge inactive">
+                <app-icon name="ban" [size]="14" color="#DC2626" />
+                <span>Disabled (Inactive)</span>
+              </span>
+              }
+            </div>
           </div>
 
           <!-- Reason for change (Full width) -->
           <div class="form-group full-width">
             <label class="form-label" for="editReason">Reason for change</label>
-            <input
-              id="editReason"
-              type="text"
-              class="form-input"
-              placeholder="e.g. Updated role and privileges following team reorganization"
-              [ngModel]="reasonForChange()"
-              (ngModelChange)="reasonForChange.set($event)"
-              name="reasonForChange"
-            />
+            <input id="editReason" type="text" class="form-input"
+              placeholder="e.g. Updated role and privileges following team reorganization" [ngModel]="reasonForChange()"
+              (ngModelChange)="reasonForChange.set($event)" name="reasonForChange" [readonly]="isReadOnly()" />
           </div>
         </div>
       </div>
@@ -275,50 +203,32 @@
           <div class="form-group">
             <label class="form-label" for="editJoiningDate">Joining date <span class="required">*</span></label>
             <div class="date-input-wrap">
-              <input
-                #editJoiningDateInput
-                id="editJoiningDate"
-                type="date"
-                class="form-input date-input"
-                [ngModel]="joiningDate()"
-                (ngModelChange)="joiningDate.set($event)"
-                name="joiningDate"
-                required
-              />
-              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editJoiningDateInput)" />
+              <input #editJoiningDateInput id="editJoiningDate" type="date" class="form-input date-input"
+                [ngModel]="joiningDate()" (ngModelChange)="joiningDate.set($event)" name="joiningDate"
+                [disabled]="isReadOnly()" required />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon"
+                (click)="openDatePicker(editJoiningDateInput)" />
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editStartDate">Start date <span class="required">*</span></label>
             <div class="date-input-wrap">
-              <input
-                #editStartDateInput
-                id="editStartDate"
-                type="date"
-                class="form-input date-input"
-                [ngModel]="startDate()"
-                (ngModelChange)="startDate.set($event)"
-                name="startDate"
-                required
-              />
-              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editStartDateInput)" />
+              <input #editStartDateInput id="editStartDate" type="date" class="form-input date-input"
+                [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" name="startDate"
+                [disabled]="isReadOnly()" required />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon"
+                (click)="openDatePicker(editStartDateInput)" />
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="editEndDate">End date</label>
             <div class="date-input-wrap">
-              <input
-                #editEndDateInput
-                id="editEndDate"
-                type="date"
-                class="form-input date-input"
-                [ngModel]="endDate()"
-                (ngModelChange)="endDate.set($event)"
-                name="endDate"
-              />
-              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editEndDateInput)" />
+              <input #editEndDateInput id="editEndDate" type="date" class="form-input date-input" [ngModel]="endDate()"
+                (ngModelChange)="endDate.set($event)" name="endDate" [disabled]="isReadOnly()" />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon"
+                (click)="openDatePicker(editEndDateInput)" />
             </div>
           </div>
         </div>
@@ -327,369 +237,308 @@
 
     <!-- 05 Employee Profile & Verification Details (When Available) -->
     @if (employeeDetails(); as emp) {
-      <section class="form-section-card">
-        <div class="section-card-header">
-          <div class="section-title-wrap">
-            <span class="step-badge">05</span>
-            <div>
-              <h2 class="section-title">Employee Profile &amp; Verification Details</h2>
-              <span class="section-subtitle">Candidate-submitted data and KYC documentation</span>
-            </div>
-          </div>
-          <div class="profile-status-pill" [class.status-approved]="profile() === 'Approved'" [class.status-submitted]="profile() === 'Submitted'">
-            {{ profile() }} Profile
+    <section class="form-section-card">
+      <div class="section-card-header">
+        <div class="section-title-wrap">
+          <span class="step-badge">05</span>
+          <div>
+            <h2 class="section-title">Employee Profile &amp; Verification Details</h2>
+            <span class="section-subtitle">Candidate-submitted data and KYC documentation</span>
           </div>
         </div>
+        <div class="profile-status-pill" [class.status-approved]="profile() === 'Approved'"
+          [class.status-submitted]="profile() === 'Submitted'"
+          [class.status-rejected]="profile() === 'Rejected'">
+          {{ profile() }} Profile
+        </div>
+      </div>
 
-        <div class="section-card-body">
-          <!-- 1. Personal & Contact Details -->
-          <h4 class="sub-section-title">Personal &amp; Contact Details</h4>
-          <div class="form-row-3col">
-            <div class="form-group">
-              <label class="form-label" for="editDob">Date of birth <span class="required">*</span></label>
-              <div class="date-input-wrap">
-                <input
-                  #editDobInput
-                  id="editDob"
-                  type="date"
-                  class="form-input date-input"
-                  [value]="formatToIso(emp.date_of_birth || '')"
-                  [max]="todayDate"
-                  (input)="updateEmployeeDetail('date_of_birth', $any($event.target).value)"
-                  (change)="updateEmployeeDetail('date_of_birth', $any($event.target).value)"
-                />
-                <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon" (click)="openDatePicker(editDobInput)" />
-              </div>
+      <div class="section-card-body">
+        <!-- 1. Personal & Contact Details -->
+        <h4 class="sub-section-title">Personal &amp; Contact Details</h4>
+        <div class="form-row-3col">
+          <div class="form-group">
+            <label class="form-label" for="editDob">Date of birth <span class="required">*</span></label>
+            <div class="date-input-wrap">
+              <input #editDobInput id="editDob" type="date" class="form-input date-input"
+                [value]="formatToIso(emp.date_of_birth || '')" [max]="todayDate" [disabled]="isReadOnly()"
+                (input)="updateEmployeeDetail('date_of_birth', $any($event.target).value)"
+                (change)="updateEmployeeDetail('date_of_birth', $any($event.target).value)" />
+              <app-icon name="calendar" [size]="16" color="#64748B" class="calendar-icon"
+                (click)="openDatePicker(editDobInput)" />
             </div>
+          </div>
 
-            <div class="form-group">
-              <label class="form-label" for="editGender">Gender <span class="required">*</span></label>
-              <app-dropdown
-                [options]="genderOptions"
-                [value]="(emp.gender || '').toUpperCase()"
-                (valueChange)="updateEmployeeDetail('gender', $event)"
-                placeholder="Select gender"
-                width="100%"
-              />
+          <div class="form-group">
+            <label class="form-label" for="editGender">Gender <span class="required">*</span></label>
+            <app-dropdown [options]="genderOptions" [value]="(emp.gender || '').toUpperCase()"
+              (valueChange)="updateEmployeeDetail('gender', $event)" [disabled]="isReadOnly()"
+              placeholder="Select gender" width="100%" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editMobile">Mobile number <span class="required">*</span></label>
+            <div class="input-with-icon-wrap">
+              <input id="editMobile" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" class="form-input"
+                placeholder="9876543210" [value]="mobileInputValue()" [readonly]="isReadOnly()"
+                (input)="updateEmployeeDetail('mobile_number', $any($event.target).value)"
+                (blur)="validateContactField('mobile_number')" />
+              <app-icon name="phone" [size]="16" color="#94A3B8" class="input-right-icon" />
             </div>
+            @if (contactFieldErrors()['mobile_number']) { <small class="field-validation-error">{{
+              contactFieldErrors()['mobile_number'] }}</small> }
+          </div>
 
-            <div class="form-group">
-              <label class="form-label" for="editMobile">Mobile number <span class="required">*</span></label>
-              <div class="input-with-icon-wrap">
-                <input
-                  id="editMobile"
-                  type="text"
-                  inputmode="numeric"
-                  pattern="[0-9]*"
-                  maxlength="10"
-                  class="form-input"
-                  placeholder="9876543210"
-                  [value]="mobileInputValue()"
-                  (input)="updateEmployeeDetail('mobile_number', $any($event.target).value)"
-                  (blur)="validateContactField('mobile_number')"
-                />
-                <app-icon name="phone" [size]="16" color="#94A3B8" class="input-right-icon" />
-              </div>
-              @if (contactFieldErrors()['mobile_number']) { <small class="field-validation-error">{{ contactFieldErrors()['mobile_number'] }}</small> }
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="editAadhaar">Aadhaar (12 digits) <span class="required">*</span></label>
-              <input
-                id="editAadhaar"
-                type="text"
-                class="form-input"
-                maxlength="12"
+          <div class="form-group">
+            <label class="form-label" for="editAadhaar">Aadhaar (12 digits) <span class="required">*</span></label>
+            <div class="input-with-icon-wrap">
+              <input id="editAadhaar" [type]="showAadhaar() ? 'text' : 'password'" class="form-input" maxlength="12"
                 placeholder="12-digit Aadhaar number"
                 [value]="sensitiveUpdates()['aadhaar_number'] !== undefined ? sensitiveUpdates()['aadhaar_number'] : (emp.aadhaar_number || '')"
-                (input)="updateSensitiveDetail('aadhaar_number', $any($event.target).value)"
-              />
+                [readonly]="isReadOnly()"
+                (input)="updateSensitiveDetail('aadhaar_number', $any($event.target).value)" />
+              <button type="button" class="input-icon-btn" (click)="showAadhaar.set(!showAadhaar())"
+                [title]="showAadhaar() ? 'Hide Aadhaar' : 'Show Aadhaar'" aria-label="Toggle Aadhaar visibility">
+                <app-icon [name]="showAadhaar() ? 'eye-slash' : 'eye'" [size]="16" color="#64748B" />
+              </button>
             </div>
+          </div>
 
-            <div class="form-group">
-              <label class="form-label" for="editPan">PAN Card <span class="required">*</span></label>
-              <input
-                id="editPan"
-                type="text"
-                class="form-input uppercase"
-                maxlength="10"
+          <div class="form-group">
+            <label class="form-label" for="editPan">PAN Card <span class="required">*</span></label>
+            <div class="input-with-icon-wrap">
+              <input id="editPan" [type]="showPan() ? 'text' : 'password'" class="form-input uppercase" maxlength="10"
                 placeholder="e.g. ABCDE1234F"
                 [value]="sensitiveUpdates()['pan_number'] !== undefined ? sensitiveUpdates()['pan_number'] : (emp.pan_number || '')"
-                (input)="updateSensitiveDetail('pan_number', $any($event.target).value.toUpperCase())"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="editPassport">Passport number</label>
-              <input
-                id="editPassport"
-                type="text"
-                class="form-input uppercase"
-                maxlength="30"
-                placeholder="e.g. Z8765432"
-                [value]="sensitiveUpdates()['passport_number'] !== undefined ? sensitiveUpdates()['passport_number'] : (emp.passport_number || '')"
-                (input)="updateSensitiveDetail('passport_number', $any($event.target).value.toUpperCase())"
-              />
+                [readonly]="isReadOnly()"
+                (input)="updateSensitiveDetail('pan_number', $any($event.target).value.toUpperCase())" />
+              <button type="button" class="input-icon-btn" (click)="showPan.set(!showPan())"
+                [title]="showPan() ? 'Hide PAN' : 'Show PAN'" aria-label="Toggle PAN visibility">
+                <app-icon [name]="showPan() ? 'eye-slash' : 'eye'" [size]="16" color="#64748B" />
+              </button>
             </div>
           </div>
 
-          <!-- 2. Emergency Contact -->
-          <h4 class="sub-section-title" style="margin-top: 20px;">Emergency Contact</h4>
-          <div class="form-row-3col">
-            <div class="form-group">
-              <label class="form-label" for="editEmergencyName">Contact Name <span class="required">*</span></label>
-              <input
-                id="editEmergencyName"
-                type="text"
-                class="form-input"
-                placeholder="Contact full name"
-                [value]="emp.emergency_contact?.name || ''"
-                (input)="updateNestedEmployeeDetail('emergency_contact', 'name', $any($event.target).value)"
-              />
-            </div>
+          <div class="form-group">
+            <label class="form-label" for="editPassport">Passport number</label>
+            <input id="editPassport" type="text" class="form-input uppercase" maxlength="30" placeholder="e.g. Z8765432"
+              [value]="sensitiveUpdates()['passport_number'] !== undefined ? sensitiveUpdates()['passport_number'] : (emp.passport_number || '')"
+              [readonly]="isReadOnly()"
+              (input)="updateSensitiveDetail('passport_number', $any($event.target).value.toUpperCase())" />
+          </div>
+        </div>
 
-            <div class="form-group">
-              <label class="form-label" for="editEmergencyPhone">Mobile number <span class="required">*</span></label>
-              <input
-                id="editEmergencyPhone"
-                type="text"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                maxlength="10"
-                class="form-input"
-                placeholder="9876543210"
-                [value]="emergencyMobileInputValue()"
-                (input)="updateNestedEmployeeDetail('emergency_contact', 'phone', $any($event.target).value)"
-                (blur)="validateContactField('emergency_contact_phone')"
-              />
-              @if (contactFieldErrors()['emergency_contact_phone']) { <small class="field-validation-error">{{ contactFieldErrors()['emergency_contact_phone'] }}</small> }
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="editEmergencyRel">Relationship <span class="required">*</span></label>
-              <input
-                id="editEmergencyRel"
-                type="text"
-                class="form-input"
-                placeholder="e.g. Spouse / Parent / Sibling"
-                [value]="emp.emergency_contact?.relationship || ''"
-                (input)="updateNestedEmployeeDetail('emergency_contact', 'relationship', $any($event.target).value)"
-              />
-            </div>
+        <!-- 2. Emergency Contact -->
+        <h4 class="sub-section-title" style="margin-top: 20px;">Emergency Contact</h4>
+        <div class="form-row-3col">
+          <div class="form-group">
+            <label class="form-label" for="editEmergencyName">Contact Name <span class="required">*</span></label>
+            <input id="editEmergencyName" type="text" class="form-input" placeholder="Contact full name"
+              [value]="emp.emergency_contact?.name || ''" [readonly]="isReadOnly()"
+              (input)="updateNestedEmployeeDetail('emergency_contact', 'name', $any($event.target).value)" />
           </div>
 
-          <!-- 3. Banking & Compliance Documents -->
-          <h4 class="sub-section-title" style="margin-top: 20px;">Banking &amp; Compliance Documents</h4>
-          <div class="form-row-3col">
-            <div class="form-group">
-              <label class="form-label" for="editBankName">Bank Name <span class="required">*</span></label>
-              <input
-                id="editBankName"
-                type="text"
-                class="form-input"
-                placeholder="e.g. HDFC Bank"
-                [value]="emp.bank_details?.bank_name || ''"
-                (input)="updateNestedEmployeeDetail('bank_details', 'bank_name', $any($event.target).value)"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="editAccountNumber">Account Number <span class="required">*</span></label>
-              <input
-                id="editAccountNumber"
-                type="text"
-                class="form-input"
-                placeholder="e.g. 50100234567890"
-                [value]="sensitiveUpdates()['account_number'] !== undefined ? sensitiveUpdates()['account_number'] : (emp.bank_details?.account_number || '')"
-                (input)="updateSensitiveDetail('account_number', $any($event.target).value)"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="editIfsc">IFSC Code <span class="required">*</span></label>
-              <input
-                id="editIfsc"
-                type="text"
-                class="form-input uppercase"
-                maxlength="11"
-                placeholder="e.g. HDFC0000123"
-                [value]="emp.bank_details?.ifsc_code || ''"
-                (input)="updateNestedEmployeeDetail('bank_details', 'ifsc_code', $any($event.target).value.toUpperCase())"
-              />
-            </div>
-
-            @if (pfApplicable() === 'Yes') {
-              <div class="form-group">
-                <label class="form-label" for="editUan">UAN (PF Application)</label>
-                <input
-                  id="editUan"
-                  type="text"
-                  class="form-input"
-                  inputmode="numeric"
-                  pattern="[0-9]*"
-                  maxlength="12"
-                  placeholder="e.g. 100912345678"
-                  [value]="sensitiveUpdates()['uan_number'] !== undefined ? sensitiveUpdates()['uan_number'] : (emp.uan_number || '')"
-                  (input)="updateSensitiveDetail('uan_number', $any($event.target).value)"
-                  (blur)="validateContactField('uan_number')"
-                />
-                @if (contactFieldErrors()['uan_number']) { <small class="field-validation-error">{{ contactFieldErrors()['uan_number'] }}</small> }
-              </div>
-            }
+          <div class="form-group">
+            <label class="form-label" for="editEmergencyPhone">Mobile number <span class="required">*</span></label>
+            <input id="editEmergencyPhone" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10"
+              class="form-input" placeholder="9876543210" [value]="emergencyMobileInputValue()"
+              [readonly]="isReadOnly()"
+              (input)="updateNestedEmployeeDetail('emergency_contact', 'phone', $any($event.target).value)"
+              (blur)="validateContactField('emergency_contact_phone')" />
+            @if (contactFieldErrors()['emergency_contact_phone']) { <small class="field-validation-error">{{
+              contactFieldErrors()['emergency_contact_phone'] }}</small> }
           </div>
 
-          <!-- Document Upload Cards -->
-          <div class="form-row-2col" style="margin-top: 14px;">
-            <div class="form-group">
-              <label class="form-label">Identity Proof <span class="required">*</span></label>
-              @let idDoc = getDocument('identity_proof');
-              <div class="doc-file-card">
-                <div class="doc-file-info">
-                  <div class="doc-icon-wrap">
-                    <app-icon name="document-text" [size]="20" color="#2563EB" />
-                  </div>
-                  <div class="doc-meta-wrap">
-                    <span class="doc-file-title" [title]="selectedDocuments().identity_proof?.name || idDoc?.file_name || ''">
-                      {{ selectedDocuments().identity_proof?.name || idDoc?.file_name || 'No file uploaded' }}
-                    </span>
-                    <span class="doc-file-sub">
-                      @if (selectedDocuments().identity_proof) {
-                        Ready to upload &bull; {{ formatFileSize(selectedDocuments().identity_proof?.size) }}
-                      } @else if (idDoc) {
-                        Uploaded &bull; {{ formatFileSize(idDoc.file_size_bytes) }}
-                      } @else {
-                        PDF, JPG or PNG up to 5MB
-                      }
-                    </span>
-                  </div>
-                  @if (selectedDocuments().identity_proof) {
-                    <span class="doc-badge badge-staged">New File</span>
-                  } @else if (idDoc) {
-                    <span class="doc-badge" [class.badge-verified]="idDoc.verification_status === 'VERIFIED'">
-                      {{ idDoc.verification_status }}
-                    </span>
-                  }
+          <div class="form-group">
+            <label class="form-label" for="editEmergencyRel">Relationship <span class="required">*</span></label>
+            <input id="editEmergencyRel" type="text" class="form-input" placeholder="e.g. Spouse / Parent / Sibling"
+              [value]="emp.emergency_contact?.relationship || ''" [readonly]="isReadOnly()"
+              (input)="updateNestedEmployeeDetail('emergency_contact', 'relationship', $any($event.target).value)" />
+          </div>
+        </div>
+
+        <!-- 3. Banking & Compliance Documents -->
+        <h4 class="sub-section-title" style="margin-top: 20px;">Banking &amp; Compliance Documents</h4>
+        <div class="form-row-3col">
+          <div class="form-group">
+            <label class="form-label" for="editBankName">Bank Name <span class="required">*</span></label>
+            <input id="editBankName" type="text" class="form-input" placeholder="e.g. HDFC Bank"
+              [value]="emp.bank_details?.bank_name || ''" [readonly]="isReadOnly()"
+              (input)="updateNestedEmployeeDetail('bank_details', 'bank_name', $any($event.target).value)" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editAccountNumber">Account Number <span class="required">*</span></label>
+            <input id="editAccountNumber" type="text" class="form-input" placeholder="e.g. 50100234567890"
+              [value]="sensitiveUpdates()['account_number'] !== undefined ? sensitiveUpdates()['account_number'] : (emp.bank_details?.account_number || '')"
+              [readonly]="isReadOnly()" (input)="updateSensitiveDetail('account_number', $any($event.target).value)" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editIfsc">IFSC Code <span class="required">*</span></label>
+            <input id="editIfsc" type="text" class="form-input uppercase" maxlength="11" placeholder="e.g. HDFC0000123"
+              [value]="emp.bank_details?.ifsc_code || ''" [readonly]="isReadOnly()"
+              (input)="updateNestedEmployeeDetail('bank_details', 'ifsc_code', $any($event.target).value.toUpperCase())" />
+          </div>
+
+          @if (pfApplicable() === 'Yes') {
+          <div class="form-group">
+            <label class="form-label" for="editUan">UAN (PF Application)</label>
+            <input id="editUan" type="text" class="form-input" inputmode="numeric" pattern="[0-9]*" maxlength="12"
+              placeholder="e.g. 100912345678"
+              [value]="sensitiveUpdates()['uan_number'] !== undefined ? sensitiveUpdates()['uan_number'] : (emp.uan_number || '')"
+              [readonly]="isReadOnly()" (input)="updateSensitiveDetail('uan_number', $any($event.target).value)"
+              (blur)="validateContactField('uan_number')" />
+            @if (contactFieldErrors()['uan_number']) { <small class="field-validation-error">{{
+              contactFieldErrors()['uan_number'] }}</small> }
+          </div>
+          }
+        </div>
+
+        <!-- Document Upload Cards -->
+        <div class="form-row-2col" style="margin-top: 14px;">
+          <div class="form-group">
+            <label class="form-label">Identity Proof <span class="required">*</span></label>
+            @let idDoc = getDocument('identity_proof');
+            <div class="doc-file-card">
+              <div class="doc-file-info">
+                <div class="doc-icon-wrap">
+                  <app-icon name="document-text" [size]="20" color="#2563EB" />
                 </div>
-                <label class="btn-change-file">
-                  Change File
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                    (change)="selectDocument('identity_proof', $event)"
-                    hidden
-                  />
-                </label>
-                @if (idDoc?.id) {
-                  <button type="button" class="btn-change-file" (click)="viewDocument(idDoc)" [title]="'View ' + idDoc.file_name">View</button>
+                <div class="doc-meta-wrap">
+                  <span class="doc-file-title"
+                    [title]="selectedDocuments().identity_proof?.name || idDoc?.file_name || ''">
+                    {{ selectedDocuments().identity_proof?.name || idDoc?.file_name || 'No file uploaded' }}
+                  </span>
+                  <span class="doc-file-sub">
+                    @if (selectedDocuments().identity_proof) {
+                    Ready to upload &bull; {{ formatFileSize(selectedDocuments().identity_proof?.size) }}
+                    } @else if (idDoc) {
+                    Uploaded &bull; {{ formatFileSize(idDoc.file_size_bytes) }}
+                    } @else {
+                    PDF, JPG or PNG up to 5MB
+                    }
+                  </span>
+                </div>
+                @if (selectedDocuments().identity_proof) {
+                <span class="doc-badge badge-staged">New File</span>
+                } @else if (idDoc) {
+                <span class="doc-badge" [class.badge-verified]="idDoc.verification_status === 'VERIFIED'">
+                  {{ idDoc.verification_status }}
+                </span>
                 }
               </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Cancelled Cheque <span class="required">*</span></label>
-              @let cqDoc = getDocument('cancelled_cheque');
-              <div class="doc-file-card">
-                <div class="doc-file-info">
-                  <div class="doc-icon-wrap">
-                    <app-icon name="document-text" [size]="20" color="#2563EB" />
-                  </div>
-                  <div class="doc-meta-wrap">
-                    <span class="doc-file-title" [title]="selectedDocuments().cancelled_cheque?.name || cqDoc?.file_name || ''">
-                      {{ selectedDocuments().cancelled_cheque?.name || cqDoc?.file_name || 'No file uploaded' }}
-                    </span>
-                    <span class="doc-file-sub">
-                      @if (selectedDocuments().cancelled_cheque) {
-                        Ready to upload &bull; {{ formatFileSize(selectedDocuments().cancelled_cheque?.size) }}
-                      } @else if (cqDoc) {
-                        Uploaded &bull; {{ formatFileSize(cqDoc.file_size_bytes) }}
-                      } @else {
-                        PDF, JPG or PNG up to 5MB
-                      }
-                    </span>
-                  </div>
-                  @if (selectedDocuments().cancelled_cheque) {
-                    <span class="doc-badge badge-staged">New File</span>
-                  } @else if (cqDoc) {
-                    <span class="doc-badge" [class.badge-verified]="cqDoc.verification_status === 'VERIFIED'">
-                      {{ cqDoc.verification_status }}
-                    </span>
-                  }
-                </div>
-                <label class="btn-change-file">
-                  Change File
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                    (change)="selectDocument('cancelled_cheque', $event)"
-                    hidden
-                  />
-                </label>
-                @if (cqDoc?.id) {
-                  <button type="button" class="btn-change-file" (click)="viewDocument(cqDoc)" [title]="'View ' + cqDoc.file_name">View</button>
-                }
-              </div>
+              @if (!isReadOnly()) {
+              <label class="btn-change-file">
+                Change File
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                  (change)="selectDocument('identity_proof', $event)" hidden />
+              </label>
+              }
+              @if (idDoc?.id) {
+              <button type="button" class="btn-change-file" (click)="viewDocument(idDoc)"
+                [title]="'View ' + idDoc.file_name">View</button>
+              }
             </div>
           </div>
 
-          <!-- 4. Qualification & Languages -->
-          <h4 class="sub-section-title" style="margin-top: 20px;">Qualification &amp; Languages</h4>
-          <div class="form-row-2col">
-            <div class="form-group">
-              <label class="form-label" for="editQual">Qualification</label>
-              <input
-                id="editQual"
-                type="text"
-                class="form-input"
-                placeholder="e.g. Master of Business Administration (Finance), B.Com"
-                [value]="emp.qualification || ''"
-                (input)="updateEmployeeDetail('qualification', $any($event.target).value)"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="editLanguages">Languages</label>
-              <input
-                id="editLanguages"
-                type="text"
-                class="form-input"
-                placeholder="e.g. English, Hindi, Marathi"
-                [value]="(emp.languages || []).join(', ')"
-                (input)="updateLanguages($any($event.target).value)"
-              />
+          <div class="form-group">
+            <label class="form-label">Cancelled Cheque <span class="required">*</span></label>
+            @let cqDoc = getDocument('cancelled_cheque');
+            <div class="doc-file-card">
+              <div class="doc-file-info">
+                <div class="doc-icon-wrap">
+                  <app-icon name="document-text" [size]="20" color="#2563EB" />
+                </div>
+                <div class="doc-meta-wrap">
+                  <span class="doc-file-title"
+                    [title]="selectedDocuments().cancelled_cheque?.name || cqDoc?.file_name || ''">
+                    {{ selectedDocuments().cancelled_cheque?.name || cqDoc?.file_name || 'No file uploaded' }}
+                  </span>
+                  <span class="doc-file-sub">
+                    @if (selectedDocuments().cancelled_cheque) {
+                    Ready to upload &bull; {{ formatFileSize(selectedDocuments().cancelled_cheque?.size) }}
+                    } @else if (cqDoc) {
+                    Uploaded &bull; {{ formatFileSize(cqDoc.file_size_bytes) }}
+                    } @else {
+                    PDF, JPG or PNG up to 5MB
+                    }
+                  </span>
+                </div>
+                @if (selectedDocuments().cancelled_cheque) {
+                <span class="doc-badge badge-staged">New File</span>
+                } @else if (cqDoc) {
+                <span class="doc-badge" [class.badge-verified]="cqDoc.verification_status === 'VERIFIED'">
+                  {{ cqDoc.verification_status }}
+                </span>
+                }
+              </div>
+              @if (!isReadOnly()) {
+              <label class="btn-change-file">
+                Change File
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                  (change)="selectDocument('cancelled_cheque', $event)" hidden />
+              </label>
+              }
+              @if (cqDoc?.id) {
+              <button type="button" class="btn-change-file" (click)="viewDocument(cqDoc)"
+                [title]="'View ' + cqDoc.file_name">View</button>
+              }
             </div>
           </div>
         </div>
-      </section>
+
+        <!-- 4. Qualification & Languages -->
+        <h4 class="sub-section-title" style="margin-top: 20px;">Qualification &amp; Languages</h4>
+        <div class="form-row-2col">
+          <div class="form-group">
+            <label class="form-label" for="editQual">Qualification</label>
+            <input id="editQual" type="text" class="form-input"
+              placeholder="e.g. Master of Business Administration (Finance), B.Com" [value]="emp.qualification || ''"
+              [readonly]="isReadOnly()" (input)="updateEmployeeDetail('qualification', $any($event.target).value)" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="editLanguages">Languages</label>
+            <input id="editLanguages" type="text" class="form-input" placeholder="e.g. English, Hindi, Marathi"
+              [value]="(emp.languages || []).join(', ')" [readonly]="isReadOnly()"
+              (input)="updateLanguages($any($event.target).value)" />
+          </div>
+        </div>
+      </div>
+    </section>
     } @else {
-      <section class="form-section-card no-profile-card">
-        <div class="section-card-body" style="text-align: center; padding: 36px 16px;">
-          <app-icon name="user" [size]="32" color="#94A3B8" />
-          <h3 style="margin: 12px 0 4px; font-size: 15px; font-weight: 600; color: #334155;">No Employee Profile Submitted Yet</h3>
-          <p style="margin: 0; font-size: 13px; color: #64748b;">The candidate has not yet completed onboarding or submitted personal &amp; KYC documentation.</p>
-        </div>
-      </section>
+    <section class="form-section-card no-profile-card">
+      <div class="section-card-body" style="text-align: center; padding: 36px 16px;">
+        <app-icon name="user" [size]="32" color="#94A3B8" />
+        <h3 style="margin: 12px 0 4px; font-size: 15px; font-weight: 600; color: #334155;">No Employee Profile Submitted
+          Yet</h3>
+        <p style="margin: 0; font-size: 13px; color: #64748b;">The candidate has not yet completed onboarding or
+          submitted personal &amp; KYC documentation.</p>
+      </div>
+    </section>
     }
   </form>
 
   <!-- Deactivate User Confirmation Dialog Modal -->
   @if (showDeactivateModal()) {
-    <div class="delete-modal-backdrop" (click)="closeDeactivateConfirm()">
-      <div class="delete-modal-dialog" (click)="$event.stopPropagation()">
-        <div class="delete-dialog-icon">
-          <app-icon name="user-x" [size]="24" color="#DC2626" />
-        </div>
-        <h3 class="delete-dialog-title">Deactivate User</h3>
-        <p class="delete-dialog-message">
-          Are you sure you want to deactivate user <strong>"{{ firstName() }} {{ lastName() }}"</strong>?
-          This will immediately disable their account, revoke all active sessions, and prevent future logins.
-        </p>
-        <div class="delete-dialog-actions">
-          <button type="button" class="btn-cancel-modal" (click)="closeDeactivateConfirm()">Cancel</button>
-          <button type="button" class="btn-confirm-delete" (click)="confirmDeactivate()" [disabled]="isDeactivating()">
-            {{ isDeactivating() ? 'Deactivating...' : 'Deactivate User' }}
-          </button>
-        </div>
+  <div class="delete-modal-backdrop" (click)="closeDeactivateConfirm()">
+    <div class="delete-modal-dialog" (click)="$event.stopPropagation()">
+      <div class="delete-dialog-icon">
+        <app-icon name="ban" [size]="24" color="#DC2626" />
+      </div>
+      <h3 class="delete-dialog-title">Deactivate User</h3>
+      <p class="delete-dialog-message">
+        Are you sure you want to deactivate user <strong>"{{ firstName() }} {{ lastName() }}"</strong>?
+        This will immediately disable their account, revoke all active sessions, and prevent future logins.
+      </p>
+      <div class="delete-dialog-actions">
+        <button type="button" class="btn-cancel-modal" (click)="closeDeactivateConfirm()">Cancel</button>
+        <button type="button" class="btn-confirm-delete" (click)="confirmDeactivate()" [disabled]="isDeactivating()">
+          {{ isDeactivating() ? 'Deactivating...' : 'Deactivate User' }}
+        </button>
       </div>
     </div>
+  </div>
   }
 </div>

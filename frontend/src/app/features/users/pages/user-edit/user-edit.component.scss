@@ -100,9 +100,17 @@
       cursor: pointer;
       transition: all 0.15s ease;
 
-      &:hover {
+      &:hover:not(:disabled) {
         background-color: #fef2f2;
         border-color: #fca5a5;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #f8fafc;
+        border-color: #e2e8f0;
+        color: #94a3b8;
       }
     }
 
@@ -160,12 +168,20 @@
       cursor: pointer;
       transition: all 0.15s ease;
 
-      &:hover {
+      &:hover:not(:disabled) {
         background-color: #1d4ed8;
       }
 
-      &:active {
+      &:active:not(:disabled) {
         transform: scale(0.98);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #94a3b8;
+        border-color: #94a3b8;
+        box-shadow: none;
       }
     }
   }
@@ -314,6 +330,64 @@
       border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
+
+    &:disabled,
+    &[readonly] {
+      background-color: #f8fafc;
+      color: #64748b;
+      cursor: default;
+    }
+  }
+}
+
+/* ==========================================================================
+   Read-only Banner & Account Status Static Badge
+   ========================================================================== */
+.read-only-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background-color: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #991b1b;
+}
+
+.account-status-static {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+
+  .status-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+
+    &.active {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+
+    &.pending {
+      background-color: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    &.inactive {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
   }
 }
 
@@ -356,6 +430,26 @@
     pointer-events: none;
     display: flex;
     align-items: center;
+  }
+
+  .input-icon-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: #64748b;
+    transition: color 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+      color: #1e293b;
+      background-color: #f1f5f9;
+    }
   }
 }
 
@@ -529,6 +623,12 @@
     background-color: #eff6ff;
     color: #2563eb;
     border-color: #bfdbfe;
+  }
+
+  &.status-rejected {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
   }
 }
 

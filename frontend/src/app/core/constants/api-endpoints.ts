@@ -64,6 +64,7 @@ export const API_ENDPOINTS = {
   /** Onboarding endpoints */
   onboarding: {
     validate: `${BASE_URL}/onboarding/invitations/validate`,
+    saveDraft: `${BASE_URL}/onboarding/draft`,
     submit: `${BASE_URL}/onboarding/submit`,
     employeeForm: `${BASE_URL}/employee/onboarding/form`,
     employeeSubmit: `${BASE_URL}/employee/onboarding/submit`,

@@ -169,20 +169,56 @@ PROFILE_SUBMITTED_HTML = _layout(
     + _note("Action required: review and approve, or request changes."),
 )
 
+
 PROFILE_APPROVED_HTML = _layout(
-    "Your profile has been approved.",
-    _h1("Your profile has been approved")
-    + _p("Dear $employee_name,")
+    "Your Evolvus 360 employee account has been approved.",
+    _h1("Your Employee Account Has Been Approved")
+    + _p("Hello $employee_name,")
     + _p(
-        "We are pleased to inform you that your profile at "
-        "<strong>$company_name</strong> has been reviewed and approved by HR."
+        "We are pleased to inform you that your onboarding request "
+        "has been successfully approved by the HR team."
     )
     + _p(
-        "You now have full access to your Evolvus 360 workspace. If you have "
-        "any questions or notice any incorrect details in your profile, please "
-        "contact your HR team."
+        "Your employee account at <strong>$company_name</strong> "
+        "is now active. You can use the login credentials below "
+        "to access your Evolvus 360 workspace."
+    )
+    # Login Credentials
+    + '<table role="presentation" width="100%" cellpadding="0" '
+    'cellspacing="0" border="0" '
+    'style="margin:20px 0;background:#F8FAFC;'
+    'border:1px solid ' + BORDER + ';border-radius:8px;">'
+    '<tr><td style="padding:18px 20px;'
+    'font-family:' + FONT + ';font-size:14px;'
+    'line-height:24px;color:#334155;">'
+    '<strong style="color:' + INK + ';">Login ID</strong><br>'
+    '<a href="mailto:$employee_email" '
+    'style="color:' + BLUE + ';text-decoration:none;">'
+    '$employee_email</a><br><br>'
+    '<strong style="color:' + INK + ';">Temporary Password</strong><br>'
+    '<span style="color:' + INK + ';">$temporary_password</span>'
+    '</td></tr></table>'
+    # Login Button
+    + _button("Login to Evolvus 360", "$login_url")
+    # Important Notice
+    + _note(
+        "<strong>Important:</strong> Please sign in within "
+        "<strong>24 hours</strong> using your temporary password. "
+        "You must change your password immediately after your first login."
+    )
+    # Fallback Login URL
+    + _fallback_link("$login_url")
+    + _p(
+        "If you experience any issues accessing your account, "
+        "please contact your HR administrator."
+    )
+    + _p(
+        "Welcome to Evolvus 360!<br><br>"
+        "Best Regards,<br>"
+        "<strong>Evolvus 360 Team</strong>"
     ),
 )
+
 
 GENERAL_HTML = _layout(
     "$subject_line",
@@ -272,23 +308,38 @@ DEFAULT_TEMPLATES = (
         "description": "HR notification when employee onboarding is submitted.",
         "required_variables": ["employee_name"],
     },
-    {
-        "template_key": "EMPLOYEE_PROFILE_APPROVED",
-        "name": "Employee profile approved",
-        "subject": "Your Evolvus 360 profile has been approved",
-        "body_text": (
-            "Dear $employee_name,\n\n"
-            "We are pleased to inform you that your profile at $company_name "
-            "has been reviewed and approved by HR.\n\n"
-            "You now have full access to your Evolvus 360 workspace. If you "
-            "have any questions or notice any incorrect details in your "
-            "profile, please contact your HR team.\n\n"
-            "Regards,\nEvolvus 360 Team"
-        ),
-        "body_html": PROFILE_APPROVED_HTML,
-        "description": "Employee notification after HR profile approval.",
-        "required_variables": ["employee_name", "company_name"],
-    },
+   
+{
+    "template_key": "EMPLOYEE_PROFILE_APPROVED",
+    "name": "Employee profile approved",
+    "subject": "Your Evolvus 360 Employee Account Has Been Approved",
+    "body_text": (
+        "Hello $employee_name,\n\n"
+        "We are pleased to inform you that your onboarding request "
+        "has been successfully approved by the HR team.\n\n"
+        "Your employee account at $company_name is now active.\n\n"
+        "Login Details:\n"
+        "Login ID: $employee_email\n"
+        "Temporary Password: $temporary_password\n"
+        "Login URL: $login_url\n\n"
+        "Please sign in within 24 hours using your temporary "
+        "password and change your password immediately after "
+        "your first login.\n\n"
+        "Welcome to Evolvus 360!\n\n"
+        "Best Regards,\n"
+        "Evolvus 360 Team"
+    ),
+    "body_html": PROFILE_APPROVED_HTML,
+    "description": "Employee account approval notification with login credentials.",
+    "required_variables": [
+        "employee_name",
+        "company_name",
+        "employee_email",
+        "temporary_password",
+        "login_url",
+    ],
+},
+
     {
         "template_key": "GENERAL_NOTIFICATION",
         "name": "General notification",

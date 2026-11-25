@@ -3,6 +3,7 @@
 import secrets
 import string
 from datetime import UTC, datetime, timedelta
+from cryptography.fernet import Fernet, InvalidToken
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -11,13 +12,30 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.config import get_settings
 from app.core.security import hash_password
+from app.core.config import get_settings
 from app.models.hrms import (
     EmailDispatchOutbox,
     EmployeeApprovalDecision,
     EmployeeEmploymentDetails,
+    Role,
     User,
+    UserRole,
 )
 from app.services import email_dispatch
+
+
+def _optional_uan(encrypted_value: str | None) -> str | None:
+    if not encrypted_value:
+        return None
+    key = get_settings().pii_encryption_key
+    if key is None:
+        return None
+    try:
+        return Fernet(key.get_secret_value().encode("ascii")).decrypt(
+            encrypted_value.encode()
+        ).decode()
+    except (InvalidToken, ValueError, UnicodeEncodeError):
+        return None
 
 
 def _temp_password() -> str:
@@ -86,10 +104,28 @@ def list_pending(
         pattern = f"%{search.strip()}%"
         conditions = [
             EmployeeEmploymentDetails.first_name.ilike(pattern),
+            EmployeeEmploymentDetails.middle_name.ilike(pattern),
             EmployeeEmploymentDetails.last_name.ilike(pattern),
+            func.concat(
+                EmployeeEmploymentDetails.first_name,
+                " ",
+                EmployeeEmploymentDetails.last_name,
+            ).ilike(pattern),
             EmployeeEmploymentDetails.company_email.ilike(pattern),
             EmployeeEmploymentDetails.personal_email.ilike(pattern),
             EmployeeEmploymentDetails.employee_code.ilike(pattern),
+            EmployeeEmploymentDetails.department_name.ilike(pattern),
+            EmployeeEmploymentDetails.designation.ilike(pattern),
+            select(UserRole.id)
+            .join(Role, UserRole.role_id == Role.id)
+            .where(
+                UserRole.user_id == EmployeeEmploymentDetails.user_id,
+                or_(
+                    Role.role_name.ilike(pattern),
+                    Role.role_code.ilike(pattern),
+                ),
+            )
+            .exists(),
         ]
         try:
             conditions.append(EmployeeEmploymentDetails.id == UUID(search))
@@ -187,6 +223,7 @@ def details(db: Session, employee_id: UUID) -> dict:
             "aadhaar_last_four": personal.aadhaar_number_last_four,
             "pan_present": bool(personal.pan_number_encrypted),
             "passport_present": bool(personal.passport_number_encrypted),
+            "uan_number": _optional_uan(personal.uan_number_encrypted),
             "blood_group": personal.blood_group,
             "marital_status": personal.marital_status,
         },
@@ -328,7 +365,10 @@ def reject(db: Session, actor: User, employee_id: UUID, reason: str) -> dict:
     try:
         employee = db.scalar(
             select(EmployeeEmploymentDetails)
-            .options(joinedload(EmployeeEmploymentDetails.user))
+            .options(
+                joinedload(EmployeeEmploymentDetails.user),
+                joinedload(EmployeeEmploymentDetails.invitation),
+            )
             .where(
                 or_(
                     EmployeeEmploymentDetails.id == employee_id,
@@ -346,19 +386,16 @@ def reject(db: Session, actor: User, employee_id: UUID, reason: str) -> dict:
             )
         employee.onboarding_status = employee.profile_status = "REJECTED"
         employee.rejection_reason = reason
-        employee.user.account_status = "INVITED"
-        employee.user.is_active = True
-        employee.user.password_hash = None
-        employee.user.must_change_password = False
-        employee.user.temporary_password_expires_at = None
-        employee.user.temporary_password_used_at = None
+        if employee.user:
+            employee.user.account_status = "INVITED"
+            employee.user.is_active = True
+            employee.user.password_hash = None
+            employee.user.must_change_password = False
+            employee.user.temporary_password_expires_at = None
+            employee.user.temporary_password_used_at = None
         now = datetime.now(UTC)
         if employee.invitation is not None:
-            employee.invitation.invitation_status = "SENT"
-            employee.invitation.sent_at = now
-            employee.invitation.expires_at = now + timedelta(
-                hours=get_settings().onboarding_invitation_expire_hours
-            )
+            employee.invitation.invitation_status = "REVOKED"
         db.add(
             EmployeeApprovalDecision(
                 employee_id=employee.id,
@@ -367,20 +404,26 @@ def reject(db: Session, actor: User, employee_id: UUID, reason: str) -> dict:
                 reason=reason,
             )
         )
+        recipient = (
+            employee.company_email
+            or (employee.user.email if employee.user else None)
+            or employee.personal_email
+        )
         email_row = None
-        if employee.company_email:
+        if recipient:
             email_row = email_dispatch.enqueue(
                 db,
                 entity_type="EMPLOYEE_REJECTION",
                 entity_id=employee.id,
-                recipient=employee.company_email,
+                recipient=recipient,
                 template_key="GENERAL_NOTIFICATION",
                 variables={
-                    "subject_line": "Your Evolvus360 onboarding needs changes",
+                    "subject_line": "Your onboarding request has been rejected by HR Team",
                     "message_text": (
-                        f"Hello {employee.first_name}, your onboarding was not "
-                        f"approved. Reason: {reason}. Use your invitation link "
-                        "to correct and resubmit."
+                        f"Hello {employee.first_name},\n\n"
+                        "Your onboarding request has been rejected by HR Team. Please contact them.\n\n"
+                        f"Reason: {reason}\n\n"
+                        "Regards,\nEvolvus 360 HR Team"
                     ),
                 },
             )

@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -112,7 +112,14 @@ def list_roles(
 ) -> dict:
     query = select(Role).where(*_visible_role_filter())
     if search and search.strip():
-        query = query.where(Role.role_name.ilike(f"%{search.strip()}%"))
+        term = f"%{search.strip()}%"
+        query = query.where(
+            or_(
+                Role.role_name.ilike(term),
+                Role.description.ilike(term),
+                Role.role_code.ilike(term),
+            )
+        )
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
     roles = db.scalars(
         query.order_by(Role.role_name, Role.id)

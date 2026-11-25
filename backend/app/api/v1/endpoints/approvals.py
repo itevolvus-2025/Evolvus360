@@ -33,7 +33,7 @@ def list_approvals(
     db: DbSession,
     _user: Approver,
     page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 10,
     search: str | None = None,
     onboarding_status: str | None = None,
 ):

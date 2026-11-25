@@ -357,6 +357,33 @@ export class MainLayoutComponent implements OnInit {
   readonly actionLabel = computed(() => this.pageState().actionLabel ?? '');
   readonly actionRoute = computed(() => this.pageState().actionRoute ?? '');
 
+  readonly canDeactivateUserInChild = computed(() => {
+    const comp = this.activeChildComponent();
+    if (!comp) return false;
+    if (typeof comp.isDeactivateDisabled === 'function') {
+      return !comp.isDeactivateDisabled();
+    }
+    const status = typeof comp.status === 'function' ? comp.status() : comp.status;
+    const profile = typeof comp.profile === 'function' ? comp.profile() : comp.profile;
+    if (status === 'Inactive' || status === 'Deactive' || status === 'Pending') {
+      return false;
+    }
+    if (profile === 'Submitted' || profile === 'Pending') {
+      return false;
+    }
+    return status === 'Active';
+  });
+
+  readonly isChildReadOnly = computed(() => {
+    const comp = this.activeChildComponent();
+    if (!comp) return false;
+    if (typeof comp.isReadOnly === 'function') {
+      return comp.isReadOnly();
+    }
+    const status = typeof comp.status === 'function' ? comp.status() : comp.status;
+    return status === 'Inactive' || status === 'Deactive';
+  });
+
   toggleSidebar(): void {
     this.collapsed.update((value) => !value);
   }

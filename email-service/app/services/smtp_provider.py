@@ -2,6 +2,7 @@
 
 import base64
 import binascii
+import logging
 import smtplib
 import ssl
 import certifi
@@ -13,6 +14,8 @@ from fastapi import HTTPException, status
 
 from app.core.config import get_settings
 from app.schemas.email import AttachmentInput
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_ATTACHMENT_TYPES = {
     "application/pdf": (b"%PDF-", ".pdf"),
@@ -104,32 +107,49 @@ def send_message(
 
     recipients = to + cc + bcc
     context = ssl.create_default_context(cafile=certifi.where())
-    if settings.smtp_use_ssl:
-        with smtplib.SMTP_SSL(
-            settings.smtp_host,
-            settings.smtp_port,
-            timeout=settings.smtp_timeout_seconds,
-            context=context,
-        ) as smtp:
-            _authenticate(smtp, settings)
-            refused = smtp.send_message(
-                message, from_addr=settings.smtp_from_email, to_addrs=recipients
+    try:
+        if settings.smtp_use_ssl:
+            with smtplib.SMTP_SSL(
+                settings.smtp_host,
+                settings.smtp_port,
+                timeout=settings.smtp_timeout_seconds,
+                context=context,
+            ) as smtp:
+                _authenticate(smtp, settings)
+                refused = smtp.send_message(
+                    message, from_addr=settings.smtp_from_email, to_addrs=recipients
+                )
+        else:
+            with smtplib.SMTP(
+                settings.smtp_host,
+                settings.smtp_port,
+                timeout=settings.smtp_timeout_seconds,
+            ) as smtp:
+                if settings.smtp_use_tls:
+                    smtp.starttls(context=context)
+                _authenticate(smtp, settings)
+                refused = smtp.send_message(
+                    message, from_addr=settings.smtp_from_email, to_addrs=recipients
+                )
+        if refused:
+            raise RuntimeError("SMTP provider rejected one or more recipients")
+        return settings.smtp_from_email, message_id
+    except smtplib.SMTPDataError as err:
+        if (
+            settings.app_env.lower() in {"development", "dev", "local"}
+            and "limit exceeded" in str(err).lower()
+        ):
+            logger.warning(
+                "Gmail daily sending limit exceeded (550 Daily user sending limit exceeded). "
+                "In development mode, falling back to console dispatch logging."
             )
-    else:
-        with smtplib.SMTP(
-            settings.smtp_host,
-            settings.smtp_port,
-            timeout=settings.smtp_timeout_seconds,
-        ) as smtp:
-            if settings.smtp_use_tls:
-                smtp.starttls(context=context)
-            _authenticate(smtp, settings)
-            refused = smtp.send_message(
-                message, from_addr=settings.smtp_from_email, to_addrs=recipients
-            )
-    if refused:
-        raise RuntimeError("SMTP provider rejected one or more recipients")
-    return settings.smtp_from_email, message_id
+            print("\n================ [DEV EMAIL DISPATCH] ================")
+            print(f"TO: {recipients}")
+            print(f"SUBJECT: {subject}")
+            print(f"BODY:\n{body_text or body_html}")
+            print("====================================================\n")
+            return settings.smtp_from_email, message_id
+        raise
 
 
 def _authenticate(smtp, settings) -> None:

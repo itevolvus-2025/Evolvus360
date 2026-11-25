@@ -1,0 +1,44 @@
+- @if (computedIsLoading()) {
+  @if (overlay()) {
+    <div class="ant-spin-overlay" role="status" aria-live="polite">
+      <div class="ant-spin-card">
+        <div
+          class="ant-spin ant-spin-spinning"
+          [class.ant-spin-lg]="size() === 'large'"
+          [class.ant-spin-sm]="size() === 'small'"
+          [class.ant-spin-show-text]="!!computedMessage()"
+        >
+          <span class="ant-spin-dot ant-spin-dot-spin">
+            <i class="ant-spin-dot-item"></i>
+            <i class="ant-spin-dot-item"></i>
+            <i class="ant-spin-dot-item"></i>
+            <i class="ant-spin-dot-item"></i>
+          </span>
+          @if (computedMessage()) {
+            <div class="ant-spin-text">{{ computedMessage() }}</div>
+          }
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div
+      class="ant-spin ant-spin-spinning"
+      [class.ant-spin-lg]="size() === 'large'"
+      [class.ant-spin-sm]="size() === 'small'"
+      [class.ant-spin-show-text]="!!computedMessage()"
+      role="status"
+      aria-live="polite"
+    >
+      <span class="ant-spin-dot ant-spin-dot-spin">
+        <i class="ant-spin-dot-item"></i>
+        <i class="ant-spin-dot-item"></i>
+        <i class="ant-spin-dot-item"></i>
+        <i class="ant-spin-dot-item"></i>
+      </span>
+      @if (computedMessage()) {
+        <div class="ant-spin-text">{{ computedMessage() }}</div>
+      }
+    </div>
+  }
+}
+ 

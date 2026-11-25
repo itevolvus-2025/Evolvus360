@@ -15,6 +15,8 @@ export interface OnboardingCandidateInfo {
   role: string;
   status: string;
   expires_at?: string;
+  draft?: Record<string, string | null>;
+  documents?: Array<{ document_type: string; original_filename: string }>;
 }
 
 export const DUMMY_ONBOARDING_CANDIDATE: OnboardingCandidateInfo = {
@@ -57,6 +59,8 @@ export class OnboardingService {
               role: d['role'] || DUMMY_ONBOARDING_CANDIDATE.role,
               status: 'Pending',
               expires_at: d['expires_at'],
+              draft: d['draft'] || {},
+              documents: d['documents'] || [],
             };
           }
           throw new Error('Invitation details were not returned by the server.');
@@ -68,6 +72,10 @@ export class OnboardingService {
    * Submit onboarding form payload with uploaded multipart files (POST /api/v1/onboarding/submit)
    */
   submitOnboarding(formData: FormData): Observable<any> {
-    return this.api.post<any>(API_ENDPOINTS.onboarding.submit, formData);
+    return this.api.postForm<any>(API_ENDPOINTS.onboarding.submit, formData);
+  }
+
+  saveDraft(formData: FormData): Observable<any> {
+    return this.api.postForm<any>(API_ENDPOINTS.onboarding.saveDraft, formData);
   }
 }
