@@ -404,34 +404,32 @@ def reject(db: Session, actor: User, employee_id: UUID, reason: str) -> dict:
                 reason=reason,
             )
         )
-        recipient = (
-            employee.company_email
-            or (employee.user.email if employee.user else None)
-            or employee.personal_email
-        )
-        email_row = None
-        if recipient:
-            email_row = email_dispatch.enqueue(
+        recipients = list(dict.fromkeys(
+            address.strip()
+            for address in (employee.personal_email, employee.company_email)
+            if address and address.strip()
+        ))
+        email_rows = [
+            email_dispatch.enqueue(
                 db,
                 entity_type="EMPLOYEE_REJECTION",
                 entity_id=employee.id,
                 recipient=recipient,
-                template_key="GENERAL_NOTIFICATION",
+                template_key="EMPLOYEE_PROFILE_REJECTED",
                 variables={
-                    "subject_line": "Your onboarding request has been rejected by HR Team",
-                    "message_text": (
-                        f"Hello {employee.first_name},\n\n"
-                        "Your onboarding request has been rejected by HR Team. Please contact them.\n\n"
-                        f"Reason: {reason}\n\n"
-                        "Regards,\nEvolvus 360 HR Team"
-                    ),
+                    "employee_name": employee.first_name,
+                    "rejection_reason": reason,
                 },
             )
+            for recipient in recipients
+        ]
         db.commit()
     except BaseException:
         db.rollback()
         raise
-    sent = email_dispatch.dispatch(email_row.id) if email_row else False
+    sent = bool(email_rows) and all(
+        email_dispatch.dispatch(email_row.id) for email_row in email_rows
+    )
     return {
         "employee_id": str(employee.id),
         "onboarding_status": "REJECTED",

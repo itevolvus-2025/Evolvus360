@@ -220,6 +220,41 @@ PROFILE_APPROVED_HTML = _layout(
 )
 
 
+
+
+PROFILE_REJECTED_HTML = _layout(
+    "Your Evolvus 360 onboarding request requires corrections.",
+    _h1("Onboarding Request Requires Corrections")
+    + _p("Hello $employee_name,")
+    + _p(
+        "Your onboarding request has been reviewed by the HR team. "
+        "Unfortunately, your profile could not be approved at this time."
+    )
+    + _p(
+        "Please review the feedback provided below, make the necessary "
+        "corrections to your employee profile, and resubmit it for HR review."
+    )
+    # Rejection Reason
+    + _note(
+        "<strong>Reason for Rejection:</strong><br><br>"
+        "$rejection_reason"
+    )
+  
+    # Resubmission Button
+    + _button("Update Your Profile", "$invitation_link")
+    + _fallback_link("$invitation_link")
+    + _p(
+        "If you need any assistance or clarification regarding the "
+        "requested corrections, please contact your HR team."
+    )
+    + _p(
+        "Best Regards,<br>"
+        "<strong>Evolvus 360 HR Team</strong>"
+    ),
+)
+
+
+
 GENERAL_HTML = _layout(
     "$subject_line",
     _h1("$subject_line")
@@ -337,6 +372,33 @@ DEFAULT_TEMPLATES = (
         "employee_email",
         "temporary_password",
         "login_url",
+    ],
+},
+
+   
+{
+    "template_key": "EMPLOYEE_PROFILE_REJECTED",
+    "name": "Employee profile rejected",
+    "subject": "Action Required: Corrections Needed in Your Evolvus 360 Profile",
+    "body_text": (
+        "Hello $employee_name,\n\n"
+        "Your onboarding request has been reviewed by the HR team. "
+        "Unfortunately, your profile could not be approved at this time.\n\n"
+        "Reason for Rejection:\n"
+        "$rejection_reason\n\n"
+        "Please review the feedback, make the necessary corrections, "
+        "and resubmit your profile using your active onboarding link:\n\n"
+        "$invitation_link\n\n"
+        "If you need assistance, please contact your HR team.\n\n"
+        "Best Regards,\n"
+        "Evolvus 360 HR Team"
+    ),
+    "body_html": PROFILE_REJECTED_HTML,
+    "description": "Employee onboarding rejection notification with correction reason and profile resubmission link.",
+    "required_variables": [
+        "employee_name",
+        "rejection_reason",
+        "invitation_link",
     ],
 },
 
