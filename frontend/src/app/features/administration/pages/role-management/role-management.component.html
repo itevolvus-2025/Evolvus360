@@ -1,16 +1,126 @@
 <div class="role-management-page">
-  <!-- Common Data Table Component -->
-  <app-data-table
-    [columns]="columns"
-    [data]="filteredRoles()"
-    searchPlaceholder="Search by role..."
-    filterLabel="Access scope"
-    [filterOptions]="scopeOptions"
-    [(selectedFilter)]="selectedScope"
-    itemLabel="users"
-    [pageSize]="10"
-    (actionClick)="handleAction($event)"
-  />
+  <!-- Main Card Container Matching User Design -->
+  <div class="role-management-card">
+    <!-- Top Toolbar: Search Input (Left) & Access Scope Filter (Right) -->
+    <div class="role-toolbar">
+      <div class="role-search-wrap">
+        <app-icon name="search" [size]="15" color="#94A3B8" class="search-icon" />
+        <input
+          type="text"
+          class="role-search-input"
+          placeholder="Search by role..."
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+        />
+        @if (searchQuery()) {
+          <button
+            type="button"
+            class="clear-search-btn"
+            (click)="clearSearch()"
+            aria-label="Clear search"
+          >
+            <app-icon name="close" [size]="12" color="#94A3B8" />
+          </button>
+        }
+      </div>
 
+   
+    </div>
 
+    <!-- Table Responsive Container -->
+    <div class="role-table-responsive">
+      <table class="role-table">
+        <thead>
+          <tr>
+            <th style="width: 30%;">ROLE</th>
+            <th style="width: 42%;">PURPOSE</th>
+            <th style="width: 14%;">STATUS</th>
+            <th style="width: 14%;">ACTION</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (role of roles(); track role.id) {
+            <tr>
+              <!-- Role Name -->
+              <td>
+                <span class="role-title">{{ role.role }}</span>
+              </td>
+
+              <!-- Purpose -->
+              <td>
+                <span class="role-purpose">{{ role.purpose || '—' }}</span>
+              </td>
+
+              <!-- Status Badge Pill -->
+              <td>
+                <span
+                  class="status-pill"
+                  [class.status-active]="role.status === 'Active'"
+                  [class.status-inactive]="role.status !== 'Active'"
+                >
+                  {{ role.status }}
+                </span>
+              </td>
+
+              <!-- Action: Edit Pencil Icon Button -->
+              <td>
+                <a
+                  [routerLink]="['/administration/roles/edit', role.id]"
+                  class="action-edit-btn"
+                  title="Edit Role"
+                >
+                  <app-icon name="edit" [size]="18" color="#2563EB" />
+                </a>
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row">
+              <td colspan="4" class="empty-cell">
+                <app-icon name="search" [size]="28" color="#94A3B8" />
+                <p>No roles found matching your search</p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table Footer / Pagination Matching User Screenshot -->
+    <div class="role-footer">
+      <p class="footer-count-text">
+        Showing <strong>{{ roles().length }}</strong> of <strong>{{ totalRoleCount() }}</strong> users
+      </p>
+
+      <div class="pagination-controls">
+        <button
+          type="button"
+          class="btn-page-nav"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)"
+        >
+          Previous
+        </button>
+
+        @for (page of pages(); track page) {
+          <button
+            type="button"
+            class="btn-page-num"
+            [class.active]="currentPage() === page"
+            (click)="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+        }
+
+        <button
+          type="button"
+          class="btn-page-nav"
+          [disabled]="currentPage() >= totalRolePages()"
+          (click)="goToPage(currentPage() + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
