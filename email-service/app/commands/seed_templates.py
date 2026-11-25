@@ -239,9 +239,6 @@ PROFILE_APPROVED_HTML = _layout(
 )
 
 
-
-
-
 PROFILE_REJECTED_HTML = _layout(
     "Your Evolvus 360 onboarding request requires corrections.",
     _h1("Onboarding Request Requires Corrections")

@@ -68,17 +68,14 @@ def _queue_approval_email(
         db,
         entity_type="EMPLOYEE_APPROVAL",
         entity_id=employee.id,
-        recipient=employee.company_email,
-        template_key="GENERAL_NOTIFICATION",
+        recipient=employee.personal_email or employee.company_email,
+        template_key="EMPLOYEE_PROFILE_APPROVED",
         variables={
-            "subject_line": "Your Evolvus360 employee account is approved",
-            "message_text": (
-                f"Hello {employee.first_name}, your onboarding is approved. "
-                f"Login ID: {user.email}. Temporary one-time password: {password}. "
-                f"Sign in at {settings.frontend_login_url} within "
-                f"{settings.temporary_password_expire_hours} hours and change "
-                "your password before using the application."
-            ),
+            "employee_name": f"{employee.first_name} {employee.last_name}".strip(),
+            "company_name": employee.entity_name or "Evolvus 360",
+            "employee_email": user.email,
+            "temporary_password": password,
+            "login_url": settings.frontend_login_url,
         },
     )
 
