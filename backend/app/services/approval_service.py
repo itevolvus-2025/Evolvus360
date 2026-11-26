@@ -68,17 +68,14 @@ def _queue_approval_email(
         db,
         entity_type="EMPLOYEE_APPROVAL",
         entity_id=employee.id,
-        recipient=employee.company_email,
-        template_key="GENERAL_NOTIFICATION",
+        recipient=employee.personal_email or employee.company_email,
+        template_key="EMPLOYEE_PROFILE_APPROVED",
         variables={
-            "subject_line": "Your Evolvus360 employee account is approved",
-            "message_text": (
-                f"Hello {employee.first_name}, your onboarding is approved. "
-                f"Login ID: {user.email}. Temporary one-time password: {password}. "
-                f"Sign in at {settings.frontend_login_url} within "
-                f"{settings.temporary_password_expire_hours} hours and change "
-                "your password before using the application."
-            ),
+            "employee_name": f"{employee.first_name} {employee.last_name}".strip(),
+            "company_name": employee.entity_name or "Evolvus 360",
+            "employee_email": user.email,
+            "temporary_password": password,
+            "login_url": settings.frontend_login_url,
         },
     )
 
@@ -404,34 +401,28 @@ def reject(db: Session, actor: User, employee_id: UUID, reason: str) -> dict:
                 reason=reason,
             )
         )
-        recipient = (
-            employee.company_email
-            or (employee.user.email if employee.user else None)
-            or employee.personal_email
-        )
-        email_row = None
-        if recipient:
-            email_row = email_dispatch.enqueue(
+        recipients = [employee.personal_email.strip()] if employee.personal_email else []
+        email_rows = [
+            email_dispatch.enqueue(
                 db,
                 entity_type="EMPLOYEE_REJECTION",
                 entity_id=employee.id,
                 recipient=recipient,
-                template_key="GENERAL_NOTIFICATION",
+                template_key="EMPLOYEE_PROFILE_REJECTED",
                 variables={
-                    "subject_line": "Your onboarding request has been rejected by HR Team",
-                    "message_text": (
-                        f"Hello {employee.first_name},\n\n"
-                        "Your onboarding request has been rejected by HR Team. Please contact them.\n\n"
-                        f"Reason: {reason}\n\n"
-                        "Regards,\nEvolvus 360 HR Team"
-                    ),
+                    "employee_name": employee.first_name,
+                    "rejection_reason": reason,
                 },
             )
+            for recipient in recipients
+        ]
         db.commit()
     except BaseException:
         db.rollback()
         raise
-    sent = email_dispatch.dispatch(email_row.id) if email_row else False
+    sent = bool(email_rows) and all(
+        email_dispatch.dispatch(email_row.id) for email_row in email_rows
+    )
     return {
         "employee_id": str(employee.id),
         "onboarding_status": "REJECTED",
@@ -470,12 +461,12 @@ def retry_email(db: Session, employee_id: UUID, event: str) -> dict:
     )
     if (
         employee is None
-        or not employee.company_email
-        or row.recipient_email.casefold() != employee.company_email.casefold()
+        or not employee.personal_email
+        or row.recipient_email.casefold() != employee.personal_email.casefold()
     ):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "Email retry requires the current company email as recipient",
+            "Email retry requires the current personal email as recipient",
         )
     sent = email_dispatch.retry(row.id, entity_type=entity_type, entity_id=employee_id)
     return {"email_dispatch_status": "DISPATCHED" if sent else "FAILED"}
