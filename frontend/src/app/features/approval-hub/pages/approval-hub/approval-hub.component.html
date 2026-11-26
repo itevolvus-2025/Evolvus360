@@ -18,16 +18,15 @@
           <div class="candidate-badges-row">
             <span class="info-badge">
               <app-icon name="mail" [size]="13" color="#64748B" />
-              <span>{{ review.employment.personal_email || review.employment.company_email || 'priya@evolvus.com'
-                }}</span>
+              <span>{{ review.employment.personal_email || review.employment.company_email || '' }}</span>
             </span>
             <span class="info-badge">
               <app-icon name="user" [size]="13" color="#64748B" />
-              <span>{{ review.employment.designation || 'Employee' }}</span>
+              <span>{{ review.employment.designation || '' }}</span>
             </span>
             <span class="info-badge">
               <app-icon name="id-card" [size]="13" color="#64748B" />
-              <span>ID: {{ review.employee_code || 'E014' }}</span>
+              <span>ID: {{ review.employee_code || '' }}</span>
             </span>
           </div>
         </div>
@@ -48,7 +47,7 @@
           <div class="field-item">
             <label class="field-label">Employee code</label>
             <div class="input-with-adornment">
-              <input type="text" class="field-input-readonly" [value]="review.employee_code || 'E014'" readonly />
+              <input type="text" class="field-input-readonly" [value]="review.employee_code || ''" readonly />
               <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
             </div>
           </div>
@@ -56,7 +55,7 @@
           <div class="field-item">
             <label class="field-label">Department</label>
             <div class="input-with-adornment">
-              <input type="text" class="field-input-readonly" [value]="review.employment.department || 'Finance'"
+              <input type="text" class="field-input-readonly" [value]="review.employment.department || ''"
                 readonly />
               <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
             </div>
@@ -65,7 +64,7 @@
           <div class="field-item">
             <label class="field-label">Role</label>
             <div class="input-with-adornment">
-              <input type="text" class="field-input-readonly" [value]="review.employment.designation || 'Employee'"
+              <input type="text" class="field-input-readonly" [value]="review.employment.designation || ''"
                 readonly />
               <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
             </div>
@@ -75,7 +74,7 @@
             <label class="field-label">Company email</label>
             <div class="input-with-adornment">
               <input type="text" class="field-input-readonly"
-                [value]="review.employment.company_email || 'Jhon@evolvus.com'" readonly />
+                [value]="review.employment.company_email || ''" readonly />
               <app-icon name="lock" [size]="14" color="#94A3B8" class="adornment-icon" />
             </div>
           </div>
@@ -96,7 +95,7 @@
             <label class="field-label">Date of birth <span class="required">*</span></label>
             <div class="input-with-adornment">
               <input type="text" class="field-input-readonly"
-                [value]="formatDisplayDate(review.profile?.date_of_birth) || '14-08-1992'" readonly />
+                [value]="formatDisplayDate(review.profile?.date_of_birth)" readonly />
               <app-icon name="calendar" [size]="15" color="#94A3B8" class="adornment-icon" />
             </div>
           </div>
@@ -104,7 +103,7 @@
           <div class="field-item">
             <label class="field-label">Gender <span class="required">*</span></label>
             <div class="input-with-adornment">
-              <input type="text" class="field-input-readonly" [value]="review.profile?.gender || 'Male'" readonly />
+              <input type="text" class="field-input-readonly" [value]="review.profile?.gender || ''" readonly />
               <app-icon name="chevron-down" [size]="13" color="#94A3B8" class="adornment-icon" />
             </div>
           </div>
@@ -120,20 +119,20 @@
 
           <div class="field-item">
             <label class="field-label">Aadhaar (12 digits) <span class="required">*</span></label>
-            <input type="text" class="field-input-readonly" [value]="review.profile?.aadhaar_number || '4589 1234 5678'"
+            <input type="text" class="field-input-readonly" [value]="review.profile?.aadhaar_number || ''"
               readonly />
           </div>
 
           <div class="field-item">
             <label class="field-label">PAN Card <span class="required">*</span></label>
             <input type="text" class="field-input-readonly uppercase"
-              [value]="review.profile?.pan_number || 'ABCDE1234F'" readonly />
+              [value]="review.profile?.pan_number || ''" readonly />
           </div>
 
           <div class="field-item">
             <label class="field-label">Passport number</label>
             <input type="text" class="field-input-readonly uppercase"
-              [value]="review.profile?.passport_number || 'Z8765432'" readonly />
+              [value]="review.profile?.passport_number || ''" readonly />
           </div>
         </div>
       </div>
@@ -154,7 +153,7 @@
           <div class="field-item">
             <label class="field-label">Contact Name <span class="required">*</span></label>
             <input type="text" class="field-input-readonly"
-              [value]="review.profile?.emergency_contact_name || 'Sarah Doe'" readonly />
+              [value]="review.profile?.emergency_contact_name || ''" readonly />
           </div>
 
           <div class="field-item">
@@ -166,7 +165,7 @@
           <div class="field-item">
             <label class="field-label">Relationship <span class="required">*</span></label>
             <input type="text" class="field-input-readonly"
-              [value]="review.profile?.emergency_contact_relation || 'Spouse'" readonly />
+              [value]="review.profile?.emergency_contact_relation || ''" readonly />
           </div>
         </div>
       </div>
@@ -183,20 +182,20 @@
         <div class="grid-3col">
           <div class="field-item">
             <label class="field-label">Bank Name <span class="required">*</span></label>
-            <input type="text" class="field-input-readonly" [value]="review.profile?.bank_name || 'HDFC Bank'"
+            <input type="text" class="field-input-readonly" [value]="review.profile?.bank_name || ''"
               readonly />
           </div>
 
           <div class="field-item">
             <label class="field-label">Account Number <span class="required">*</span></label>
-            <input type="text" class="field-input-readonly" [value]="review.profile?.account_number || '50100234567890'"
+            <input type="text" class="field-input-readonly" [value]="review.profile?.account_number || ''"
               readonly />
           </div>
 
           <div class="field-item">
             <label class="field-label">IFSC Code <span class="required">*</span></label>
             <input type="text" class="field-input-readonly uppercase"
-              [value]="review.profile?.ifsc_code || 'HDFC0000123'" readonly />
+              [value]="review.profile?.ifsc_code || ''" readonly />
           </div>
         </div>
 
@@ -280,14 +279,14 @@
           <div class="field-item">
             <label class="field-label">Qualification</label>
             <input type="text" class="field-input-readonly"
-              [value]="review.profile?.qualification || 'Master of Business Administration (Finance), B.Com'"
+              [value]="review.profile?.qualification || ''"
               readonly />
           </div>
 
           <div class="field-item">
             <label class="field-label">Languages</label>
             <input type="text" class="field-input-readonly"
-              [value]="review.profile?.languages?.join(', ') || 'English (Fluent), Hindi (Native), Marathi (Conversational)'"
+              [value]="review.profile?.languages?.join(', ') || ''"
               readonly />
           </div>
         </div>
@@ -393,7 +392,7 @@
       <div class="request-meta-grid">
         <div class="meta-col">
           <span class="meta-col-label">EMPLOYEE NAME</span>
-          <span class="meta-col-value">{{ formatPersonName(item.employeeName || 'Pooja Nikam') }}</span>
+          <span class="meta-col-value">{{ formatPersonName(item.employeeName) }}</span>
         </div>
 
         <div class="meta-col">

@@ -1,25 +1,45 @@
 :host {
   display: block;
-  min-height: 100vh;
-  width: 100%;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  z-index: 1;
 }
 
 .auth-shell {
-  min-height: 100vh;
   width: 100%;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(440px, 0.95fr);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   background: #ffffff;
   font-family: 'Poppins', sans-serif;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 .auth-brand-panel {
   position: relative;
+  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  padding: clamp(40px, 6.5vw, 84px);
+  padding: clamp(32px, 5vw, 72px);
   background-color: #2563EB !important;
   color: #ffffff;
   overflow: hidden;
@@ -53,10 +73,10 @@
 }
 
 .auth-title {
-  margin: 0 0 20px;
+  margin: 0 0 14px;
   color: #ffffff;
   font-family: 'Poppins', sans-serif;
-  font-size: clamp(32px, 3.6vw, 50px);
+  font-size: clamp(28px, 3.2vw, 46px);
   font-weight: 700;
   line-height: 1.16;
   letter-spacing: -0.02em;
@@ -68,7 +88,7 @@
   max-width: 440px;
   color: rgba(255, 255, 255, 0.95);
   font-family: 'Poppins', sans-serif;
-  font-size: clamp(14px, 1.1vw, 16px);
+  font-size: clamp(13px, 1vw, 15px);
   font-weight: 400;
   line-height: 1.55;
   letter-spacing: -0.005em;
@@ -77,22 +97,32 @@
 
 .auth-form-panel {
   position: relative;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  // padding: clamp(24px, 4vw, 48px);
+  padding: clamp(12px, 2vh, 24px) clamp(16px, 2vw, 32px);
   background: #ffffff;
   box-sizing: border-box;
-  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 .auth-nav-back {
   position: absolute;
-  top: clamp(20px, 3.5vw, 36px);
-  right: clamp(20px, 3.5vw, 40px);
-  width: 38px;
-  height: 38px;
+  top: clamp(14px, 2vw, 24px);
+  right: clamp(14px, 2vw, 28px);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 1px solid #bfdbfe;
   background: #ffffff;
@@ -122,31 +152,58 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .auth-brand-logo {
-  margin-bottom: 28px;
+  margin-bottom: clamp(10px, 1.6vh, 16px);
   display: flex;
   justify-content: center;
   align-items: center;
 
   .brand-logo-img {
-    height: 48px;
+    height: clamp(32px, 3.8vh, 42px);
     width: auto;
-    max-width: 165px;
+    max-width: 155px;
     object-fit: contain;
     display: block;
   }
 }
 
+@media (max-height: 540px) {
+  .auth-form-panel {
+    overflow-y: auto;
+    justify-content: flex-start;
+  }
+  .auth-form-container {
+    margin: auto 0;
+  }
+}
+
 @media (max-width: 991px) {
+  :host {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
   .auth-shell {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-height: none;
     grid-template-columns: 1fr;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .auth-brand-panel {
-    min-height: 340px;
-    padding: 44px 24px;
+    height: auto;
+    min-height: 260px;
+    padding: 32px 20px;
     align-items: center;
     text-align: center;
     background-color: #2563EB !important;
@@ -164,23 +221,28 @@
   }
 
   .auth-title {
-    font-size: clamp(26px, 6vw, 36px);
+    font-size: clamp(24px, 5.5vw, 32px);
     line-height: 1.2;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   .auth-subtitle {
-    font-size: 14px;
+    font-size: 13px;
     max-width: 380px;
   }
 
   .auth-form-panel {
-    padding: 32px 16px 48px;
-    min-height: auto;
+    height: auto;
+    padding: 24px 16px 36px;
+    overflow-y: visible;
+  }
+
+  .auth-form-container {
+    margin: 0 auto;
   }
 
   .auth-nav-back {
-    top: 16px;
-    right: 16px;
+    top: 12px;
+    right: 12px;
   }
 }

@@ -80,130 +80,13 @@ export interface ApprovalDetails {
   rejection_reason?: string;
 }
 
-const DEFAULT_APPROVAL_ITEMS: ApprovalItem[] = [
-  {
-    id: 'mock-pooja-nikam',
-    userId: 'mock-pooja-nikam',
-    type: 'EMPLOYEE ONBOARDING',
-    title: 'New Hire Onboarding: Pooja Nikam',
-    description: 'HR Manager registered new employee Pooja Nikam Proposed Role: Data Entry Opertaor. Requires Super Admin approval to activate system login credentials.',
-    status: 'Pending',
-    submittedDate: 'Nov 21, 2026',
-    employeeName: 'Pooja Nikam',
-    department: 'Chemistry',
-    assignedRole: 'Data Entry Opertaor',
-    loginState: 'Disabled (Pending Approval)',
-  },
-  {
-    id: 'mock-auth-1',
-    userId: 'mock-auth-1',
-    type: 'EMPLOYEE ONBOARDING',
-    title: 'New Hire Onboarding: Vikram Malhotra',
-    description: 'HR Manager registered new employee Vikram Malhotra Proposed Role: Senior Research Scientist. Requires Super Admin approval to activate system login credentials.',
-    status: 'Authorized',
-    submittedDate: 'Nov 2, 2026',
-    employeeName: 'Vikram Malhotra',
-    admin: 'Asha Rao',
-    department: 'Biotechnology',
-    assignedRole: 'Senior Research Scientist',
-    submittedBy: 'Meera Iyer (HR Manager)',
-    loginState: 'Enabled (Active)',
-  },
-  {
-    id: 'mock-auth-2',
-    userId: 'mock-auth-2',
-    type: 'EMPLOYEE ONBOARDING',
-    title: 'New Hire Onboarding: Ananya Sharma',
-    description: 'HR Manager registered new employee Ananya Sharma Proposed Role: Quality Analyst. Requires Super Admin approval to activate system login credentials.',
-    status: 'Authorized',
-    submittedDate: 'Oct 28, 2026',
-    employeeName: 'Ananya Sharma',
-    admin: 'Asha Rao',
-    department: 'Quality Assurance',
-    assignedRole: 'Quality Analyst',
-    submittedBy: 'Meera Iyer (HR Manager)',
-    loginState: 'Enabled (Active)',
-  },
-  {
-    id: 'mock-auth-3',
-    userId: 'mock-auth-3',
-    type: 'EMPLOYEE ONBOARDING',
-    title: 'New Hire Onboarding: Rajesh Verma',
-    description: 'HR Manager registered new employee Rajesh Verma Proposed Role: Laboratory Technician. Requires Super Admin approval to activate system login credentials.',
-    status: 'Authorized',
-    submittedDate: 'Oct 25, 2026',
-    employeeName: 'Rajesh Verma',
-    admin: 'Asha Rao',
-    department: 'Chemistry',
-    assignedRole: 'Laboratory Technician',
-    submittedBy: 'Meera Iyer (HR Manager)',
-    loginState: 'Enabled (Active)',
-  },
-];
-
-const DEFAULT_REVIEW_JHON_DOE: ApprovalDetails = {
-  id: 'mock-jhon-doe',
-  employee_id: 'mock-jhon-doe',
-  employee_code: 'E014',
-  name: 'Jhon Doe',
-  profile_status: 'PENDING_APPROVAL',
-  account_status: 'DISABLED',
-  can_view_employee_details: true,
-  employment: {
-    company_email: 'Jhon@evolvus.com',
-    personal_email: 'priya@evolvus.com',
-    department: 'Finance',
-    designation: 'Employee',
-    entity: 'Evolvus',
-    work_location: 'Mumbai',
-    pf_applicable: 'YES',
-    joining_date: '2026-11-04',
-    start_date: '2026-11-04',
-  },
-  profile: {
-    date_of_birth: '1992-08-14',
-    gender: 'Male',
-    aadhaar_number: '4589 1234 5678',
-    pan_number: 'ABCDE1234F',
-    passport_number: 'Z8765432',
-    uan_number: '',
-    mobile_number: '+91 98765 43210',
-    emergency_contact_name: 'Sarah Doe',
-    emergency_contact_phone: '+91 98123 45678',
-    emergency_contact_relation: 'Spouse',
-    bank_name: 'HDFC Bank',
-    account_number: '50100234567890',
-    ifsc_code: 'HDFC0000123',
-    qualification: 'Master of Business Administration (Finance), B.Com',
-    languages: ['English (Fluent)', 'Hindi (Native)', 'Marathi (Conversational)'],
-  },
-  documents: [
-    {
-      id: 'doc-aadhaar',
-      document_type: 'identity_proof',
-      filename: 'Aadhaar_Card_Fro',
-      mime_type: 'application/pdf',
-      size_bytes: 2516582, // 2.4 MB
-      verification_status: 'VERIFIED',
-    },
-    {
-      id: 'doc-cheque',
-      document_type: 'cancelled_cheque',
-      filename: 'Cancelled_Cheque',
-      mime_type: 'image/jpeg',
-      size_bytes: 1153433, // 1.1 MB
-      verification_status: 'VERIFIED',
-    },
-  ],
-};
-
 @Injectable({ providedIn: 'root' })
 export class ApprovalHubService {
   private readonly apiService = inject(ApiService);
   private readonly notification = inject(NotificationService);
 
-  readonly items = signal<ApprovalItem[]>(DEFAULT_APPROVAL_ITEMS);
-  readonly totalApprovalCount = signal(DEFAULT_APPROVAL_ITEMS.length);
+  readonly items = signal<ApprovalItem[]>([]);
+  readonly totalApprovalCount = signal(0);
   readonly isLoading = signal(false);
   readonly reviewDetails = signal<ApprovalDetails | null>(null);
   readonly reviewLoading = signal(false);
@@ -255,16 +138,16 @@ export class ApprovalHubService {
       userId: record.employee_id,
       type: 'EMPLOYEE ONBOARDING',
       title: `New Hire Onboarding: ${employeeName}`,
-      description: `HR Manager registered new employee ${employeeName} Proposed Role: ${record.designation || 'Data Entry Opertaor'}. Requires Super Admin approval to activate system login credentials.`,
+      description: `HR Manager registered new employee ${employeeName}${record.designation ? ` Proposed Role: ${record.designation}.` : '.'} Requires approval to activate system login credentials.`,
       status: approved ? 'Authorized' : rejected ? 'Rejected' : 'Pending',
       submittedDate: record.submitted_at
         ? new Date(record.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        : 'Nov 21, 2026',
+        : '',
       employeeName,
-      admin: (record as any).admin || 'Asha Rao',
-      department: record.department || 'Chemistry',
-      assignedRole: record.designation || 'Data Entry Opertaor',
-      submittedBy: (record as any).submitted_by || 'Meera Iyer (HR Manager)',
+      admin: (record as any).admin || undefined,
+      department: record.department || '',
+      assignedRole: record.designation || '',
+      submittedBy: (record as any).submitted_by || undefined,
       loginState: approved ? 'Enabled (Active)' : rejected ? 'Disabled (Rejected)' : 'Disabled (Pending Approval)',
       emailDispatchStatus: record.email_dispatch_status,
     };
@@ -278,31 +161,6 @@ export class ApprovalHubService {
   review(id: string | number): void {
     this.reviewLoading.set(true);
     this.reviewDetails.set(null);
-
-    if (String(id).startsWith('mock-')) {
-      const foundItem = this.items().find((it) => String(it.id) === String(id) || String(it.userId) === String(id));
-      const empName = foundItem?.employeeName || (String(id).includes('pooja') ? 'Pooja Nikam' : 'Jhon Doe');
-      const dept = foundItem?.department || 'Finance';
-      const desig = foundItem?.assignedRole || 'Employee';
-      const email = empName.toLowerCase().replace(/\s+/g, '.') + '@evolvus.com';
-
-      setTimeout(() => {
-        this.reviewDetails.set({
-          ...DEFAULT_REVIEW_JHON_DOE,
-          id: String(id),
-          employee_id: String(id),
-          name: empName,
-          employment: {
-            ...DEFAULT_REVIEW_JHON_DOE.employment,
-            department: dept,
-            designation: desig,
-            company_email: email,
-          },
-        });
-        this.reviewLoading.set(false);
-      }, 100);
-      return;
-    }
 
     // Call GET /api/v1/approvals/employees/{employee_id}
     this.apiService.get<any>(API_ENDPOINTS.approvals.employee(id)).subscribe({
@@ -330,12 +188,7 @@ export class ApprovalHubService {
         this.reviewLoading.set(false);
       },
       error: () => {
-        // Provide rich fallback matching specifications so review view always opens cleanly
-        this.reviewDetails.set({
-          ...DEFAULT_REVIEW_JHON_DOE,
-          id: String(id),
-          employee_id: String(id),
-        });
+        this.reviewDetails.set(null);
         this.reviewLoading.set(false);
       },
     });
@@ -358,48 +211,48 @@ export class ApprovalHubService {
       return {
         id: String(id),
         employee_id: data.employee_id || String(id),
-        employee_code: data.employee_code || 'E014',
-        name: data.name || 'Jhon Doe',
+        employee_code: data.employee_code || '',
+        name: data.name || '',
         profile_status: data.profile_status || data.onboarding_status || 'PENDING',
         account_status: data.account?.status,
         onboarding_status: data.onboarding_status,
         can_view_employee_details: true,
         employment: {
-          company_email: data.employment?.company_email || 'Jhon@evolvus.com',
-          personal_email: data.employment?.personal_email || 'priya@evolvus.com',
-          department: data.employment?.department || 'Finance',
-          designation: data.employment?.designation || 'Employee',
-          entity: data.employment?.entity || 'Evolvus',
-          work_location: data.employment?.work_location || 'Mumbai',
-          pf_applicable: data.employment?.pf_applicable ? 'YES' : 'NO',
-          joining_date: data.employment?.joining_date || '2026-11-04',
-          start_date: data.employment?.employment_start_date || '2026-11-04',
+          company_email: data.employment?.company_email || '',
+          personal_email: data.employment?.personal_email || '',
+          department: data.employment?.department || '',
+          designation: data.employment?.designation || '',
+          entity: data.employment?.entity || '',
+          work_location: data.employment?.work_location || '',
+          pf_applicable: data.employment?.pf_applicable == null ? '' : data.employment.pf_applicable ? 'YES' : 'NO',
+          joining_date: data.employment?.joining_date || '',
+          start_date: data.employment?.employment_start_date || '',
           end_date: data.employment?.employment_end_date,
         },
         profile: {
-          date_of_birth: personal?.birth_date || '1992-08-14',
-          gender: personal?.gender || 'Male',
-          aadhaar_number: personal?.aadhaar_last_four ? `4589 1234 ${personal.aadhaar_last_four}` : '4589 1234 5678',
-          pan_number: personal?.pan_present ? 'ABCDE1234F' : 'ABCDE1234F',
-          passport_number: personal?.passport_present ? 'Z8765432' : 'Z8765432',
+          date_of_birth: personal?.birth_date || '',
+          gender: personal?.gender || '',
+          aadhaar_number: personal?.aadhaar_last_four ? `•••• •••• ${personal.aadhaar_last_four}` : '',
+          pan_number: personal?.pan_number || '',
+          passport_number: personal?.passport_number || '',
           uan_number: personal?.uan_number || '',
-          mobile_number: contact?.mobile_number || '+91 98765 43210',
-          emergency_contact_name: contact?.emergency_contact_name || 'Sarah Doe',
-          emergency_contact_phone: contact?.emergency_contact_phone || '+91 98123 45678',
-          emergency_contact_relation: contact?.emergency_contact_relation || 'Spouse',
-          bank_name: bank?.bank_name || 'HDFC Bank',
-          account_number: bank?.account_number_last_four ? `5010023456${bank.account_number_last_four}` : '50100234567890',
-          ifsc_code: bank?.ifsc_code || 'HDFC0000123',
-          qualification: skills?.qualifications || 'Master of Business Administration (Finance), B.Com',
-          languages: languages.length > 0 ? languages : ['English (Fluent)', 'Hindi (Native)', 'Marathi (Conversational)'],
+          mobile_number: contact?.mobile_number || '',
+          emergency_contact_name: contact?.emergency_contact_name || '',
+          emergency_contact_phone: contact?.emergency_contact_phone || '',
+          emergency_contact_relation: contact?.emergency_contact_relation || '',
+          bank_name: bank?.bank_name || '',
+          account_number: bank?.account_number_last_four ? `••••${bank.account_number_last_four}` : '',
+          ifsc_code: bank?.ifsc_code || '',
+          qualification: skills?.qualifications || '',
+          languages,
         },
         documents: (data.documents && data.documents.length > 0) ? (data.documents || []).map((doc: any) => ({
           id: String(doc.id),
-          document_type: doc.document_type || 'identity_proof',
-          filename: doc.filename || doc.file_name || 'Document',
-          mime_type: doc.mime_type || 'application/pdf',
-          size_bytes: doc.size_bytes || doc.file_size_bytes || 2516582,
-          verification_status: doc.verification_status || 'VERIFIED',
+          document_type: doc.document_type || '',
+          filename: doc.filename || doc.file_name || '',
+          mime_type: doc.mime_type || '',
+          size_bytes: doc.size_bytes || doc.file_size_bytes || 0,
+          verification_status: doc.verification_status || '',
           download_url: doc.download_url || API_ENDPOINTS.approvals.document(id, doc.id),
         })) : [],
         rejection_reason: data.rejection_reason,
@@ -409,52 +262,52 @@ export class ApprovalHubService {
     // Otherwise format is from employee_service.employee_details (hr_details + employee_details)
     const hr = data.hr_details || {};
     const emp = data.employee_details || {};
-    const fullName = [hr.first_name, hr.middle_name, hr.last_name].filter(Boolean).join(' ') || hr.employee_code || 'Jhon Doe';
+    const fullName = [hr.first_name, hr.middle_name, hr.last_name].filter(Boolean).join(' ');
 
     return {
       id: String(id),
       employee_id: String(id),
-      employee_code: hr.employee_code || 'E014',
+      employee_code: hr.employee_code || '',
       name: fullName,
       profile_status: data.profile_status || 'PENDING',
       account_status: data.account_status,
       can_view_employee_details: true,
       employment: {
-        company_email: hr.company_email || 'Jhon@evolvus.com',
-        personal_email: hr.personal_email || 'priya@evolvus.com',
-        department: typeof hr.department === 'object' ? hr.department?.name : (hr.department || 'Finance'),
-        designation: hr.designation || 'Employee',
-        entity: typeof hr.entity === 'object' ? hr.entity?.name : (hr.entity || 'Evolvus'),
-        work_location: hr.location || 'Mumbai',
-        pf_applicable: hr.pf_applicable ? 'YES' : 'NO',
-        joining_date: hr.joining_date || '2026-11-04',
-        start_date: hr.start_date || '2026-11-04',
+        company_email: hr.company_email || '',
+        personal_email: hr.personal_email || '',
+        department: typeof hr.department === 'object' ? hr.department?.name : (hr.department || ''),
+        designation: hr.designation || '',
+        entity: typeof hr.entity === 'object' ? hr.entity?.name : (hr.entity || ''),
+        work_location: hr.location || '',
+        pf_applicable: hr.pf_applicable == null ? '' : hr.pf_applicable ? 'YES' : 'NO',
+        joining_date: hr.joining_date || '',
+        start_date: hr.start_date || '',
         end_date: hr.end_date,
       },
       profile: {
-        date_of_birth: emp.date_of_birth || '1992-08-14',
-        gender: emp.gender || 'Male',
-        aadhaar_number: emp.aadhaar_number || '4589 1234 5678',
-        pan_number: emp.pan_number || 'ABCDE1234F',
-        passport_number: emp.passport_number || 'Z8765432',
+        date_of_birth: emp.date_of_birth || '',
+        gender: emp.gender || '',
+        aadhaar_number: emp.aadhaar_number || '',
+        pan_number: emp.pan_number || '',
+        passport_number: emp.passport_number || '',
         uan_number: emp.uan_number || '',
-        mobile_number: emp.mobile_number || '+91 98765 43210',
-        emergency_contact_name: emp.emergency_contact?.name || 'Sarah Doe',
-        emergency_contact_phone: emp.emergency_contact?.phone || '+91 98123 45678',
-        emergency_contact_relation: emp.emergency_contact?.relationship || 'Spouse',
-        bank_name: emp.bank_details?.bank_name || 'HDFC Bank',
-        account_number: emp.bank_details?.account_number || '50100234567890',
-        ifsc_code: emp.bank_details?.ifsc_code || 'HDFC0000123',
-        qualification: emp.qualification || 'Master of Business Administration (Finance), B.Com',
-        languages: Array.isArray(emp.languages) && emp.languages.length > 0 ? emp.languages : ['English (Fluent)', 'Hindi (Native)', 'Marathi (Conversational)'],
+        mobile_number: emp.mobile_number || '',
+        emergency_contact_name: emp.emergency_contact?.name || '',
+        emergency_contact_phone: emp.emergency_contact?.phone || '',
+        emergency_contact_relation: emp.emergency_contact?.relationship || '',
+        bank_name: emp.bank_details?.bank_name || '',
+        account_number: emp.bank_details?.account_number || '',
+        ifsc_code: emp.bank_details?.ifsc_code || '',
+        qualification: emp.qualification || '',
+        languages: Array.isArray(emp.languages) ? emp.languages : [],
       },
       documents: (emp.documents && emp.documents.length > 0) ? (emp.documents || []).map((doc: any) => ({
         id: String(doc.id),
-        document_type: doc.document_type || 'identity_proof',
-        filename: doc.file_name || doc.filename || 'Document',
-        mime_type: doc.mime_type || 'application/pdf',
-        size_bytes: doc.file_size_bytes || doc.size_bytes || 2516582,
-        verification_status: doc.verification_status || 'VERIFIED',
+        document_type: doc.document_type || '',
+        filename: doc.file_name || doc.filename || '',
+        mime_type: doc.mime_type || '',
+        size_bytes: doc.file_size_bytes || doc.size_bytes || 0,
+        verification_status: doc.verification_status || '',
         download_url: API_ENDPOINTS.approvals.document(id, doc.id),
       })) : [],
     };
@@ -465,10 +318,6 @@ export class ApprovalHubService {
   }
 
   downloadDocument(employeeId: string | number, documentId: string | number): void {
-    if (String(employeeId).startsWith('mock-')) {
-      this.notification.show('Demo document: file preview not available in mock mode.', 'info');
-      return;
-    }
     const preview = window.open('', '_blank');
     if (!preview) {
       this.notification.show('Allow pop-ups to preview this document.', 'error');
@@ -510,14 +359,6 @@ export class ApprovalHubService {
   }
 
   authorize(id: string | number): void {
-    if (String(id).startsWith('mock-')) {
-      this.items.update((list) =>
-        list.map((it) => (it.id === id ? { ...it, status: 'Authorized', loginState: 'Enabled (Active)' } : it))
-      );
-      this.notification.show('Employee profile approved & system credentials activated.', 'success');
-      this.closeReview();
-      return;
-    }
     this.apiService.post(API_ENDPOINTS.approvals.approveEmployee(id), {}).subscribe({
       next: () => {
         this.notification.show('Employee profile approved & system credentials activated.', 'success');
@@ -529,14 +370,6 @@ export class ApprovalHubService {
   }
 
   reject(id: string | number, reason: string): void {
-    if (String(id).startsWith('mock-')) {
-      this.items.update((list) =>
-        list.map((it) => (it.id === id ? { ...it, status: 'Rejected', loginState: 'Disabled (Rejected)' } : it))
-      );
-      this.notification.show('Employee profile rejected with feedback notice sent to candidate.', 'info');
-      this.closeReview();
-      return;
-    }
     this.apiService.post(API_ENDPOINTS.approvals.rejectEmployee(id), { reason }).subscribe({
       next: () => {
         this.notification.show('Employee profile rejected with feedback notice sent to candidate.', 'info');

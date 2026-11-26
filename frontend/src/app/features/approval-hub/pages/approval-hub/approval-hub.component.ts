@@ -226,14 +226,14 @@ export class ApprovalHubComponent implements OnInit, OnDestroy {
   }
 
   getInitials(name?: string): string {
-    if (!name) return 'JD';
+    if (!name?.trim()) return '';
     const parts = name.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
   formatFileSize(bytes?: number): string {
-    if (!bytes || bytes <= 0) return '2.4 MB';
+    if (!bytes || bytes <= 0) return '';
     if (bytes < 1024 * 1024) {
       return (bytes / 1024).toFixed(1) + ' KB';
     }
@@ -258,11 +258,8 @@ export class ApprovalHubComponent implements OnInit, OnDestroy {
   }
 
   calculateCompletion(review: ApprovalDetails): { percent: number; remaining: number } {
-    if (review.id === 'mock-jhon-doe' || review.name === 'Jhon Doe') {
-      return { percent: 70, remaining: 2 };
-    }
     const prof = review.profile;
-    if (!prof) return { percent: 0, remaining: 10 };
+    if (!prof) return { percent: 0, remaining: 11 };
     const mandatoryFields = [
       prof.date_of_birth,
       prof.gender,
@@ -280,6 +277,6 @@ export class ApprovalHubComponent implements OnInit, OnDestroy {
     const totalMandatory = mandatoryFields.length;
     const remaining = Math.max(0, totalMandatory - filledCount);
     const percent = Math.min(100, Math.round((filledCount / totalMandatory) * 100));
-    return { percent: percent || 70, remaining: remaining || 2 };
+    return { percent, remaining };
   }
 }
