@@ -47,7 +47,6 @@ export class LoginComponent {
       ],
     ],
     password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(128)]],
-    rememberMe: [true],
   });
 
   get emailControl() {
@@ -74,9 +73,8 @@ export class LoginComponent {
     const raw = this.form.getRawValue();
     const email = raw.email.trim();
     const password = raw.password;
-    const rememberMe = raw.rememberMe;
 
-    this.auth.login(email, password, rememberMe).subscribe({
+    this.auth.login(email, password).subscribe({
       next: (result) => {
         this.isLoading.set(false);
         if (result.success) {

@@ -157,32 +157,9 @@ form {
 .form-row-between {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-top: 1px;
   margin-bottom: 1px;
-}
-
-.remember-me {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-family: 'Poppins', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: #374151;
-  cursor: pointer;
-  user-select: none;
-  margin: 0;
-
-  input[type='checkbox'] {
-    width: 14px;
-    height: 14px;
-    border-radius: 4px;
-    border: 1px solid #d1d5db;
-    accent-color: #2563eb;
-    cursor: pointer;
-    margin: 0;
-  }
 }
 
 .forgot-link {

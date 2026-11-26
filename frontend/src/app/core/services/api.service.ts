@@ -99,8 +99,10 @@ export class ApiService {
     let errorMessage = 'An unexpected error occurred. Please try again.';
     let fieldErrors: Record<string, string> = {};
 
+    if (error.status === 0 && error.statusText === 'Request timed out') {
+      errorMessage = 'The request timed out. Check your connection and try again.';
     // Status 0 represents browser CORS rejection or connection refused
-    if (error.status === 0) {
+    } else if (error.status === 0) {
       errorMessage = 'Unable to connect to the backend server. Please verify the backend service is running and accessible.';
     } else if (error.error) {
       if (typeof error.error === 'string') {

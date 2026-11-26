@@ -15,9 +15,7 @@ export class AuthService {
   private readonly tokenKey = 'access_token';
   private readonly refreshKey = 'refresh_token';
   private readonly expiryKey = 'token_expiry';
-  private readonly storageModeKey = 'auth_storage_mode';
   private readonly sessionStorageKeys = [this.sessionKey, this.tokenKey, this.refreshKey, this.expiryKey];
-  private persistAcrossBrowserRestarts = this.resolvePersistenceMode();
 
   private readonly currentUser = signal<User | null>(this.restore());
   readonly user = this.currentUser.asReadonly();
@@ -31,6 +29,7 @@ export class AuthService {
   private refreshInProgress$: Observable<TokenResponse | null> | null = null;
 
   constructor() {
+    this.clearLegacyLocalSession();
     this.checkAndResumeSession();
   }
 
@@ -43,25 +42,23 @@ export class AuthService {
     const expiryStr = this.getStoredItem(this.expiryKey);
 
     if (!refreshToken || refreshToken === 'demo-hardcoded-session-token' || !accessToken) {
+      this.clearStoredSession();
+      this.currentUser.set(null);
       return;
     }
 
-    if (expiryStr) {
-      const expiryTimestamp = parseInt(expiryStr, 10);
-      const remainingMs = expiryTimestamp - Date.now();
-      const remainingSeconds = Math.floor(remainingMs / 1000);
+    const expiryTimestamp = Number(expiryStr);
+    const remainingSeconds = Math.floor((expiryTimestamp - Date.now()) / 1000);
 
-      if (remainingSeconds > 60) {
-        // Token still valid, schedule proactive refresh before it expires
-        this.scheduleTokenRefresh(remainingSeconds);
-      } else {
-        // Token is expired or expiring within 60s, refresh immediately
-        console.log('[AuthService] Token near expiry or expired on app startup. Refreshing immediately...');
-        this.refreshToken().subscribe({
-          error: (err) => console.warn('[AuthService] Startup token refresh error:', err),
-        });
-      }
+    if (Number.isFinite(expiryTimestamp) && remainingSeconds > 60) {
+      this.scheduleTokenRefresh(remainingSeconds);
+      return;
     }
+
+    // Missing, invalid, or nearly expired access-token metadata must be refreshed.
+    this.refreshToken().subscribe({
+      error: (err) => console.warn('[AuthService] Startup token refresh error:', err),
+    });
   }
 
   /**
@@ -148,10 +145,7 @@ export class AuthService {
   /**
    * Process and store successful auth token bundle (from login or refresh).
    */
-  private handleAuthSuccess(data: TokenResponse, rememberMe?: boolean): void {
-    if (rememberMe !== undefined) {
-      this.configurePersistenceMode(rememberMe);
-    }
+  private handleAuthSuccess(data: TokenResponse): void {
     if (data.access_token) {
       this.setStoredItem(this.tokenKey, data.access_token);
     }
@@ -194,8 +188,7 @@ export class AuthService {
    */
   login(
     email: string,
-    password: string,
-    rememberMe = true
+    password: string
   ): Observable<{ success: boolean; message?: string }> {
     if (!email || password.length < 8) {
       return of({
@@ -215,7 +208,7 @@ export class AuthService {
       .pipe(
         map((response) => {
           if (response && response.data) {
-            this.handleAuthSuccess(response.data, rememberMe);
+            this.handleAuthSuccess(response.data);
             return { success: true };
           }
 
@@ -270,8 +263,7 @@ export class AuthService {
    * Hardcoded demo user fallback ensuring application functionality when offline or on CORS
    */
   fallbackHardcodedLogin(
-    email: string,
-    rememberMe = this.persistAcrossBrowserRestarts
+    email: string
   ): { success: boolean } {
     const isAdmin = email.toLowerCase().includes('admin');
     const prefix = email.split('@')[0] || 'User';
@@ -296,7 +288,6 @@ export class AuthService {
         : ['Approval', 'Project', 'Leave Request'],
     };
 
-    this.configurePersistenceMode(rememberMe);
     this.setStoredItem(this.tokenKey, hardcodedUser.token!);
     this.persistSession(hardcodedUser);
     return { success: true };
@@ -455,42 +446,30 @@ export class AuthService {
 
   private restore(): User | null {
     try {
-      return JSON.parse(this.getStoredItem(this.sessionKey) ?? 'null') as User | null;
+      const user = JSON.parse(this.getStoredItem(this.sessionKey) ?? 'null') as User | null;
+      if (!user || !this.getStoredItem(this.tokenKey) || !this.getStoredItem(this.refreshKey)) {
+        return null;
+      }
+      return user;
     } catch {
       return null;
     }
   }
 
-  private resolvePersistenceMode(): boolean {
-    if (sessionStorage.getItem(this.storageModeKey) === 'session') return false;
-    if (localStorage.getItem(this.storageModeKey) === 'local') return true;
-    // Preserve sessions saved before Remember Me was connected to storage.
-    return true;
-  }
-
-  private configurePersistenceMode(rememberMe: boolean): void {
-    this.persistAcrossBrowserRestarts = rememberMe;
+  private clearLegacyLocalSession(): void {
     for (const key of this.sessionStorageKeys) {
       localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
     }
-    localStorage.removeItem(this.storageModeKey);
-    sessionStorage.removeItem(this.storageModeKey);
-    const destination = rememberMe ? localStorage : sessionStorage;
-    destination.setItem(this.storageModeKey, rememberMe ? 'local' : 'session');
+    localStorage.removeItem('auth_storage_mode');
   }
 
   private getStoredItem(key: string): string | null {
-    const destination = this.persistAcrossBrowserRestarts ? localStorage : sessionStorage;
-    const other = this.persistAcrossBrowserRestarts ? sessionStorage : localStorage;
-    return destination.getItem(key) ?? other.getItem(key);
+    return sessionStorage.getItem(key);
   }
 
   private setStoredItem(key: string, value: string): void {
-    const destination = this.persistAcrossBrowserRestarts ? localStorage : sessionStorage;
-    const other = this.persistAcrossBrowserRestarts ? sessionStorage : localStorage;
-    other.removeItem(key);
-    destination.setItem(key, value);
+    localStorage.removeItem(key);
+    sessionStorage.setItem(key, value);
   }
 
   private clearStoredSession(): void {
@@ -498,7 +477,5 @@ export class AuthService {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);
     }
-    localStorage.removeItem(this.storageModeKey);
-    sessionStorage.removeItem(this.storageModeKey);
   }
 }

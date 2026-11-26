@@ -1,6 +1,6 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { finalize } from 'rxjs';
+import { finalize, throwError, timeout } from 'rxjs';
 import { LoadingService } from '../services/loading.service';
 
 export const loadingInterceptor: HttpInterceptorFn = (request, next) => {
@@ -54,6 +54,13 @@ export const loadingInterceptor: HttpInterceptorFn = (request, next) => {
   loadingService.show(message);
 
   return next(request).pipe(
+    timeout({
+      each: 45_000,
+      with: () => throwError(() => new HttpErrorResponse({
+        status: 0,
+        statusText: 'Request timed out',
+      })),
+    }),
     finalize(() => {
       loadingService.hide();
     })
