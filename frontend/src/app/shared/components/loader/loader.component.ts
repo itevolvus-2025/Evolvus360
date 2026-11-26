@@ -42,8 +42,4 @@ export class LoaderComponent {
     return explicit !== undefined ? explicit : this.loadingService.isLoading();
   });
 
-  /** Resolved message/tip */
-  readonly computedMessage = computed(() => {
-    return this.tip() || this.message() || this.loadingService.message();
-  });
 }

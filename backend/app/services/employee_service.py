@@ -1384,6 +1384,9 @@ def submit_onboarding(
         invitation.invitation_status = "ACCEPTED"
         invitation.submitted_at = now
         invitation.expires_at = now
+        # Invalidate the opaque invitation credential as well as its expiry.
+        # This keeps a copied link unusable after a successful submission.
+        invitation.invitation_token_hash = hash_token(new_opaque_token())
         invitation.draft_form_data = None
         employee.rejection_reason = None
         employee.user.phone_number = mobile_number

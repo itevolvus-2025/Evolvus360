@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     frontend_onboarding_url: str = "http://localhost:4200/onboarding"
     onboarding_invitation_expire_hours: int = Field(default=48, gt=0)
     temporary_password_expire_hours: int = Field(default=24, gt=0)
-    frontend_login_url: str = "http://localhost:4200/login"
+    frontend_login_url: str = "http://localhost:4200/auth/login"
     max_onboarding_file_size_bytes: int = Field(
         default=5 * 1024 * 1024, gt=0, le=5 * 1024 * 1024
     )

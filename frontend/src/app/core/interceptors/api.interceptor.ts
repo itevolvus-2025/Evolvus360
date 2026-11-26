@@ -5,13 +5,17 @@ import { AuthService } from '../services/auth.service';
 
 export const apiInterceptor: HttpInterceptorFn = (request, next) => {
   const authService = inject(AuthService);
+  // Invitation onboarding is authorized by its 48-hour invitation token in the
+  // request body. Do not couple these public endpoints to the user's session.
+  const isInvitationRequest = ['/onboarding/invitations/validate', '/onboarding/draft', '/onboarding/submit']
+    .some((path) => request.url.includes(path));
   const token = authService.getAccessToken();
   const headers: Record<string, string> = {
     Accept: 'application/json',
   };
 
   // Only attach Bearer header if a valid real token exists (never dummy fallback tokens)
-  if (token && token !== 'demo-hardcoded-session-token') {
+  if (!isInvitationRequest && token && token !== 'demo-hardcoded-session-token') {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -25,6 +29,7 @@ export const apiInterceptor: HttpInterceptorFn = (request, next) => {
       if (
         error instanceof HttpErrorResponse &&
         error.status === 401 &&
+        !isInvitationRequest &&
         !['/auth/login', '/auth/refresh', '/auth/logout', '/auth/forgot-password', '/auth/reset-password']
           .some((path) => request.url.includes(path))
       ) {
