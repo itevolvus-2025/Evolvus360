@@ -19,10 +19,19 @@ class SendEmailRequest(BaseModel):
     to: list[EmailStr] = Field(min_length=1, max_length=50)
     cc: list[EmailStr] = Field(default_factory=list, max_length=50)
     bcc: list[EmailStr] = Field(default_factory=list, max_length=50)
-    template_key: str = Field(min_length=2, max_length=100, pattern=r"^[A-Z0-9_]+$")
+    template_key: str | None = Field(
+        default=None, min_length=2, max_length=100, pattern=r"^[A-Z0-9_]+$"
+    )
     subject: str | None = Field(default=None, max_length=255)
+    body: str | None = Field(default=None, min_length=1)
     variables: dict[str, str | int | float | bool] = Field(default_factory=dict)
     attachments: list[AttachmentInput] = Field(default_factory=list, max_length=10)
+
+    @model_validator(mode="after")
+    def template_or_body_required(self):
+        if not self.template_key and not self.body:
+            raise ValueError("Either template_key or body is required")
+        return self
 
     @field_validator("to", "cc", "bcc")
     @classmethod

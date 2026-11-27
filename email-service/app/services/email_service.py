@@ -238,24 +238,31 @@ def send_email(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "An address cannot appear in multiple recipient lists",
         )
-    template = db.scalar(
-        select(EmailTemplate).where(
-            EmailTemplate.template_key == payload.template_key,
-            EmailTemplate.is_active.is_(True),
+    if payload.template_key:
+        template = db.scalar(
+            select(EmailTemplate).where(
+                EmailTemplate.template_key == payload.template_key,
+                EmailTemplate.is_active.is_(True),
+            )
         )
-    )
-    if template is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, "Active email template was not found"
-        )
-    if payload.subject and not template.allow_custom_subject:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "This template does not allow a custom subject",
-        )
-    subject, body_text, body_html = _render(template, payload.variables)
-    if payload.subject:
-        subject = payload.subject
+        if template is None:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, "Active email template was not found"
+            )
+        if payload.subject and not template.allow_custom_subject:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "This template does not allow a custom subject",
+            )
+        subject, body_text, body_html = _render(template, payload.variables)
+        if payload.subject:
+            subject = payload.subject
+        stored_template_key = payload.template_key
+    else:
+        subject = payload.subject or ""
+        body_text = payload.body
+        body_html = None
+        stored_template_key = "DIRECT"
     if len(subject) > 255:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -273,7 +280,7 @@ def send_email(
         bcc_addresses=[str(value) for value in payload.bcc],
         sender_email=get_settings().smtp_from_email or "unconfigured",
         subject=subject,
-        template_key=payload.template_key,
+        template_key=stored_template_key,
         status="PENDING",
         delivery_payload_encrypted=encrypted_payload,
     )

@@ -22,7 +22,7 @@ Stop with `Ctrl+C` in that service terminal. HRMS is a separate terminal/process
 
 All routes are under `/api/v1`. `GET /health` is a liveness check. `GET /ready` checks DB and provider configuration. Service calls use `X-API-Key`; admin operations use `X-Admin-API-Key`. Keep both keys on server-side environments only. In production use HTTPS.
 
-- `POST /emails/send`: template send, recipients/CC/BCC, variables, optional validated attachments; accepts `Idempotency-Key`.
+- `POST /emails/send`: send using an active `template_key` or an inline plain-text `body`, recipients/CC/BCC, optional validated attachments; accepts `Idempotency-Key`. If both `template_key` and `body` are supplied, the template takes precedence. Inline sends use the optional `subject` (empty if omitted).
 - `GET /emails/{email_id}`: masked status for service callers.
 - `GET /emails`: paginated, filterable logs (admin).
 - `POST /emails/{email_id}/retry`: retry failed delivery (admin).
@@ -34,6 +34,17 @@ Example:
 $headers = @{ 'X-API-Key' = $env:EMAIL_SERVICE_API_KEY; 'Idempotency-Key' = 'hrms-invite-unique-id' }
 $body = @{ application_name='EVOLVUS_HRMS'; to=@('person@example.com'); template_key='EMPLOYEE_INVITATION'; variables=@{ employee_name='Jhon Doe'; company_name='Evolvus'; invitation_link='https://example.com/onboarding?token=opaque'; expiry_hours=48 } } | ConvertTo-Json -Depth 8
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8001/api/v1/emails/send -Headers $headers -ContentType 'application/json' -Body $body
+```
+
+For a direct email without a template, provide `body` instead of `template_key`:
+
+```json
+{
+  "application_name": "EVOLVUS_HRMS",
+  "to": ["person@example.com"],
+  "subject": "Test email",
+  "body": "This is a test email."
+}
 ```
 
 ## Database and templates
